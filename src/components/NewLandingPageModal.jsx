@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -31,25 +31,45 @@ const inputStyle = {
   },
 };
 
-const NewLandingPageModal = ({ open, onClose, onSave }) => {
+const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
   const [name, setName] = useState("");
   const [html, setHtml] = useState("");
   const [captureData, setCaptureData] = useState(false);
   const [redirectUrl, setRedirectUrl] = useState("");
 
+  // Populate form fields if editing
+  useEffect(() => {
+    if (pageToEdit) {
+      setName(pageToEdit.name || "");
+      setHtml(pageToEdit.html || "");
+      setCaptureData(pageToEdit.capture_credentials || false);
+      setRedirectUrl(pageToEdit.redirect_url || "");
+    } else {
+      // Clear fields for new page
+      setName("");
+      setHtml("");
+      setCaptureData(false);
+      setRedirectUrl("");
+    }
+  }, [pageToEdit, open]);
+
   const handleSave = () => {
-    const newPage = {
+    const pageData = {
       name,
       html,
       capture_credentials: captureData,
       redirect_url: redirectUrl,
     };
-    onSave(newPage);
+
+    if (pageToEdit && pageToEdit.id) {
+      // Edit mode (PUT)
+      onSave({ ...pageData, id: pageToEdit.id }, "edit");
+    } else {
+      // Create mode (POST)
+      onSave(pageData, "create");
+    }
+
     onClose();
-    setName("");
-    setHtml("");
-    setRedirectUrl("");
-    setCaptureData(false);
   };
 
   const handleImportSite = () => {
@@ -81,7 +101,7 @@ const NewLandingPageModal = ({ open, onClose, onSave }) => {
           backgroundColor: "#fff0f7",
         }}
       >
-        🌐 New Landing Page
+        {pageToEdit ? "✏️ Edit Landing Page" : "🌐 New Landing Page"}
       </DialogTitle>
 
       <DialogContent dividers>
@@ -212,7 +232,7 @@ const NewLandingPageModal = ({ open, onClose, onSave }) => {
             },
           }}
         >
-          SAVE PAGE
+          {pageToEdit ? "UPDATE PAGE" : "SAVE PAGE"}
         </Button>
       </DialogActions>
     </Dialog>

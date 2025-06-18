@@ -30,6 +30,7 @@ import NewLandingPageModal from "../components/NewLandingPageModal";
 const LandingPages = () => {
   const [landingPages, setLandingPages] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPage, setEditingPage] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -51,7 +52,11 @@ const LandingPages = () => {
     }
   };
 
-  const handleEdit = (page) => console.log("Edit page:", page);
+  const handleEdit = (page) => {
+    setEditingPage(page);
+    setIsModalOpen(true);
+  };
+
   const handleDelete = async (page) => {
     const confirmDelete = window.confirm(`Delete "${page.name}"?`);
     if (!confirmDelete) return;
@@ -69,19 +74,40 @@ const LandingPages = () => {
     }
   };
 
-  const handleSaveNewPage = async (newPage) => {
+  const handleSaveNewPage = async (pageData, mode) => {
     try {
-      const res = await fetch("http://localhost:5000/api/landing-pages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newPage),
-      });
-      if (!res.ok) throw new Error("Failed to create landing page");
-      const savedPage = await res.json();
-      setLandingPages((prev) => [...prev, savedPage]);
+      if (mode === "edit") {
+        // PUT request for edit
+        const res = await fetch(
+          `http://localhost:5000/api/landing-pages/${pageData.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(pageData),
+          }
+        );
+        if (!res.ok) throw new Error("Failed to update landing page");
+        const updatedPage = await res.json();
+        setLandingPages((prev) =>
+          prev.map((p) => (p.id === updatedPage.id ? updatedPage : p))
+        );
+      } else {
+        // POST request for create
+        const res = await fetch("http://localhost:5000/api/landing-pages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(pageData),
+        });
+        if (!res.ok) throw new Error("Failed to create landing page");
+        const savedPage = await res.json();
+        setLandingPages((prev) => [...prev, savedPage]);
+      }
+
+      setIsModalOpen(false);
+      setEditingPage(null);
     } catch (error) {
       console.error("Save error:", error);
-      alert("Failed to create landing page.");
+      alert("Failed to save landing page.");
     }
   };
 
@@ -145,28 +171,30 @@ const LandingPages = () => {
           Landing Pages
         </Typography>
         <Button
-  variant="contained"
-  onClick={() => setIsModalOpen(true)}
-  startIcon={<AddIcon />}
-  sx={{
-    background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
-    color: "#fff",
-    fontWeight: "bold",
-    borderRadius: "8px",
-    textTransform: "uppercase",
-    px: 3,
-    py: 1,
-    boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
-    transition: "all 0.3s ease",
-    "&:hover": {
-      background: "linear-gradient(135deg, #c60078, #ff478a)",
-      boxShadow: "0 6px 12px rgba(236, 0, 140, 0.5)",
-    },
-  }}
->
-  New Landing Page
-</Button>
-
+          variant="contained"
+          onClick={() => {
+            setIsModalOpen(true);
+            setEditingPage(null); // reset edit mode
+          }}
+          startIcon={<AddIcon />}
+          sx={{
+            background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+            color: "#fff",
+            fontWeight: "bold",
+            borderRadius: "8px",
+            textTransform: "uppercase",
+            px: 3,
+            py: 1,
+            boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              background: "linear-gradient(135deg, #c60078, #ff478a)",
+              boxShadow: "0 6px 12px rgba(236, 0, 140, 0.5)",
+            },
+          }}
+        >
+          New Landing Page
+        </Button>
       </Box>
 
       {/* Main Table Container */}
@@ -220,83 +248,86 @@ const LandingPages = () => {
               <TableRow>
                 <TableCell
                   sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
-                >
-                  {renderSortLabel("name", "Name")}
-                </TableCell>
-                <TableCell
-                  sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
-                >
-                  {renderSortLabel("capture_credentials", "Capture Credential")}
-                </TableCell>
-                <TableCell
-                  sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
-                >
-                  {renderSortLabel("redirect_url", "Redirect URL")}
-                </TableCell>
-                <TableCell
-                  sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
-                >
-                  Actions
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginatedPages.length > 0 ? (
-                paginatedPages.map((page) => (
-                  <TableRow key={page.id} hover>
-                    <TableCell>{page.name}</TableCell>
-                    <TableCell>{page.capture_credentials ? "Yes" : "No"}</TableCell>
-                    <TableCell>{page.redirect_url || "-"}</TableCell>
-                    <TableCell>
-                      <Tooltip title="Edit">
-                        <IconButton color="secondary" onClick={() => handleEdit(page)}>
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton color="error" onClick={() => handleDelete(page)}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={4} align="center">
-                    No landing pages found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        {/* Footer */}
-        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="body2" color="gray">
-            Showing{" "}
-            {Math.min(filteredPages.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
-            {Math.min(currentPage * entriesPerPage, filteredPages.length)} of{" "}
-            {filteredPages.length} entries
-          </Typography>
-          <Pagination
-            count={pageCount}
-            page={currentPage}
-            onChange={(_, page) => setCurrentPage(page)}
-            color="primary"
-          />
-        </Box>
-      </Paper>
-
-      {/* Modal */}
-      <NewLandingPageModal
-        open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveNewPage}
+>
+{renderSortLabel("name", "Name")}
+</TableCell>
+<TableCell
+sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
+>
+{renderSortLabel("capture_credentials", "Capture Credential")}
+</TableCell>
+<TableCell
+sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
+>
+{renderSortLabel("redirect_url", "Redirect URL")}
+</TableCell>
+<TableCell
+sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
+>
+Actions
+</TableCell>
+</TableRow>
+</TableHead>
+<TableBody>
+{paginatedPages.length > 0 ? (
+paginatedPages.map((page) => (
+<TableRow key={page.id} hover>
+<TableCell>{page.name}</TableCell>
+<TableCell>{page.capture_credentials ? "Yes" : "No"}</TableCell>
+<TableCell>{page.redirect_url || "-"}</TableCell>
+<TableCell>
+<Tooltip title="Edit">
+<IconButton color="secondary" onClick={() => handleEdit(page)}>
+<EditIcon />
+</IconButton>
+</Tooltip>
+<Tooltip title="Delete">
+<IconButton color="error" onClick={() => handleDelete(page)}>
+<DeleteIcon />
+</IconButton>
+</Tooltip>
+</TableCell>
+</TableRow>
+))
+) : (
+<TableRow>
+<TableCell colSpan={4} align="center">
+No landing pages found.
+</TableCell>
+</TableRow>
+)}
+</TableBody>
+</Table>
+</TableContainer>
+    {/* Footer */}
+    <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
+      <Typography variant="body2" color="gray">
+        Showing{" "}
+        {Math.min(filteredPages.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
+        {Math.min(currentPage * entriesPerPage, filteredPages.length)} of{" "}
+        {filteredPages.length} entries
+      </Typography>
+      <Pagination
+        count={pageCount}
+        page={currentPage}
+        onChange={(_, page) => setCurrentPage(page)}
+        color="primary"
       />
     </Box>
-  );
+  </Paper>
+
+  {/* Modal */}
+  <NewLandingPageModal
+    open={isModalOpen}
+    onClose={() => {
+      setIsModalOpen(false);
+      setEditingPage(null);
+    }}
+    onSave={handleSaveNewPage}
+    pageToEdit={editingPage}  // pass editing page here
+  />
+</Box>
+);
 };
 
 export default LandingPages;

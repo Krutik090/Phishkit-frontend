@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -35,10 +35,40 @@ const pinkTextFieldSx = {
   },
 };
 
-const NewTemplateModal = ({ open, onClose }) => {
-  const [tab, setTab] = React.useState(0);
-  const [files, setFiles] = React.useState([]);
-  const [tracking, setTracking] = React.useState(true); // default ON
+const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
+  const [tab, setTab] = useState(0);
+  const [files, setFiles] = useState([]);
+  const [tracking, setTracking] = useState(true);
+  const [name, setName] = useState("");
+  const [envelopeSender, setEnvelopeSender] = useState("");
+  const [subject, setSubject] = useState("");
+  const [textContent, setTextContent] = useState("");
+  const [htmlContent, setHtmlContent] = useState("");
+
+  // Load templateData when modal opens or changes
+  useEffect(() => {
+    if (templateData) {
+      setName(templateData.name || "");
+      setSubject(templateData.subject || "");
+      setTextContent(templateData.text || "");
+      setHtmlContent(templateData.html || "");
+      setFiles(templateData.attachments || []);
+      // envelopeSender is not in your sample data, so optional or keep empty
+      setEnvelopeSender(""); 
+      setTracking(true); // you can modify if needed based on data
+      setTab(0);
+    } else {
+      // Reset for new template
+      setName("");
+      setSubject("");
+      setTextContent("");
+      setHtmlContent("");
+      setFiles([]);
+      setEnvelopeSender("");
+      setTracking(true);
+      setTab(0);
+    }
+  }, [templateData, open]);
 
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
@@ -49,6 +79,47 @@ const NewTemplateModal = ({ open, onClose }) => {
     const newFiles = [...files];
     newFiles.splice(index, 1);
     setFiles(newFiles);
+  };
+
+  const handleSave = async () => {
+    const payload = {
+      name,
+      subject,
+      text: textContent,
+      html: htmlContent,
+      attachments: files,
+      // envelopeSender and tracking can be added here if your backend supports it
+    };
+
+    try {
+      let response;
+      if (templateData?.id) {
+        // PUT update
+        response = await fetch(`http://localhost:5000/api/templates/${templateData.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: templateData.id, ...payload }),
+        });
+      } else {
+        // POST create
+        response = await fetch("http://localhost:5000/api/templates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to save template");
+      }
+
+      const savedData = await response.json();
+      onSave(savedData);
+      onClose();
+    } catch (error) {
+      console.error(error);
+      alert("Error saving template. Please try again.");
+    }
   };
 
   return (
@@ -76,7 +147,7 @@ const NewTemplateModal = ({ open, onClose }) => {
           backgroundColor: "#fff0f7",
         }}
       >
-        ✉️ New Email Template
+        ✉️ {templateData ? "Edit Email Template" : "New Email Template"}
       </DialogTitle>
 
       <DialogContent dividers sx={{ p: 4 }}>
@@ -84,7 +155,14 @@ const NewTemplateModal = ({ open, onClose }) => {
         <Typography variant="body2" fontWeight="500" mb={0.5}>
           Name
         </Typography>
-        <TextField fullWidth variant="outlined" margin="dense" sx={pinkTextFieldSx} />
+        <TextField
+          fullWidth
+          variant="outlined"
+          margin="dense"
+          sx={pinkTextFieldSx}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
 
         {/* Import Button */}
         <Button
@@ -116,13 +194,22 @@ const NewTemplateModal = ({ open, onClose }) => {
           variant="outlined"
           margin="dense"
           sx={pinkTextFieldSx}
+          value={envelopeSender}
+          onChange={(e) => setEnvelopeSender(e.target.value)}
         />
 
         {/* Subject */}
         <Typography variant="body2" fontWeight="500" mb={0.5}>
           Subject
         </Typography>
-        <TextField fullWidth variant="outlined" margin="dense" sx={pinkTextFieldSx} />
+        <TextField
+          fullWidth
+          variant="outlined"
+          margin="dense"
+          sx={pinkTextFieldSx}
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+        />
 
         {/* Tabs */}
         <Tabs
@@ -167,6 +254,10 @@ const NewTemplateModal = ({ open, onClose }) => {
           variant="outlined"
           margin="dense"
           sx={pinkTextFieldSx}
+          value={tab === 0 ? textContent : htmlContent}
+          onChange={(e) =>
+            tab === 0 ? setTextContent(e.target.value) : setHtmlContent(e.target.value)
+          }
         />
 
         {/* Tracking Switch */}
@@ -242,6 +333,7 @@ const NewTemplateModal = ({ open, onClose }) => {
           CANCEL
         </Button>
         <Button
+          onClick={handleSave}
           variant="contained"
           sx={{
             background: "linear-gradient(to right, #ec4899, #d946ef)",
