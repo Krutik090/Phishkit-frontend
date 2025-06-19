@@ -18,6 +18,11 @@ import {
   Select,
   MenuItem,
   InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -26,6 +31,7 @@ import {
   ArrowDropUp as ArrowDropUpIcon,
   ArrowDropDown as ArrowDropDownIcon,
   Visibility as VisibilityIcon,
+  CheckBox,
 } from "@mui/icons-material";
 import { pink } from "@mui/material/colors";
 import CampaignIcon from "@mui/icons-material/Campaign";
@@ -39,16 +45,23 @@ const Datatable = () => {
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [openModal, setOpenModal] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    template: "",
-    landingPage: "",
-    url: "",
-    schedule: "",
-    sendingProfile: "",
-    groups: [],
-    quiz: "",
-  });
+  const [formData, setFormData] = useState(initialFormState());
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, campaign: null });
+  const [selectedCampaignId, setSelectedCampaignId] = useState(null);
+
+  function initialFormState() {
+    return {
+      id: null,
+      name: "",
+      template: "",
+      landingPage: "",
+      url: "",
+      schedule: "",
+      sendingProfile: "",
+      groups: [],
+      quiz: "",
+    };
+  }
 
   useEffect(() => {
     fetch("http://localhost:5000/api/campaigns")
@@ -90,7 +103,6 @@ const Datatable = () => {
   const filtered = data.filter((row) =>
     row.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
   const sorted = [...filtered].sort((a, b) => {
     const valA = a[sortField] || "";
     const valB = b[sortField] || "";
@@ -105,52 +117,83 @@ const Datatable = () => {
     currentPage * entriesPerPage
   );
 
-  const handleSave = () => {
-    // Create new campaign object
-    const newCampaign = {
-      id: Date.now(), // Simple ID generation
-      name: formData.name,
-      client_id: null,
-      status: "Draft",
-      launch_date: formData.schedule,
-      emails_sent: 0,
-      ...formData
-    };
-
-    // Add to data
-    setData((prev) => [...prev, newCampaign]);
-    
-    // Reset form and close modal
+  const handleEdit = (campaign) => {
     setFormData({
-      name: "",
-      template: "",
-      landingPage: "",
-      url: "",
-      schedule: "",
-      sendingProfile: "",
-      groups: [],
-      quiz: "",
+      id: campaign.id,
+      name: campaign.name,
+      template: campaign.template || "",
+      landingPage: campaign.landingPage || "",
+      url: campaign.url || "",
+      schedule: campaign.launch_date || "",
+      sendingProfile: campaign.sendingProfile || "",
+      groups: campaign.groups || [],
+      quiz: campaign.quiz || "",
     });
+    setOpenModal(true);
+  };
+
+  const handleDeleteConfirm = (campaign) => {
+    setDeleteDialog({ open: true, campaign });
+  };
+
+  const confirmDelete = async () => {
+  const campaignId = deleteDialog.campaign?.id;
+  if (!campaignId) return;
+
+  try {
+    const res = await fetch(`http://localhost:5000/api/campaigns/${campaignId}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to delete campaign on the server.");
+    }
+
+    // If backend delete was successful, update frontend state
+    setData((prev) => prev.filter((c) => c.id !== campaignId));
+  } catch (error) {
+    console.error("Error deleting campaign:", error);
+    alert("Failed to delete campaign. Please try again.");
+  } finally {
+    setDeleteDialog({ open: false, campaign: null });
+  }
+};
+
+
+  const cancelDelete = () => {
+    setDeleteDialog({ open: false, campaign: null });
+  };
+
+  const handleSave = (savedCampaign) => {
+    if (savedCampaign.id && data.some((c) => c.id === savedCampaign.id)) {
+      setData((prev) =>
+        prev.map((c) => (c.id === savedCampaign.id ? savedCampaign : c))
+      );
+    } else {
+      const newCampaign = {
+        id: Date.now(),
+        name: savedCampaign.name,
+        client_id: null,
+        status: "Draft",
+        launch_date: savedCampaign.schedule,
+        emails_sent: 0,
+        ...savedCampaign,
+      };
+      setData((prev) => [...prev, newCampaign]);
+    }
+
+    setFormData(initialFormState());
     setOpenModal(false);
   };
 
   const handleCloseModal = () => {
     setOpenModal(false);
-    // Reset form data
-    setFormData({
-      name: "",
-      template: "",
-      landingPage: "",
-      url: "",
-      schedule: "",
-      sendingProfile: "",
-      groups: [],
-      quiz: "",
-    });
+    setFormData(initialFormState());
   };
 
   return (
     <Box p={3}>
+      {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center">
           <CampaignIcon sx={{ color: pink[500], mr: 1 }} />
@@ -159,29 +202,40 @@ const Datatable = () => {
           </Typography>
         </Box>
         <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setOpenModal(true)}
-          sx={{
-            background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
-            color: "#fff",
-            fontWeight: "bold",
-            borderRadius: "8px",
-            textTransform: "uppercase",
-            px: 3,
-            py: 1,
-            boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
-            transition: "all 0.3s ease",
-            "&:hover": {
-              background: "linear-gradient(135deg, #d6007a, #ff478a)",
-              boxShadow: "0 6px 12px rgba(236, 0, 140, 0.5)",
-            },
-          }}
-        >
-          Add Campaign
-        </Button>
+  variant="contained"
+  startIcon={<AddIcon />}
+  onClick={() => {
+    if (selectedCampaignId) {
+      alert(`Selected Campaign ID: ${selectedCampaignId}`);
+    } else {
+      alert("Please select a campaign first.");
+    }
+
+    setFormData(initialFormState());
+    setOpenModal(true);
+  }}
+  sx={{
+    background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+    color: "#fff",
+    fontWeight: "bold",
+    borderRadius: "8px",
+    textTransform: "uppercase",
+    px: 3,
+    py: 1,
+    boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
+    transition: "all 0.3s ease",
+    "&:hover": {
+      background: "linear-gradient(135deg, #d6007a, #ff478a)",
+      boxShadow: "0 6px 12px rgba(236, 0, 140, 0.5)",
+    },
+  }}
+>
+  Add Campaign
+</Button>
+
       </Box>
 
+      {/* Table Container */}
       <Paper
         elevation={2}
         sx={{
@@ -193,6 +247,7 @@ const Datatable = () => {
           overflow: "hidden",
         }}
       >
+        {/* Top Controls */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <FormControl variant="standard">
             <InputLabel>Show</InputLabel>
@@ -211,7 +266,6 @@ const Datatable = () => {
               ))}
             </Select>
           </FormControl>
-
           <TextField
             placeholder="🔍 Search..."
             value={searchQuery}
@@ -224,11 +278,13 @@ const Datatable = () => {
           />
         </Box>
 
+        {/* Table */}
         <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
                 {[
+                  { label: "Select", field: "Select" },
                   { label: "ID", field: "id" },
                   { label: "Name", field: "name" },
                   { label: "Client ID", field: "client_id" },
@@ -264,6 +320,18 @@ const Datatable = () => {
               {paginated.length > 0 ? (
                 paginated.map((row) => (
                   <TableRow key={row.id} hover>
+  <TableCell>
+  <CheckBox
+    checked={selectedCampaignId === row.id}
+    onChange={() => setSelectedCampaignId(row.id)} // Use onChange instead of onClick
+    sx={{
+      color: "#ec008c",
+      '&.Mui-checked': {
+        color: "#ec008c",
+      },
+    }}
+  />
+</TableCell>
                     <TableCell>{row.id}</TableCell>
                     <TableCell>{row.name}</TableCell>
                     <TableCell>{row.client_id ?? "—"}</TableCell>
@@ -281,12 +349,20 @@ const Datatable = () => {
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Edit">
-                        <IconButton size="small" color="secondary">
+                        <IconButton
+                          size="small"
+                          color="secondary"
+                          onClick={() => handleEdit(row)}
+                        >
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete">
-                        <IconButton size="small" color="error">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDeleteConfirm(row)}
+                        >
                           <DeleteIcon />
                         </IconButton>
                       </Tooltip>
@@ -304,6 +380,7 @@ const Datatable = () => {
           </Table>
         </TableContainer>
 
+        {/* Pagination */}
         <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="body2" color="gray">
             Showing {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
@@ -318,7 +395,7 @@ const Datatable = () => {
         </Box>
       </Paper>
 
-      {/* Modal for creating new campaign */}
+      {/* Modal for Add/Edit */}
       <NewCampaignModal
         open={openModal}
         onClose={handleCloseModal}
@@ -326,6 +403,23 @@ const Datatable = () => {
         formData={formData}
         setFormData={setFormData}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.open} onClose={cancelDelete}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete{" "}
+            <strong>{deleteDialog.campaign?.name}</strong>?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelDelete}>Cancel</Button>
+          <Button onClick={confirmDelete} color="error">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

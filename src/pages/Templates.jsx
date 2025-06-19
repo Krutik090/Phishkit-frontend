@@ -49,6 +49,23 @@ const Templates = () => {
       .catch((err) => console.error("Failed to fetch templates:", err));
   };
 
+const handleDeleteTemplate = (templateId) => {
+  const confirmDelete = window.confirm("Are you sure you want to delete this template?");
+  if (!confirmDelete) return;
+
+  fetch(`http://localhost:5000/api/templates/${templateId}`, {
+    method: "DELETE",
+  })
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error("Failed to delete template");
+      }
+      setTemplates((prev) => prev.filter((t) => t.id !== templateId));
+    })
+    .catch((err) => console.error("Delete failed:", err));
+};
+
+
   const handleSort = (field) => {
     if (field === sortField) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -201,17 +218,30 @@ const Templates = () => {
         </FormControl>
       </Box>
 
-      {/* Table */}
-      <TableContainer component={Paper} sx={{ boxShadow: "0 4px 10px rgba(0,0,0,0.05)" }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>{renderSortLabel("Name", "name")}</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {paginated.map((template) => (
+ <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
+          <Table stickyHeader size="small">
+            <TableHead>
+              <TableRow>
+                {[{ label: "Template Name", field: "name" }, { label: "Actions", field: null }].map(
+                  ({ label, field }) => (
+                    <TableCell
+                      key={label}
+                      sx={{
+                        backgroundColor: "#ffe0ef",
+                        color: "#ec008c",
+                        fontWeight: "bold",
+                        cursor: field ? "pointer" : "default",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {field ? renderSortLabel(label, field) : label}
+                    </TableCell>
+                  )
+                )}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+               {paginated.map((template) => (
               <TableRow key={template.id}>
                 <TableCell>{template.name}</TableCell>
                 <TableCell>
@@ -223,7 +253,15 @@ const Templates = () => {
                       <EditIcon />
                     </IconButton>
                   </Tooltip>
-                  {/* You can add Delete here if you want */}
+                 <Tooltip title="Delete">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleDeleteTemplate(template.id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))}
@@ -234,9 +272,9 @@ const Templates = () => {
                 </TableCell>
               </TableRow>
             )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableBody>
+          </Table>
+        </TableContainer>
 
       {/* Pagination */}
       {pageCount > 1 && (

@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import dayjs from "dayjs";
 
+// Your custom pink color and styles
 const pink = "#ec008c";
 
 const inputStyle = {
@@ -25,6 +26,7 @@ const inputStyle = {
   transition: "border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
 };
 
+// Component
 const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
   const [templates, setTemplates] = useState([]);
   const [landingPages, setLandingPages] = useState([]);
@@ -138,7 +140,6 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
     };
 
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const handleChange = (e) => {
@@ -156,13 +157,101 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
     e.target.style.boxShadow = "none";
   };
 
-  const handleSave = () => {
-    if (formData?.name && formData?.url && formData?.schedule) {
-      onSave();
-    } else {
-      alert("Please fill in all required fields: Name, URL, and Schedule");
+  // const handleSave = async () => {
+  //   if (formData?.name && formData?.url && formData?.schedule) {
+  //     setLoading(true);
+
+  //     const payload = {
+  //       ...formData,
+  //       schedule: formData.schedule, // already formatted
+  //     };
+
+  //     try {
+  //       const response = await fetch(
+  //         formData?.id
+  //           ? `http://localhost:5000/api/campaigns/${formData.id}`
+  //           : "http://localhost:5000/api/campaigns",
+  //         {
+  //           method: formData?.id ? "PUT" : "POST",
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //           },
+  //           body: JSON.stringify(payload),
+  //         }
+  //       );
+
+  //       if (!response.ok) {
+  //         throw new Error("Failed to save campaign");
+  //       }
+
+  //       const saved = await response.json();
+  //       onSave(saved); // Return saved data to parent
+  //       onClose();
+  //     } catch (err) {
+  //       alert("Failed to save campaign: " + err.message);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   } else {
+  //     alert("Please fill in all required fields: Name, URL, and Schedule");
+  //   }
+  // };
+
+const handleSave = async () => {
+  if (formData?.name && formData?.url && formData?.schedule) {
+    setLoading(true);
+
+    // Find the selected full objects by matching names from formData
+    const selectedTemplate = templates.find(t => t.name === formData.template) || {};
+    const selectedPage = landingPages.find(lp => lp.name === formData.landingPage) || {};
+    const selectedSmtp = sendingProfiles.find(sp => sp.name === formData.sendingProfile) || {};
+
+    // groups is an array of group names, map to full group objects
+    const selectedGroups = (formData.groups || []).map(groupName =>
+      groups.find(g => g.name === groupName)
+    ).filter(Boolean);
+
+    const payload = {
+      name: formData.name,
+      template: selectedTemplate,
+      page: selectedPage,
+      smtp: selectedSmtp,
+      url: formData.url,
+      launch_date: formData.schedule,
+      groups: selectedGroups,
+    };
+
+    const isEditing = !!formData?.id;
+    const url = isEditing
+      ? `http://localhost:5000/api/campaigns/${formData.id}`
+      : "http://localhost:5000/api/campaigns";
+
+    try {
+      const response = await fetch(url, {
+        method: isEditing ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save campaign");
+      }
+
+      const saved = await response.json();
+
+      onSave(isEditing ? { ...formData, ...saved } : saved);
+      onClose();
+    } catch (err) {
+      alert("Failed to save campaign: " + err.message);
+    } finally {
+      setLoading(false);
     }
-  };
+  } else {
+    alert("Please fill in all required fields: Name, URL, and Schedule");
+  }
+};
 
   const safeFormData = {
     name: "",
@@ -177,6 +266,8 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
     groups: [],
     ...formData,
   };
+
+  // RENDER: everything else stays the same...
 
   return (
     <Dialog
