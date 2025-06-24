@@ -26,7 +26,7 @@ import {
   ArrowDropUp as ArrowDropUpIcon,
   ArrowDropDown as ArrowDropDownIcon,
 } from "@mui/icons-material";
-import NewTemplateModal from "../components/NewTemplateModal";
+import NewTemplateModal from "../NewTemplateModal";
 
 const Templates = () => {
   const [templates, setTemplates] = useState([]);

@@ -18,6 +18,7 @@ import {
   Select,
   MenuItem,
   InputLabel,
+  Link as MuiLink,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -27,13 +28,13 @@ import {
   ArrowDropUp as ArrowDropUpIcon,
   ArrowDropDown as ArrowDropDownIcon,
 } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom"; // Add this at the top
+import { useNavigate } from "react-router-dom";
 
 const Quiz = () => {
   const navigate = useNavigate();
   const [quizzes, setQuizzes] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState("name");
+  const [sortField, setSortField] = useState("title");
   const [sortDirection, setSortDirection] = useState("asc");
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,15 +77,13 @@ const Quiz = () => {
   );
 
   const filtered = quizzes.filter((quiz) =>
-    quiz.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    quiz.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const sorted = [...filtered].sort((a, b) => {
-    const valA = a[sortField] || "";
-    const valB = b[sortField] || "";
-    if (valA < valB) return sortDirection === "asc" ? -1 : 1;
-    if (valA > valB) return sortDirection === "asc" ? 1 : -1;
-    return 0;
+    const valA = (a[sortField] || "").toString().toLowerCase();
+    const valB = (b[sortField] || "").toString().toLowerCase();
+    return sortDirection === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
   });
 
   const pageCount = Math.ceil(sorted.length / entriesPerPage);
@@ -95,19 +94,14 @@ const Quiz = () => {
 
   return (
     <Box p={3}>
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
-      >
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h5" fontWeight="bold" color="#343a40">
           🧠 Quiz & Training
         </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => navigate("/quiz-training/new")} // Navigate on click
+          onClick={() => navigate("/quiz-training/new")}
           sx={{
             background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
             color: "#fff",
@@ -139,12 +133,7 @@ const Quiz = () => {
           overflow: "hidden",
         }}
       >
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={2}
-        >
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <FormControl variant="standard">
             <InputLabel>Show</InputLabel>
             <Select
@@ -180,9 +169,10 @@ const Quiz = () => {
             <TableHead>
               <TableRow>
                 {[
-                  { label: "Quiz Title", field: "name" },
+                  { label: "Quiz Title", field: "title" },
                   { label: "Description", field: "description" },
-                  { label: "Question", field: "question" },
+                  { label: "Questions", field: null },
+                  { label: "Public URL", field: null },
                   { label: "Actions", field: null },
                 ].map(({ label, field }) => (
                   <TableCell
@@ -200,24 +190,44 @@ const Quiz = () => {
                 ))}
               </TableRow>
             </TableHead>
+
             <TableBody>
               {paginated.length > 0 ? (
                 paginated.map((quiz, idx) => (
                   <TableRow key={idx} hover sx={{ height: 56 }}>
-                    <TableCell>{quiz.name}</TableCell>
+                    <TableCell>{quiz.title}</TableCell>
                     <TableCell>{quiz.description}</TableCell>
-                    <TableCell>{quiz.question}</TableCell>
                     <TableCell>
-                      <Tooltip title="View">
-                        <IconButton size="small" color="primary">
-                          <VisibilityIcon />
-                        </IconButton>
-                      </Tooltip>
+                      {quiz.questions?.length || 0} question
+                      {quiz.questions?.length !== 1 ? "s" : ""}
+                    </TableCell>
+                    <TableCell>
+                      {quiz.publicUrl ? (
+                        <MuiLink
+                          href={`/quiz/${quiz.publicUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          underline="hover"
+                          color="primary"
+                          sx={{ fontWeight: "bold" }}
+                        >
+                          Open Link
+                        </MuiLink>
+                      ) : (
+                        <Typography color="text.secondary">—</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <Tooltip title="Edit">
-                        <IconButton size="small" color="secondary">
+                        <IconButton
+                          size="small"
+                          color="secondary"
+                          onClick={() => navigate(`/quiz-training/edit/${quiz._id}`)}
+                        >
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
+
                       <Tooltip title="Delete">
                         <IconButton size="small" color="error">
                           <DeleteIcon />
@@ -228,7 +238,7 @@ const Quiz = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">
+                  <TableCell colSpan={5} align="center">
                     No quizzes found.
                   </TableCell>
                 </TableRow>
@@ -237,17 +247,10 @@ const Quiz = () => {
           </Table>
         </TableContainer>
 
-        <Box
-          mt={2}
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-        >
+        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="body2" color="gray">
-            Showing{" "}
-            {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
-            {Math.min(currentPage * entriesPerPage, sorted.length)} of{" "}
-            {sorted.length} entries
+            Showing {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
+            {Math.min(currentPage * entriesPerPage, sorted.length)} of {sorted.length} entries
           </Typography>
           <Pagination
             count={pageCount}

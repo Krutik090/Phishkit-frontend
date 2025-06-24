@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -14,19 +14,48 @@ import {
   Delete as DeleteIcon,
   ArrowBack as ArrowBackIcon,
 } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
+
+const generatePublicUrl = () => {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let slug = "";
+  for (let i = 0; i < 8; i++) {
+    slug += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `quiz-${slug}`;
+};
 
 const NewQuiz = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [questions, setQuestions] = useState([
-    {
-      questionText: "",
-      answers: ["", "", "", ""],
-      correctIndex: null,
-    },
+    { questionText: "", answers: ["", "", "", ""], correctIndex: null },
   ]);
+
+  useEffect(() => {
+    if (id) {
+      fetch(`http://localhost:5000/api/quizzes/${id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setTitle(data.title || "");
+          setDescription(data.description || "");
+          const loadedQuestions = data.questions.map((q) => ({
+            questionText: q.questionText,
+            answers: q.options.map((opt) => opt.text),
+            correctIndex: q.options.findIndex((opt) => opt.isCorrect),
+          }));
+          setQuestions(loadedQuestions);
+        })
+        .catch((err) => {
+          console.error("Failed to load quiz:", err);
+          alert("Quiz not found");
+          navigate("/quiz-training");
+        });
+    }
+  }, [id]);
 
   const handleAddQuestion = () => {
     setQuestions([
@@ -57,19 +86,56 @@ const NewQuiz = () => {
     setQuestions(updated);
   };
 
+  const saveQuiz = async () => {
+  const formattedQuestions = questions.map((q) => ({
+    questionText: q.questionText,
+    options: q.answers.map((ans, idx) => ({
+      text: ans,
+      isCorrect: q.correctIndex === idx,
+      explanation:
+        "Phishing tricks users into revealing personal information via fake emails or websites.",
+    })),
+  }));
+
+  const quizData = {
+    title,
+    description,
+    publicUrl: id ? undefined : generatePublicUrl(),
+    questions: formattedQuestions,
+  };
+
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/quizzes/${id || ""}`,
+      {
+        method: id ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(quizData),
+      }
+    );
+
+    if (!response.ok) throw new Error("Failed to save quiz");
+
+    const result = await response.json();
+    toast.success(id ? "Quiz updated successfully!" : "🎉 Quiz created successfully!");
+    navigate("/quiz-training");
+  } catch (error) {
+    console.error("Error saving quiz:", error);
+    toast.error("Failed to save quiz. Please try again.");
+  }
+};
+
   return (
     <Box p={3}>
-      {/* Header and Back Button */}
       <Box display="flex" alignItems="center" gap={2} mb={3}>
         <IconButton onClick={() => navigate("/quiz-training")} color="primary">
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h5" fontWeight="bold" color="#343a40">
-          ➕ Create New Quiz
+          {id ? "✏️ Edit Quiz" : "➕ Create New Quiz"}
         </Typography>
       </Box>
 
-      {/* Main Card */}
       <Paper
         elevation={3}
         sx={{
@@ -83,7 +149,6 @@ const NewQuiz = () => {
           flexDirection: "column",
         }}
       >
-        {/* Scrollable Form Area */}
         <Box
           sx={{
             flex: 1,
@@ -116,10 +181,17 @@ const NewQuiz = () => {
               variant="outlined"
               sx={{ p: 2, borderRadius: 2 }}
             >
-              <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+              >
                 <Typography fontWeight="bold">Question {qIdx + 1}</Typography>
                 <Tooltip title="Delete Question">
-                  <IconButton color="error" onClick={() => handleDeleteQuestion(qIdx)}>
+                  <IconButton
+                    color="error"
+                    onClick={() => handleDeleteQuestion(qIdx)}
+                  >
                     <DeleteIcon />
                   </IconButton>
                 </Tooltip>
@@ -135,7 +207,13 @@ const NewQuiz = () => {
               />
 
               {q.answers.map((ans, aIdx) => (
-                <Box key={aIdx} display="flex" alignItems="center" gap={2} mt={1}>
+                <Box
+                  key={aIdx}
+                  display="flex"
+                  alignItems="center"
+                  gap={2}
+                  mt={1}
+                >
                   <Checkbox
                     checked={q.correctIndex === aIdx}
                     onChange={() => handleCorrectAnswer(qIdx, aIdx)}
@@ -145,14 +223,15 @@ const NewQuiz = () => {
                     variant="standard"
                     label={`Answer ${aIdx + 1}`}
                     value={ans}
-                    onChange={(e) => handleAnswerChange(qIdx, aIdx, e.target.value)}
+                    onChange={(e) =>
+                      handleAnswerChange(qIdx, aIdx, e.target.value)
+                    }
                   />
                 </Box>
               ))}
             </Paper>
           ))}
 
-          {/* Add Question Button */}
           <Box display="flex" justifyContent="flex-end">
             <Button
               startIcon={<AddIcon />}
@@ -175,7 +254,6 @@ const NewQuiz = () => {
           </Box>
         </Box>
 
-        {/* Save Button */}
         <Button
           variant="contained"
           sx={{
@@ -189,9 +267,9 @@ const NewQuiz = () => {
             py: 1.5,
             textTransform: "uppercase",
           }}
-          onClick={() => console.log({ title, description, questions })}
+          onClick={saveQuiz}
         >
-          Save Quiz
+          {id ? "Update Quiz" : "Save Quiz"}
         </Button>
       </Paper>
     </Box>

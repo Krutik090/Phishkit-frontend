@@ -20,13 +20,12 @@ import {
   IconButton,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { toast } from "react-toastify";
 
 const pink = "#ec008c";
 
 const pinkTextFieldSx = {
-  "& label.Mui-focused": {
-    color: pink,
-  },
+  "& label.Mui-focused": { color: pink },
   "& .MuiOutlinedInput-root": {
     "&.Mui-focused fieldset": {
       borderColor: pink,
@@ -45,7 +44,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
   const [textContent, setTextContent] = useState("");
   const [htmlContent, setHtmlContent] = useState("");
 
-  // Load templateData when modal opens or changes
   useEffect(() => {
     if (templateData) {
       setName(templateData.name || "");
@@ -53,12 +51,10 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
       setTextContent(templateData.text || "");
       setHtmlContent(templateData.html || "");
       setFiles(templateData.attachments || []);
-      // envelopeSender is not in your sample data, so optional or keep empty
-      setEnvelopeSender(""); 
-      setTracking(true); // you can modify if needed based on data
+      setEnvelopeSender("");
+      setTracking(true);
       setTab(0);
     } else {
-      // Reset for new template
       setName("");
       setSubject("");
       setTextContent("");
@@ -73,52 +69,74 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
     setFiles([...files, ...selectedFiles]);
+    toast.success("File(s) added");
   };
 
   const handleFileDelete = (index) => {
-    const newFiles = [...files];
-    newFiles.splice(index, 1);
-    setFiles(newFiles);
+    const confirmed = window.confirm("Are you sure you want to delete this file?");
+    if (confirmed) {
+      const newFiles = [...files];
+      newFiles.splice(index, 1);
+      setFiles(newFiles);
+      toast.success("File deleted");
+    } else {
+      toast.info("Delete cancelled");
+    }
   };
 
   const handleSave = async () => {
-    const payload = {
-      name,
-      subject,
-      text: textContent,
-      html: htmlContent,
-      attachments: files,
-      // envelopeSender and tracking can be added here if your backend supports it
-    };
-
     try {
-      let response;
-      if (templateData?.id) {
-        // PUT update
-        response = await fetch(`http://localhost:5000/api/templates/${templateData.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: templateData.id, ...payload }),
+      const attachmentPromises = files.map((file) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = reader.result.split(",")[1];
+            resolve({
+              content: base64,
+              type: file.type,
+              name: file.name,
+            });
+          };
+          reader.onerror = (error) => reject(error);
+          reader.readAsDataURL(file);
         });
-      } else {
-        // POST create
-        response = await fetch("http://localhost:5000/api/templates", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
+      });
 
-      if (!response.ok) {
-        throw new Error("Failed to save template");
-      }
+      const processedAttachments = await Promise.all(attachmentPromises);
+
+      const payload = {
+        name,
+        subject,
+        text: textContent,
+        html: htmlContent,
+        attachments: processedAttachments,
+      };
+
+      const url = templateData?.id
+        ? `http://localhost:5000/api/templates/${templateData.id}`
+        : "http://localhost:5000/api/templates";
+
+      const method = templateData?.id ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(templateData?.id ? { id: templateData.id, ...payload } : payload),
+      });
+
+      if (!response.ok) throw new Error("Failed to save template");
 
       const savedData = await response.json();
-      onSave(savedData);
-      onClose();
+
+      toast.success("Template saved successfully!");
+
+      setTimeout(() => {
+        onSave(savedData);
+        onClose();
+      }, 500);
     } catch (error) {
       console.error(error);
-      alert("Error saving template. Please try again.");
+      toast.error("Error saving template. Please try again.");
     }
   };
 
@@ -151,7 +169,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
       </DialogTitle>
 
       <DialogContent dividers sx={{ p: 4 }}>
-        {/* Name */}
         <Typography variant="body2" fontWeight="500" mb={0.5}>
           Name
         </Typography>
@@ -164,7 +181,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           onChange={(e) => setName(e.target.value)}
         />
 
-        {/* Import Button */}
         <Button
           variant="contained"
           sx={{
@@ -176,15 +192,12 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
             py: 1,
             my: 2,
             textTransform: "none",
-            "&:hover": {
-              backgroundColor: "#d6007a",
-            },
+            "&:hover": { backgroundColor: "#d6007a" },
           }}
         >
           IMPORT EMAIL
         </Button>
 
-        {/* Envelope Sender */}
         <Typography variant="body2" fontWeight="500" mb={0.5}>
           Envelope Sender
         </Typography>
@@ -198,7 +211,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           onChange={(e) => setEnvelopeSender(e.target.value)}
         />
 
-        {/* Subject */}
         <Typography variant="body2" fontWeight="500" mb={0.5}>
           Subject
         </Typography>
@@ -211,7 +223,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           onChange={(e) => setSubject(e.target.value)}
         />
 
-        {/* Tabs */}
         <Tabs
           value={tab}
           onChange={(_, val) => setTab(val)}
@@ -224,25 +235,10 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           }}
           textColor="inherit"
         >
-          <Tab
-            label="Text"
-            sx={{
-              color: tab === 0 ? pink : "#000",
-              fontWeight: tab === 0 ? "bold" : "normal",
-              textTransform: "none",
-            }}
-          />
-          <Tab
-            label="HTML"
-            sx={{
-              color: tab === 1 ? pink : "#000",
-              fontWeight: tab === 1 ? "bold" : "normal",
-              textTransform: "none",
-            }}
-          />
+          <Tab label="Text" sx={{ color: tab === 0 ? pink : "#000", fontWeight: "bold" }} />
+          <Tab label="HTML" sx={{ color: tab === 1 ? pink : "#000", fontWeight: "bold" }} />
         </Tabs>
 
-        {/* Body */}
         <Typography variant="body2" fontWeight="500" mb={0.5}>
           {tab === 0 ? "Text Content" : "HTML Content"}
         </Typography>
@@ -260,7 +256,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           }
         />
 
-        {/* Tracking Switch */}
         <FormControlLabel
           control={
             <Switch
@@ -268,9 +263,7 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
               checked={tracking}
               onChange={(e) => setTracking(e.target.checked)}
               sx={{
-                "& .MuiSwitch-switchBase.Mui-checked": {
-                  color: pink,
-                },
+                "& .MuiSwitch-switchBase.Mui-checked": { color: pink },
                 "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
                   backgroundColor: pink,
                 },
@@ -281,7 +274,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           sx={{ mt: 2 }}
         />
 
-        {/* Files */}
         <Box mt={3}>
           <Typography variant="body2" fontWeight="500" mb={1}>
             Add Files
@@ -289,7 +281,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           <input type="file" multiple onChange={handleFileChange} />
         </Box>
 
-        {/* File Table */}
         {files.length > 0 && (
           <Box mt={2}>
             <Table size="small">

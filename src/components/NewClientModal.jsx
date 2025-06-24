@@ -6,6 +6,7 @@ import {
   TextField,
   Button,
 } from "@mui/material";
+import { toast } from "react-toastify";
 
 const style = {
   position: "absolute",
@@ -25,17 +26,37 @@ const NewClientModal = ({
   onSave,
   formData,
   setFormData,
-  isEditMode,
 }) => {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleSaveClient = async () => {
+  try {
+    const response = await fetch("http://localhost:5000/api/clients", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) throw new Error("Failed to create client");
+
+    const result = await response.json();
+    toast.success("✅ Client added successfully!");
+    setClients((prev) => [...prev, result]); // update client list if needed
+    handleCloseModal(); // close modal
+  } catch (err) {
+    console.error(err);
+    toast.error("❌ Failed to add client");
+  }
+};
+
+
   return (
     <Modal open={open} onClose={onClose}>
       <Box sx={style}>
         <Typography variant="h6" mb={2}>
-          {isEditMode ? "Edit Client" : "Add New Client"}
+          Add New Client
         </Typography>
 
         <TextField
@@ -47,14 +68,14 @@ const NewClientModal = ({
           margin="normal"
         />
 
-        <Box mt={2} display="flex" justifyContent="flex-end" gap={1}>
+        <Box mt={3} display="flex" justifyContent="flex-end" gap={1}>
           <Button onClick={onClose}>Cancel</Button>
           <Button
             variant="contained"
             sx={{ backgroundColor: "#ec008c", color: "#fff" }}
-            onClick={onSave}
+            onClick={handleSaveClient}
           >
-            {isEditMode ? "Update" : "Save"}
+            Save
           </Button>
         </Box>
       </Box>

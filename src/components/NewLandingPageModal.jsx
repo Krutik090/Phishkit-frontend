@@ -11,23 +11,20 @@ import {
   Switch,
   FormControlLabel,
 } from "@mui/material";
+import { toast } from "react-toastify";
 
 const pink = "#ec008c";
 
 const inputStyle = {
   transition: "all 0.3s ease",
-  "& label.Mui-focused": {
-    color: pink,
-  },
+  "& label.Mui-focused": { color: pink },
   "& .MuiOutlinedInput-root": {
     borderRadius: 2,
     "&.Mui-focused fieldset": {
       borderColor: pink,
       boxShadow: "0 0 0 0.15rem rgba(236, 0, 140, 0.25)",
     },
-    "&:hover fieldset": {
-      borderColor: pink,
-    },
+    "&:hover fieldset": { borderColor: pink },
   },
 };
 
@@ -37,7 +34,6 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
   const [captureData, setCaptureData] = useState(false);
   const [redirectUrl, setRedirectUrl] = useState("");
 
-  // Populate form fields if editing
   useEffect(() => {
     if (pageToEdit) {
       setName(pageToEdit.name || "");
@@ -45,7 +41,6 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
       setCaptureData(pageToEdit.capture_credentials || false);
       setRedirectUrl(pageToEdit.redirect_url || "");
     } else {
-      // Clear fields for new page
       setName("");
       setHtml("");
       setCaptureData(false);
@@ -54,6 +49,11 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
   }, [pageToEdit, open]);
 
   const handleSave = () => {
+    if (!name.trim() || !html.trim()) {
+      toast.warning("⚠️ Please fill in both Name and HTML content.");
+      return;
+    }
+
     const pageData = {
       name,
       html,
@@ -61,19 +61,23 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
       redirect_url: redirectUrl,
     };
 
-    if (pageToEdit && pageToEdit.id) {
-      // Edit mode (PUT)
-      onSave({ ...pageData, id: pageToEdit.id }, "edit");
-    } else {
-      // Create mode (POST)
-      onSave(pageData, "create");
+    try {
+      if (pageToEdit && pageToEdit.id) {
+        onSave({ ...pageData, id: pageToEdit.id }, "edit");
+        toast.success("✅ Landing page updated successfully!");
+      } else {
+        onSave(pageData, "create");
+        toast.success("✅ Landing page created successfully!");
+      }
+      onClose();
+    } catch (err) {
+      console.error("Landing Page Save Error:", err);
+      toast.error("❌ Failed to save landing page.");
     }
-
-    onClose();
   };
 
   const handleImportSite = () => {
-    alert("Import Site functionality not implemented yet.");
+    toast.info("🚧 Import Site functionality is under development.");
   };
 
   return (
@@ -106,7 +110,6 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
 
       <DialogContent dividers>
         <Box display="flex" flexDirection="column" gap={2}>
-          {/* Name Field */}
           <Box>
             <Typography variant="body2" fontWeight="500" mb={0.5}>
               Name
@@ -121,7 +124,6 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
             />
           </Box>
 
-          {/* Import Site Button */}
           <Button
             variant="contained"
             onClick={handleImportSite}
@@ -142,7 +144,6 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
             IMPORT SITE
           </Button>
 
-          {/* HTML Content */}
           <Box>
             <Typography variant="body2" fontWeight="500" mb={0.5}>
               HTML Content
@@ -161,23 +162,18 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
                   minHeight: "340px",
                   alignItems: "flex-start",
                 },
-                "& textarea": {
-                  height: "100% !important",
-                },
+                "& textarea": { height: "100% !important" },
               }}
             />
           </Box>
 
-          {/* Capture Data Switch */}
           <FormControlLabel
             control={
               <Switch
                 checked={captureData}
                 onChange={(e) => setCaptureData(e.target.checked)}
                 sx={{
-                  "& .MuiSwitch-switchBase.Mui-checked": {
-                    color: pink,
-                  },
+                  "& .MuiSwitch-switchBase.Mui-checked": { color: pink },
                   "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
                     backgroundColor: pink,
                   },
@@ -187,7 +183,6 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
             label="Capture Submitted Data"
           />
 
-          {/* Redirect URL */}
           <Box>
             <Typography variant="body2" fontWeight="500" mb={0.5}>
               Redirect URL

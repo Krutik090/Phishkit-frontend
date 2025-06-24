@@ -18,6 +18,11 @@ import {
   Select,
   MenuItem,
   InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -25,48 +30,45 @@ import {
   Delete as DeleteIcon,
   ArrowDropUp as ArrowDropUpIcon,
   ArrowDropDown as ArrowDropDownIcon,
+  Visibility as VisibilityIcon,
+  CheckBox,
 } from "@mui/icons-material";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from "@mui/material";
+import { pink } from "@mui/material/colors";
+import CampaignIcon from "@mui/icons-material/Campaign";
+import NewCampaignModal from "../Add-new_Campaign/NewCampaignModal";
+import { useNavigate } from "react-router-dom";
 
-import NewSendingProfileModal from "../components/NewSendingProfileModal";
-
-const API_BASE_URL = "http://localhost:5000/api/sending-profiles";
-
-const SendingProfiles = () => {
-  const [profiles, setProfiles] = useState([]);
+const Campaigns = () => {
+  const [data, setData] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState("asc");
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [openModal, setOpenModal] = useState(false);
-  const [editingProfile, setEditingProfile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [groupToDelete, setGroupToDelete] = useState(null);
+  const [formData, setFormData] = useState(initialFormState());
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, campaign: null });
+  const navigate = useNavigate();
 
-  // Fetch profiles on mount
-  const fetchProfiles = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(API_BASE_URL);
-      if (!res.ok) throw new Error("Failed to fetch profiles");
-      const data = await res.json();
-      setProfiles(data);
-    } catch (err) {
-      console.error("Failed to fetch profiles:", err);
-      alert("Failed to load sending profiles.");
-    }
-    setLoading(false);
-  };
+  function initialFormState() {
+    return {
+      id: null,
+      name: "",
+      template: "",
+      landingPage: "",
+      url: "",
+      schedule: "",
+      sendingProfile: "",
+      groups: [],
+      quiz: "",
+    };
+  }
 
   useEffect(() => {
-    fetchProfiles();
+    fetch("http://localhost:5000/api/campaigns")
+      .then((res) => res.json())
+      .then((data) => setData(data))
+      .catch((err) => console.error("Failed to fetch data:", err));
   }, []);
 
   const handleSort = (field) => {
@@ -99,11 +101,9 @@ const SendingProfiles = () => {
     </Box>
   );
 
-  // Filtering & sorting
-  const filtered = profiles.filter((p) =>
-    p.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = data.filter((row) =>
+    row.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
   const sorted = [...filtered].sort((a, b) => {
     const valA = a[sortField] || "";
     const valB = b[sortField] || "";
@@ -118,48 +118,81 @@ const SendingProfiles = () => {
     currentPage * entriesPerPage
   );
 
-  // Delete profile handler
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this sending profile?")) return;
+  const handleDeleteConfirm = (campaign) => {
+    setDeleteDialog({ open: true, campaign });
+  };
+
+  const confirmDelete = async () => {
+    const campaignId = deleteDialog.campaign?.id;
+    if (!campaignId) return;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete profile");
-      setDeleteDialogOpen(false);
-      setGroupToDelete(null);
-      setProfiles((prev) => prev.filter((p) => p.id !== id));
-    } catch (err) {
-      console.error("Failed to delete profile:", err);
-      alert("Failed to delete the sending profile.");
+      const res = await fetch(`http://localhost:5000/api/campaigns/${campaignId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete campaign on the server.");
+      }
+
+      // If backend delete was successful, update frontend state
+      setData((prev) => prev.filter((c) => c.id !== campaignId));
+    } catch (error) {
+      console.error("Error deleting campaign:", error);
+      alert("Failed to delete campaign. Please try again.");
+    } finally {
+      setDeleteDialog({ open: false, campaign: null });
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialog({ open: false, campaign: null });
+  };
+
+  const handleSave = (savedCampaign) => {
+    if (savedCampaign.id && data.some((c) => c.id === savedCampaign.id)) {
+      setData((prev) =>
+        prev.map((c) => (c.id === savedCampaign.id ? savedCampaign : c))
+      );
+    } else {
+      const newCampaign = {
+        id: Date.now(),
+        name: savedCampaign.name,
+        client_id: null,
+        status: "Draft",
+        launch_date: savedCampaign.schedule,
+        emails_sent: 0,
+        ...savedCampaign,
+      };
+      setData((prev) => [...prev, newCampaign]);
+    }
+
+    setFormData(initialFormState());
+    setOpenModal(false);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setFormData(initialFormState());
   };
 
   return (
     <Box p={3}>
-              {/* <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Confirm Deletion</DialogTitle>
-        <DialogContent>
-          Are you sure you want to delete the group{" "}
-          <strong>{groupToDelete?.name}</strong>?
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDelete(groupToDelete)} color="error" variant="contained">
-            Yes, Delete
-          </Button>
-        </DialogActions>
-      </Dialog> */}
+      {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold" color="#343a40">
-          📧 Sending Profiles
-        </Typography>
+        <Box display="flex" alignItems="center">
+          <CampaignIcon sx={{ color: pink[500], mr: 1 }} />
+          <Typography variant="h5" fontWeight="bold" color="#343a40">
+            Campaigns
+          </Typography>
+        </Box>
         <Button
-          onClick={() => {
-            setEditingProfile(null);
-            setOpenModal(true);
-          }}
           variant="contained"
           startIcon={<AddIcon />}
+          onClick={() => {
+            setFormData(initialFormState());
+            setOpenModal(true);
+          }}
           sx={{
             background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
             color: "#fff",
@@ -176,10 +209,11 @@ const SendingProfiles = () => {
             },
           }}
         >
-          New Profile
+          Add Campaign
         </Button>
       </Box>
 
+      {/* Table Container */}
       <Paper
         elevation={2}
         sx={{
@@ -191,6 +225,7 @@ const SendingProfiles = () => {
           overflow: "hidden",
         }}
       >
+        {/* Top Controls */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <FormControl variant="standard">
             <InputLabel>Show</InputLabel>
@@ -209,7 +244,6 @@ const SendingProfiles = () => {
               ))}
             </Select>
           </FormControl>
-
           <TextField
             placeholder="🔍 Search..."
             value={searchQuery}
@@ -222,62 +256,73 @@ const SendingProfiles = () => {
           />
         </Box>
 
+        {/* Table */}
         <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
                 {[
+                  { label: "ID", field: "id" },
                   { label: "Name", field: "name" },
-                  { label: "From Address", field: "from_address" },
-                  { label: "Host", field: "host" },
-                  { label: "Ignore Cert Errors", field: "ignore_cert_errors" },
-                  { label: "Actions", field: null },
+                  { label: "Client ID", field: "client_id" },
+                  { label: "Status", field: "status" },
+                  { label: "Launch Date", field: "launch_date" },
+                  { label: "Email Sent", field: "emails_sent" },
                 ].map(({ label, field }) => (
                   <TableCell
-                    key={label}
+                    key={field}
                     sx={{
                       backgroundColor: "#ffe0ef",
                       color: "#ec008c",
                       fontWeight: "bold",
-                      cursor: field ? "pointer" : "default",
-                      whiteSpace: "nowrap",
+                      cursor: "pointer",
                     }}
+                    onClick={() => handleSort(field)}
                   >
-                    {field ? renderSortLabel(label, field) : label}
+                    {renderSortLabel(label, field)}
                   </TableCell>
                 ))}
+                <TableCell
+                  sx={{
+                    backgroundColor: "#ffe0ef",
+                    color: "#ec008c",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {paginated.length > 0 ? (
-                paginated.map((profile) => (
-                  <TableRow key={profile.id} hover>
-                    <TableCell>{profile.name}</TableCell>
-                    <TableCell>{profile.from_address}</TableCell>
-                    <TableCell>{profile.host}</TableCell>
-                    <TableCell>{profile.ignore_cert_errors ? "Yes" : "No"}</TableCell>
+                paginated.map((row) => (
+                  <TableRow key={row.id} hover>
+                    <TableCell>{row.id}</TableCell>
+                    <TableCell>{row.name}</TableCell>
+                    <TableCell>{row.client_id ?? "—"}</TableCell>
+                    <TableCell>{row.status}</TableCell>
                     <TableCell>
-                      <Tooltip title="Edit">
+                      {row.launch_date
+                        ? new Date(row.launch_date).toLocaleDateString()
+                        : "—"}
+                    </TableCell>
+                    <TableCell>{Array.isArray(row.results) ? row.results.length : 0}</TableCell>
+                    <TableCell>
+                      <Tooltip title="View">
                         <IconButton
                           size="small"
-                          color="secondary"
-                          onClick={() => {
-                            setEditingProfile(profile);
-                            setOpenModal(true);
-                          }}
+                          color="primary"
+                          onClick={() => navigate(`/campaign-results/${row.id}`)} // 👈 navigate to ResultCampaign.jsx
                         >
-                          <EditIcon />
+                          <VisibilityIcon />
                         </IconButton>
+
                       </Tooltip>
                       <Tooltip title="Delete">
                         <IconButton
                           size="small"
                           color="error"
-  //                         onClick={() => {
-  //                           setGroupToDelete(profile.id);
-  //                 setDeleteDialogOpen(true);
-  // }}
-                        onClick={() => handleDelete(profile.id)}
+                          onClick={() => handleDeleteConfirm(row)}
                         >
                           <DeleteIcon />
                         </IconButton>
@@ -287,8 +332,8 @@ const SendingProfiles = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
-                    No sending profiles found.
+                  <TableCell colSpan={7} align="center">
+                    No data found.
                   </TableCell>
                 </TableRow>
               )}
@@ -296,10 +341,10 @@ const SendingProfiles = () => {
           </Table>
         </TableContainer>
 
+        {/* Pagination */}
         <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="body2" color="gray">
-            Showing{" "}
-            {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
+            Showing {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
             {Math.min(currentPage * entriesPerPage, sorted.length)} of {sorted.length} entries
           </Typography>
           <Pagination
@@ -311,46 +356,33 @@ const SendingProfiles = () => {
         </Box>
       </Paper>
 
-      {/* <NewSendingProfileModal
+      {/* Modal for Add/Edit */}
+      <NewCampaignModal
         open={openModal}
-        handleClose={() => setOpenModal(false)}
-        onSave={async (data) => {
-          if (editingProfile) {
-            // Update backend to get the latest saved profile (already done inside modal)
-            // We update UI locally here
-            setProfiles((prev) =>
-              prev.map((p) => (p.id === editingProfile.id ? { ...p, ...data } : p))
-            );
-          } else {
-            // Optimistically add new profile with temporary id
-            // Ideally, you would refetch or get real id from backend
-            setProfiles((prev) => [...prev, { id: Date.now(), ...data }]);
-          }
-          setOpenModal(false);
-        }}
-        initialData={editingProfile}
-      /> */}
- <NewSendingProfileModal
-  open={openModal}
-  handleClose={() => setOpenModal(false)}
-  onSave={(savedProfile) => {
-    if (editingProfile) {
-      // It's an update, so replace the existing profile in the list
-      setProfiles((prev) =>
-        prev.map((p) => (p.id === savedProfile.id ? savedProfile : p))
-      );
-    } else {
-      // It's a new profile created via POST, backend returned full object including ID
-      setProfiles((prev) => [...prev, savedProfile]);
-    }
-    setOpenModal(false);
-  }}
-  initialData={editingProfile}
-/>
+        onClose={handleCloseModal}
+        onSave={handleSave}
+        formData={formData}
+        setFormData={setFormData}
+      />
 
-
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.open} onClose={cancelDelete}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete{" "}
+            <strong>{deleteDialog.campaign?.name}</strong>?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelDelete}>Cancel</Button>
+          <Button onClick={confirmDelete} color="error">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
 
-export default SendingProfiles;
+export default Campaigns;

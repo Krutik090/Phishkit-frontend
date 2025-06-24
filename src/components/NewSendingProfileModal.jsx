@@ -5,6 +5,8 @@ import {
   Typography, IconButton
 } from "@mui/material";
 import { Add as AddIcon, Close as CloseIcon } from "@mui/icons-material";
+import { toast } from "react-toastify";
+
 
 const pink = "#ec008c";
 
@@ -90,42 +92,49 @@ const NewSendingProfileModal = ({ open, handleClose, onSave, initialData }) => {
   };
 
   const handleSubmit = async () => {
-  const isEdit = !!initialData?.id;
-  const url = isEdit
-    ? `http://localhost:5000/api/sending-profiles/${initialData.id}`
-    : "http://localhost:5000/api/sending-profiles";
+    const isEdit = !!initialData?.id;
+    const url = isEdit
+      ? `http://localhost:5000/api/sending-profiles/${initialData.id}`
+      : "http://localhost:5000/api/sending-profiles";
 
-  const method = isEdit ? "PUT" : "POST";
+    const method = isEdit ? "PUT" : "POST";
 
-  try {
-    const payload = {
-      ...form,
-      modified_date: getCurrentDateTime(),
-      ...(isEdit && { id: initialData.id })  // 👈 include ID only if editing
-    };
+    try {
+      const payload = {
+        ...form,
+        modified_date: getCurrentDateTime(),
+        ...(isEdit && { id: initialData.id })
+      };
 
-    const res = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-    console.log("Payload sent:", payload);
+      console.log("Payload sent:", payload);
 
-    if (!res.ok) {
-      throw new Error("Failed to save profile");
+      if (!res.ok) {
+        throw new Error("Failed to save profile");
+      }
+
+      const data = await res.json();
+
+      toast.success(
+        isEdit
+          ? "Sending profile updated successfully!"
+          : "New sending profile created!"
+      );
+
+      onSave?.(data);
+      handleClose();
+    } catch (err) {
+      console.error("Error saving sending profile:", err);
+      toast.error("Failed to save the sending profile.");
     }
-
-    const data = await res.json();
-    onSave?.(data);
-    handleClose();
-  } catch (err) {
-    console.error("Error saving sending profile:", err);
-    alert("Failed to save the sending profile. Please try again.");
-  }
-};
+  };
 
   return (
     <Dialog

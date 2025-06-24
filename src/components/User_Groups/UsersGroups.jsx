@@ -33,7 +33,7 @@ import {
   DialogActions,
 } from "@mui/material";
 
-import NewGroupModal from "../components/NewGroupModal";
+import NewGroupModal from "../NewGroupModal";
 
 const UsersGroups = () => {
   const [groups, setGroups] = useState([]);

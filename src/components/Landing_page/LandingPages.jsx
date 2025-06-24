@@ -25,7 +25,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import NewLandingPageModal from "../components/NewLandingPageModal";
+import NewLandingPageModal from "../NewLandingPageModal";
 
 const LandingPages = () => {
   const [landingPages, setLandingPages] = useState([]);
@@ -58,21 +58,27 @@ const LandingPages = () => {
   };
 
   const handleDelete = async (page) => {
-    const confirmDelete = window.confirm(`Delete "${page.name}"?`);
-    if (!confirmDelete) return;
+  const confirmDelete = window.confirm(`Are you sure you want to delete "${page.name}"?`);
+  if (!confirmDelete) {
+    toast.info("⚠️ Deletion cancelled.");
+    return;
+  }
 
-    try {
-      const res = await fetch(
-        `http://localhost:5000/api/landing-pages/${page.id}`,
-        { method: "DELETE" }
-      );
-      if (!res.ok) throw new Error("Delete failed");
-      setLandingPages((prev) => prev.filter((p) => p.id !== page.id));
-    } catch (error) {
-      console.error("Delete error:", error);
-      alert("Failed to delete landing page.");
-    }
-  };
+  try {
+    const res = await fetch(
+      `http://localhost:5000/api/landing-pages/${page.id}`,
+      { method: "DELETE" }
+    );
+    if (!res.ok) throw new Error("Delete failed");
+
+    setLandingPages((prev) => prev.filter((p) => p.id !== page.id));
+    toast.success(`🗑️ "${page.name}" deleted successfully.`);
+  } catch (error) {
+    console.error("Delete error:", error);
+    toast.error("Failed to delete landing page.");
+  }
+};
+
 
   const handleSaveNewPage = async (pageData, mode) => {
     try {
@@ -248,86 +254,86 @@ const LandingPages = () => {
               <TableRow>
                 <TableCell
                   sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
->
-{renderSortLabel("name", "Name")}
-</TableCell>
-<TableCell
-sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
->
-{renderSortLabel("capture_credentials", "Capture Credential")}
-</TableCell>
-<TableCell
-sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
->
-{renderSortLabel("redirect_url", "Redirect URL")}
-</TableCell>
-<TableCell
-sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
->
-Actions
-</TableCell>
-</TableRow>
-</TableHead>
-<TableBody>
-{paginatedPages.length > 0 ? (
-paginatedPages.map((page) => (
-<TableRow key={page.id} hover>
-<TableCell>{page.name}</TableCell>
-<TableCell>{page.capture_credentials ? "Yes" : "No"}</TableCell>
-<TableCell>{page.redirect_url || "-"}</TableCell>
-<TableCell>
-<Tooltip title="Edit">
-<IconButton color="secondary" onClick={() => handleEdit(page)}>
-<EditIcon />
-</IconButton>
-</Tooltip>
-<Tooltip title="Delete">
-<IconButton color="error" onClick={() => handleDelete(page)}>
-<DeleteIcon />
-</IconButton>
-</Tooltip>
-</TableCell>
-</TableRow>
-))
-) : (
-<TableRow>
-<TableCell colSpan={4} align="center">
-No landing pages found.
-</TableCell>
-</TableRow>
-)}
-</TableBody>
-</Table>
-</TableContainer>
-    {/* Footer */}
-    <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
-      <Typography variant="body2" color="gray">
-        Showing{" "}
-        {Math.min(filteredPages.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
-        {Math.min(currentPage * entriesPerPage, filteredPages.length)} of{" "}
-        {filteredPages.length} entries
-      </Typography>
-      <Pagination
-        count={pageCount}
-        page={currentPage}
-        onChange={(_, page) => setCurrentPage(page)}
-        color="primary"
+                >
+                  {renderSortLabel("name", "Name")}
+                </TableCell>
+                <TableCell
+                  sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
+                >
+                  {renderSortLabel("capture_credentials", "Capture Credential")}
+                </TableCell>
+                <TableCell
+                  sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
+                >
+                  {renderSortLabel("redirect_url", "Redirect URL")}
+                </TableCell>
+                <TableCell
+                  sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
+                >
+                  Actions
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {paginatedPages.length > 0 ? (
+                paginatedPages.map((page) => (
+                  <TableRow key={page.id} hover>
+                    <TableCell>{page.name}</TableCell>
+                    <TableCell>{page.capture_credentials ? "Yes" : "No"}</TableCell>
+                    <TableCell>{page.redirect_url || "-"}</TableCell>
+                    <TableCell>
+                      <Tooltip title="Edit">
+                        <IconButton color="secondary" onClick={() => handleEdit(page)}>
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton color="error" onClick={() => handleDelete(page)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} align="center">
+                    No landing pages found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        {/* Footer */}
+        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="body2" color="gray">
+            Showing{" "}
+            {Math.min(filteredPages.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
+            {Math.min(currentPage * entriesPerPage, filteredPages.length)} of{" "}
+            {filteredPages.length} entries
+          </Typography>
+          <Pagination
+            count={pageCount}
+            page={currentPage}
+            onChange={(_, page) => setCurrentPage(page)}
+            color="primary"
+          />
+        </Box>
+      </Paper>
+
+      {/* Modal */}
+      <NewLandingPageModal
+        open={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingPage(null);
+        }}
+        onSave={handleSaveNewPage}
+        pageToEdit={editingPage}  // pass editing page here
       />
     </Box>
-  </Paper>
-
-  {/* Modal */}
-  <NewLandingPageModal
-    open={isModalOpen}
-    onClose={() => {
-      setIsModalOpen(false);
-      setEditingPage(null);
-    }}
-    onSave={handleSaveNewPage}
-    pageToEdit={editingPage}  // pass editing page here
-  />
-</Box>
-);
+  );
 };
 
 export default LandingPages;
