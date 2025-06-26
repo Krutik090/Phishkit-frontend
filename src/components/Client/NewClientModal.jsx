@@ -23,34 +23,32 @@ const style = {
 const NewClientModal = ({
   open,
   onClose,
-  onSave,
   formData,
   setFormData,
+  refreshClients, // <-- new prop to update client list
 }) => {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSaveClient = async () => {
-  try {
-    const response = await fetch("http://localhost:5000/api/clients", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
+    try {
+      const response = await fetch("http://localhost:5000/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
-    if (!response.ok) throw new Error("Failed to create client");
+      if (!response.ok) throw new Error("Failed to create client");
 
-    const result = await response.json();
-    toast.success("✅ Client added successfully!");
-    setClients((prev) => [...prev, result]); // update client list if needed
-    handleCloseModal(); // close modal
-  } catch (err) {
-    console.error(err);
-    toast.error("❌ Failed to add client");
-  }
-};
-
+      toast.success("Client added successfully!");
+      onClose(); // Close modal
+      refreshClients(); // Refresh client list
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to add client");
+    }
+  };
 
   return (
     <Modal open={open} onClose={onClose}>

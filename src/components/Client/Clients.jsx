@@ -11,7 +11,7 @@ import {
   Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
-import NewClientModal from "../NewClientModal";
+import NewClientModal from "./NewClientModal";
 import { toast } from "react-toastify";
 
 const Clients = () => {
@@ -35,8 +35,27 @@ const Clients = () => {
   const fetchClients = async () => {
     try {
       const response = await fetch("http://localhost:5000/api/clients");
-      const data = await response.json();
-      setClients(data);
+      const clients = await response.json();
+
+      await Promise.all(
+        clients.map(async (client) => {
+          try {
+            const syncRes = await fetch(`http://localhost:5000/api/clients/sync-stats/${client._id}`, {
+              method: "POST"
+            });
+            if (!syncRes.ok) {
+              console.warn(`Failed to sync stats for client ${client.name}`);
+            }
+          } catch (syncErr) {
+            console.error(`Error syncing client ${client.name}:`, syncErr);
+          }
+        })
+      );
+
+      const refreshed = await fetch("http://localhost:5000/api/clients");
+      const updatedClients = await refreshed.json();
+      setClients(updatedClients);
+
     } catch (error) {
       console.error("Failed to fetch clients:", error);
       setClients([]);
@@ -69,8 +88,8 @@ const Clients = () => {
 
   const filtered = Array.isArray(clients)
     ? clients.filter((client) =>
-        client.name?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      client.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : [];
 
   const sorted = [...filtered].sort((a, b) => {
@@ -101,30 +120,11 @@ const Clients = () => {
         method: "POST",
         body: formData,
       });
-      fetchClients(); // Refresh data
+      fetchClients();
       toast.success('Template Saved Successfully.');
     } catch (error) {
       console.error("Failed to upload certificate:", error);
       toast.error('Failed to upload Certificate Template');
-    }
-  };
-
-  const handleSaveClient = async () => {
-    const form = new FormData();
-    form.append("name", formData.name);
-    if (formData.certificateFile) {
-      form.append("certificate", formData.certificateFile);
-    }
-
-    try {
-      await fetch("http://localhost:5000/api/clients", {
-        method: "POST",
-        body: form,
-      });
-      fetchClients();
-      setModalOpen(false);
-    } catch (err) {
-      console.error("Failed to save client:", err);
     }
   };
 
@@ -200,6 +200,7 @@ const Clients = () => {
                   { label: "Failed", field: "emailFailed" },
                   { label: "Opened", field: "emailOpened" },
                   { label: "Clicked", field: "linkClicked" },
+                  { label: "Submitted Data", field: "submitted_data" },
                   { label: "Quiz Started", field: "quizStarted" },
                   { label: "Quiz Completed", field: "quizCompleted" },
                   { label: "Created At", field: "createdAt" },
@@ -226,28 +227,19 @@ const Clients = () => {
                 paginated.map((client, idx) => (
                   <TableRow key={idx} hover>
                     <TableCell>
-                      <Link
-                        to={`/clients/${client._id}`}
-                        style={{
-                          color: "#ec008c",
-                          fontWeight: "bold",
-                          textDecoration: "none",
-                        }}
+                      <Link to={`/clients/${client._id}`} style={{ color: "#ec008c", fontWeight: "bold", textDecoration: "none" }}
                         onMouseOver={(e) => (e.target.style.textDecoration = "underline")}
                         onMouseOut={(e) => (e.target.style.textDecoration = "none")}
                       >
                         {client.name}
                       </Link>
                     </TableCell>
-                    <TableCell>
-                      {Array.isArray(client.campaigns) && client.campaigns.length > 0
-                        ? client.campaigns.join(", ")
-                        : "—"}
-                    </TableCell>
+                    <TableCell>{Array.isArray(client.campaigns) && client.campaigns.length > 0 ? client.campaigns.join(", ") : "—"}</TableCell>
                     <TableCell>{client.emailSent}</TableCell>
                     <TableCell>{client.emailFailed}</TableCell>
                     <TableCell>{client.emailOpened}</TableCell>
                     <TableCell>{client.linkClicked}</TableCell>
+                    <TableCell>{client.submitted_data}</TableCell>
                     <TableCell>{client.quizStarted}</TableCell>
                     <TableCell>{client.quizCompleted}</TableCell>
                     <TableCell>{new Date(client.createdAt).toLocaleString()}</TableCell>
@@ -261,21 +253,14 @@ const Clients = () => {
                             </IconButton>
                           </Tooltip>
                         </Box>
-                      ) : (
-                        "N/A"
-                      )}
+                      ) : "N/A"}
                     </TableCell>
                     <TableCell>
                       <Tooltip title="Upload Certificate">
                         <IconButton size="small" component="label">
                           <UploadFileIcon />
-                          <input
-                            hidden
-                            type="file"
-                            accept=".ppt,.pptx,.pdf"
-                            onChange={(e) =>
-                              handleUploadCertificate(client._id, e.target.files[0])
-                            }
+                          <input hidden type="file" accept=".ppt,.pptx,.pdf"
+                            onChange={(e) => handleUploadCertificate(client._id, e.target.files[0])}
                           />
                         </IconButton>
                       </Tooltip>
@@ -284,7 +269,7 @@ const Clients = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={11} align="center">
+                  <TableCell colSpan={12} align="center">
                     No client data available.
                   </TableCell>
                 </TableRow>
@@ -310,27 +295,16 @@ const Clients = () => {
       <NewClientModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSave={handleSaveClient}
         formData={formData}
         setFormData={setFormData}
+        refreshClients={fetchClients}
       />
 
-      <Dialog
-        open={previewDialogOpen}
-        onClose={() => setPreviewDialogOpen(false)}
-        maxWidth="lg"
-        fullWidth
-      >
+      <Dialog open={previewDialogOpen} onClose={() => setPreviewDialogOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle>📄 Certificate Template Preview</DialogTitle>
         <DialogContent dividers>
           {previewUrl?.toLowerCase().endsWith(".pdf") ? (
-            <iframe
-              src={previewUrl}
-              title="PDF Preview"
-              width="100%"
-              height="600px"
-              style={{ border: "none" }}
-            />
+            <iframe src={previewUrl} title="PDF Preview" width="100%" height="600px" style={{ border: "none" }} />
           ) : previewUrl?.toLowerCase().endsWith(".ppt") || previewUrl?.toLowerCase().endsWith(".pptx") ? (
             <Typography>
               PowerPoint file preview is not supported.{" "}

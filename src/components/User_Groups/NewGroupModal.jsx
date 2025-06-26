@@ -299,8 +299,6 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      <ToastContainer position="top-right" autoClose={3000} />
     </>
   );
 };

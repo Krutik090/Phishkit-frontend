@@ -35,7 +35,7 @@ import {
 } from "@mui/icons-material";
 import { pink } from "@mui/material/colors";
 import CampaignIcon from "@mui/icons-material/Campaign";
-import NewCampaignModal from "../Add-new_Campaign/NewCampaignModal";
+import NewCampaignModal from "./NewCampaignModal";
 import { useNavigate } from "react-router-dom";
 
 const Campaigns = () => {
@@ -61,16 +61,25 @@ const Campaigns = () => {
       sendingProfile: "",
       groups: [],
       quiz: "",
+      client: "",
     };
   }
 
+  const fetchCampaigns = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/campaigns");
+      const json = await res.json();
+      setData(json);
+    } catch (err) {
+      console.error("Failed to fetch data:", err);
+    }
+  };
+
   useEffect(() => {
-    fetch("http://localhost:5000/api/campaigns")
-      .then((res) => res.json())
-      .then((data) => setData(data))
-      .catch((err) => console.error("Failed to fetch data:", err));
+    fetchCampaigns();
   }, []);
 
+  // Sorting
   const handleSort = (field) => {
     if (field === sortField) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -131,15 +140,12 @@ const Campaigns = () => {
         method: "DELETE",
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to delete campaign on the server.");
-      }
+      if (!res.ok) throw new Error("Failed to delete");
 
-      // If backend delete was successful, update frontend state
       setData((prev) => prev.filter((c) => c.id !== campaignId));
-    } catch (error) {
-      console.error("Error deleting campaign:", error);
-      alert("Failed to delete campaign. Please try again.");
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Failed to delete campaign.");
     } finally {
       setDeleteDialog({ open: false, campaign: null });
     }
@@ -149,31 +155,14 @@ const Campaigns = () => {
     setDeleteDialog({ open: false, campaign: null });
   };
 
-  const handleSave = (savedCampaign) => {
-    if (savedCampaign.id && data.some((c) => c.id === savedCampaign.id)) {
-      setData((prev) =>
-        prev.map((c) => (c.id === savedCampaign.id ? savedCampaign : c))
-      );
-    } else {
-      const newCampaign = {
-        id: Date.now(),
-        name: savedCampaign.name,
-        client_id: null,
-        status: "Draft",
-        launch_date: savedCampaign.schedule,
-        emails_sent: 0,
-        ...savedCampaign,
-      };
-      setData((prev) => [...prev, newCampaign]);
-    }
-
-    setFormData(initialFormState());
-    setOpenModal(false);
-  };
-
   const handleCloseModal = () => {
     setOpenModal(false);
     setFormData(initialFormState());
+  };
+
+  const handleSaveSuccess = () => {
+    fetchCampaigns(); // refetch campaigns after save
+    handleCloseModal(); // close modal after save
   };
 
   return (
@@ -202,7 +191,6 @@ const Campaigns = () => {
             px: 3,
             py: 1,
             boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
-            transition: "all 0.3s ease",
             "&:hover": {
               background: "linear-gradient(135deg, #d6007a, #ff478a)",
               boxShadow: "0 6px 12px rgba(236, 0, 140, 0.5)",
@@ -214,19 +202,8 @@ const Campaigns = () => {
       </Box>
 
       {/* Table Container */}
-      <Paper
-        elevation={2}
-        sx={{
-          borderRadius: "12px",
-          p: 2,
-          height: 800,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* Top Controls */}
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+      <Paper elevation={2} sx={{ borderRadius: "12px", p: 2, height: 800, display: "flex", flexDirection: "column" }}>
+        <Box display="flex" justifyContent="space-between" mb={2}>
           <FormControl variant="standard">
             <InputLabel>Show</InputLabel>
             <Select
@@ -238,9 +215,7 @@ const Campaigns = () => {
               sx={{ minWidth: 80 }}
             >
               {[10, 25, 50, 100].map((count) => (
-                <MenuItem key={count} value={count}>
-                  {count}
-                </MenuItem>
+                <MenuItem key={count} value={count}>{count}</MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -282,13 +257,7 @@ const Campaigns = () => {
                     {renderSortLabel(label, field)}
                   </TableCell>
                 ))}
-                <TableCell
-                  sx={{
-                    backgroundColor: "#ffe0ef",
-                    color: "#ec008c",
-                    fontWeight: "bold",
-                  }}
-                >
+                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
                   Actions
                 </TableCell>
               </TableRow>
@@ -312,11 +281,10 @@ const Campaigns = () => {
                         <IconButton
                           size="small"
                           color="primary"
-                          onClick={() => navigate(`/campaign-results/${row.id}`)} // 👈 navigate to ResultCampaign.jsx
+                          onClick={() => navigate(`/campaign-results/${row.id}`)}
                         >
                           <VisibilityIcon />
                         </IconButton>
-
                       </Tooltip>
                       <Tooltip title="Delete">
                         <IconButton
@@ -356,11 +324,11 @@ const Campaigns = () => {
         </Box>
       </Paper>
 
-      {/* Modal for Add/Edit */}
+      {/* Add Campaign Modal */}
       <NewCampaignModal
         open={openModal}
         onClose={handleCloseModal}
-        onSave={handleSave}
+        onSave={handleSaveSuccess}
         formData={formData}
         setFormData={setFormData}
       />
@@ -370,15 +338,12 @@ const Campaigns = () => {
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete{" "}
-            <strong>{deleteDialog.campaign?.name}</strong>?
+            Are you sure you want to delete <strong>{deleteDialog.campaign?.name}</strong>?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={cancelDelete}>Cancel</Button>
-          <Button onClick={confirmDelete} color="error">
-            Delete
-          </Button>
+          <Button onClick={confirmDelete} color="error">Delete</Button>
         </DialogActions>
       </Dialog>
     </Box>

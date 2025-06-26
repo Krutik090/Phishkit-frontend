@@ -17,6 +17,10 @@ import {
   Select,
   MenuItem,
   InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   Group as GroupIcon,
@@ -26,14 +30,9 @@ import {
   ArrowDropUp as ArrowDropUpIcon,
   ArrowDropDown as ArrowDropDownIcon,
 } from "@mui/icons-material";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from "@mui/material";
-
-import NewGroupModal from "../NewGroupModal";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import NewGroupModal from "./NewGroupModal";
 
 const UsersGroups = () => {
   const [groups, setGroups] = useState([]);
@@ -70,22 +69,22 @@ const UsersGroups = () => {
     }
   };
 
-const handleDeleteGroup = async () => {
-  if (!groupToDelete) return;
-  try {
-    await fetch(`http://localhost:5000/api/groups/${groupToDelete.id}`, {
-      method: "DELETE",
-    });
+  const handleDeleteGroup = async () => {
+    if (!groupToDelete) return;
+    try {
+      await fetch(`http://localhost:5000/api/groups/${groupToDelete.id}`, {
+        method: "DELETE",
+      });
 
-    setGroups((prev) => prev.filter((g) => g.id !== groupToDelete.id));
-    setDeleteDialogOpen(false);
-    setGroupToDelete(null);
-  } catch (err) {
-    console.error("Failed to delete group:", err);
-    alert("Failed to delete group. Please try again.");
-  }
-};
-
+      setGroups((prev) => prev.filter((g) => g.id !== groupToDelete.id));
+      setDeleteDialogOpen(false);
+      setGroupToDelete(null);
+      toast.success("Group deleted successfully!");
+    } catch (err) {
+      console.error("Failed to delete group:", err);
+      toast.error("Failed to delete group. Please try again.");
+    }
+  };
 
   const renderSortLabel = (field, label) => (
     <Box
@@ -139,31 +138,25 @@ const handleDeleteGroup = async () => {
     setSelectedGroup(null);
     setModalMode("create");
   };
+
   return (
     <Box p={3}>
-
-        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-  <DialogTitle>Confirm Deletion</DialogTitle>
-  <DialogContent>
-    Are you sure you want to delete the group{" "}
-    <strong>{groupToDelete?.name}</strong>?
-  </DialogContent>
-  <DialogActions>
-    <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-    <Button onClick={handleDeleteGroup} color="error" variant="contained">
-      Yes, Delete
-    </Button>
-  </DialogActions>
-</Dialog>
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete the group{" "}
+          <strong>{groupToDelete?.name}</strong>?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleDeleteGroup} color="error" variant="contained">
+            Yes, Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography
-          variant="h5"
-          fontWeight="bold"
-          color="#343a40"
-          display="flex"
-          alignItems="center"
-        >
+        <Typography variant="h5" fontWeight="bold" color="#343a40" display="flex" alignItems="center">
           <GroupIcon sx={{ mr: 1 }} />
           Users & Groups
         </Typography>
@@ -192,17 +185,7 @@ const handleDeleteGroup = async () => {
         </Button>
       </Box>
 
-      <Paper
-        elevation={2}
-        sx={{
-          borderRadius: "12px",
-          p: 2,
-          height: 800,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
+      <Paper elevation={2} sx={{ borderRadius: "12px", p: 2, height: 800, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <FormControl variant="standard">
             <InputLabel>Show</InputLabel>
@@ -238,10 +221,11 @@ const handleDeleteGroup = async () => {
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
-                {[{ label: "Name", field: "name" },
+                {[
+                  { label: "Name", field: "name" },
                   { label: "# of Members", field: "members" },
                   { label: "Modified Date", field: null },
-                  { label: "Actions", field: null }
+                  { label: "Actions", field: null },
                 ].map(({ label, field }) => (
                   <TableCell
                     key={label}
@@ -265,27 +249,21 @@ const handleDeleteGroup = async () => {
                   <TableRow key={idx} hover sx={{ height: 56 }}>
                     <TableCell>{group.name}</TableCell>
                     <TableCell>{group.targets?.length || 0}</TableCell>
+                    <TableCell>{new Date(group.modified_date).toLocaleString()}</TableCell>
                     <TableCell>
-                      {new Date(group.modified_date).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <IconButton
-                        size="small"
-                        color="secondary"
-                        onClick={() => handleEditGroup(group)}
-                      >
+                      <IconButton size="small" color="secondary" onClick={() => handleEditGroup(group)}>
                         <EditIcon />
                       </IconButton>
                       <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => {
-                            setGroupToDelete(group);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
+                        size="small"
+                        color="error"
+                        onClick={() => {
+                          setGroupToDelete(group);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
                     </TableCell>
                   </TableRow>
                 ))
@@ -302,10 +280,8 @@ const handleDeleteGroup = async () => {
 
         <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="body2" color="gray">
-            Showing{" "}
-            {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
-            {Math.min(currentPage * entriesPerPage, sorted.length)} of{" "}
-            {sorted.length} entries
+            Showing {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
+            {Math.min(currentPage * entriesPerPage, sorted.length)} of {sorted.length} entries
           </Typography>
 
           <Pagination
@@ -322,15 +298,8 @@ const handleDeleteGroup = async () => {
         handleClose={handleCloseModal}
         mode={modalMode}
         groupData={selectedGroup}
-        onSave={(updatedGroup) => {
-          // If you want to keep it in sync with server, just use: fetchGroups();
-          if (modalMode === "edit") {
-            setGroups((prev) =>
-              prev.map((g) => (g.id === updatedGroup.id ? updatedGroup : g))
-            );
-          } else {
-            setGroups((prev) => [...prev, updatedGroup]);
-          }
+        onSave={() => {
+          fetchGroups(); // ✅ re-fetch for both add/edit
           handleCloseModal();
         }}
       />

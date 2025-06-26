@@ -25,7 +25,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import NewLandingPageModal from "../NewLandingPageModal";
+import NewLandingPageModal from "./NewLandingPageModal";
+import { toast } from "react-toastify";
+
 
 const LandingPages = () => {
   const [landingPages, setLandingPages] = useState([]);

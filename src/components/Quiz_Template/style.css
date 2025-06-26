@@ -1,0 +1,228 @@
+
+.quiz-container {
+  max-width: 800px;
+  margin: auto;
+  color: black;
+  background: #E1E8E7;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+h1 {
+  text-align: center;
+  color: #c2b7b6;
+  margin-bottom: 20px;
+}
+
+.question p {
+  font-weight: bold;
+  color: black;
+  font-size: 18px;
+}
+
+.answers label {
+  display: block;
+  margin-bottom: 10px;
+  padding: 8px;
+  background: #f0f0f0;
+  border-radius: 8px;
+  transition: background 0.3s;
+  cursor: pointer;
+}
+
+.answers label:hover {
+  background: #ffe5f0;
+}
+
+.nav-buttons {
+  margin-top: 30px;
+  text-align: center;
+  display: none;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  text-align: center;
+}
+
+.nav-buttons.show {
+  display: flex;
+}
+
+.nav-buttons button,
+.nav-controls button,
+.submit-button {
+  background-color: black;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  margin: 4px;
+  text-align: center;
+}
+
+.submit-button {
+  margin-top: 20px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  background-color: black;
+  color: white;
+}
+
+#result {
+  margin-top: 30px;
+  font-size: 16px;
+  font-weight: bold;
+  color: black;
+  background: #f9f2f8;
+  border: 2px dashed #c2b7b6;
+  padding: 15px;
+  border-radius: 12px;
+}
+
+#navigation button.correct {
+  background-color: #4CAF50;
+  color: white;
+  text-align: center;
+}
+
+#navigation button.incorrect {
+  background-color: #f44336;
+  color: white;
+  text-align: center;
+}
+
+.nav-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.toggle-nav {
+  text-align: center;
+  margin-top: 10px;
+  cursor: pointer;
+  color: #1e83ec;
+  font-weight: bold;
+}
+
+.animated-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background: url('https://www.transparenttextures.com/patterns/batthern.png');
+  opacity: 0.05;
+}
+
+  .quiz-container label {
+    display: block;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 4px;
+    background-color: white;
+    color: black;
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  .quiz-container label:hover {
+    background-color: #f0f0f0; /* No pink! Just a light grey */
+    color: black;
+  }
+
+.correct {
+  color: green;
+}
+
+.incorrect {
+  color: red;
+}
+
+
+/* Hide default radio appearance */
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: white;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  position: relative;
+  top: 3px;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+/* Show blue dot when selected */
+input[type="radio"]:checked {
+  border-color: #007bff; /* Blue border */
+  background-color: #007bff; /* Blue background */
+}
+
+/* Create inner white dot */
+input[type="radio"]:checked::before {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 6px;
+  margin: 4px;
+  border-radius: 50%;
+  background: white;
+}
+
+
+
+  #navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 10px;
+  }
+  #navigation button {
+    width: 8%;
+    height: 40px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: white;
+    color: black;
+    transition: background-color 0.3s, color 0.3s;
+    text-align: center;
+  }
+  #navigation button:hover {
+    background-color: #f0f0f0; /* Light gray on hover instead of pink */
+    color: black;
+  }
+  #navigation button.answered {
+    background-color: #4caf50; /* Green for answered */
+    color: white;
+  }
+
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #E1E8E7;
+    color: #1a1a1a;
+    padding: 10px 20px;
+    margin-bottom: 60px;
+  }
+  .header h1 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+  .header img {
+    height: 40px;
+  }
+

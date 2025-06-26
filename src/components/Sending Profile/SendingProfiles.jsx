@@ -33,7 +33,7 @@ import {
   DialogActions,
 } from "@mui/material";
 import { toast } from "react-toastify";
-import NewSendingProfileModal from "../NewSendingProfileModal";
+import NewSendingProfileModal from "./NewSendingProfileModal";
 
 const API_BASE_URL = "http://localhost:5000/api/sending-profiles";
 
@@ -48,7 +48,7 @@ const SendingProfiles = () => {
   const [editingProfile, setEditingProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [groupToDelete, setGroupToDelete] = useState(null);
+  const [groupToDelete, setGroupToDelete] = useState(null);
 
   // Fetch profiles on mount
   const fetchProfiles = async () => {
@@ -125,18 +125,23 @@ const SendingProfiles = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete profile");
+
       setDeleteDialogOpen(false);
       setGroupToDelete(null);
       setProfiles((prev) => prev.filter((p) => p.id !== id));
+
+      // ✅ Add this line
+      toast.success("Sending profile deleted successfully!");
     } catch (err) {
       console.error("Failed to delete profile:", err);
-      alert("Failed to delete the sending profile.");
+      toast.error("Failed to delete the sending profile.");
     }
+
   };
 
   return (
     <Box p={3}>
-              {/* <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      {/* <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent>
           Are you sure you want to delete the group{" "}
@@ -273,11 +278,11 @@ const SendingProfiles = () => {
                         <IconButton
                           size="small"
                           color="error"
-  //                         onClick={() => {
-  //                           setGroupToDelete(profile.id);
-  //                 setDeleteDialogOpen(true);
-  // }}
-                        onClick={() => handleDelete(profile.id)}
+                          //                         onClick={() => {
+                          //                           setGroupToDelete(profile.id);
+                          //                 setDeleteDialogOpen(true);
+                          // }}
+                          onClick={() => handleDelete(profile.id)}
                         >
                           <DeleteIcon />
                         </IconButton>
@@ -330,23 +335,23 @@ const SendingProfiles = () => {
         }}
         initialData={editingProfile}
       /> */}
- <NewSendingProfileModal
-  open={openModal}
-  handleClose={() => setOpenModal(false)}
-  onSave={(savedProfile) => {
-    if (editingProfile) {
-      // It's an update, so replace the existing profile in the list
-      setProfiles((prev) =>
-        prev.map((p) => (p.id === savedProfile.id ? savedProfile : p))
-      );
-    } else {
-      // It's a new profile created via POST, backend returned full object including ID
-      setProfiles((prev) => [...prev, savedProfile]);
-    }
-    setOpenModal(false);
-  }}
-  initialData={editingProfile}
-/>
+      <NewSendingProfileModal
+        open={openModal}
+        handleClose={() => setOpenModal(false)}
+        onSave={(savedProfile) => {
+          if (editingProfile) {
+            // It's an update, so replace the existing profile in the list
+            setProfiles((prev) =>
+              prev.map((p) => (p.id === savedProfile.id ? savedProfile : p))
+            );
+          } else {
+            // It's a new profile created via POST, backend returned full object including ID
+            setProfiles((prev) => [...prev, savedProfile]);
+          }
+          setOpenModal(false);
+        }}
+        initialData={editingProfile}
+      />
 
 
     </Box>

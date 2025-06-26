@@ -26,7 +26,8 @@ import {
   ArrowDropUp as ArrowDropUpIcon,
   ArrowDropDown as ArrowDropDownIcon,
 } from "@mui/icons-material";
-import NewTemplateModal from "../NewTemplateModal";
+import NewTemplateModal from "./NewTemplateModal";
+import { toast } from "react-toastify";
 
 const Templates = () => {
   const [templates, setTemplates] = useState([]);
@@ -36,35 +37,38 @@ const Templates = () => {
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState(null); // null for new
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
 
   useEffect(() => {
     fetchTemplates();
   }, []);
 
-  const fetchTemplates = () => {
-    fetch("http://localhost:5000/api/templates")
-      .then((res) => res.json())
-      .then((data) => setTemplates(data))
-      .catch((err) => console.error("Failed to fetch templates:", err));
+  const fetchTemplates = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/templates");
+      const data = await res.json();
+      setTemplates(data);
+    } catch (err) {
+      console.error("Failed to fetch templates:", err);
+    }
   };
 
-const handleDeleteTemplate = (templateId) => {
-  const confirmDelete = window.confirm("Are you sure you want to delete this template?");
-  if (!confirmDelete) return;
+  const handleDeleteTemplate = async (templateId) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this template?");
+    if (!confirmDelete) return;
 
-  fetch(`http://localhost:5000/api/templates/${templateId}`, {
-    method: "DELETE",
-  })
-    .then((res) => {
-      if (!res.ok) {
-        throw new Error("Failed to delete template");
-      }
+    try {
+      const res = await fetch(`http://localhost:5000/api/templates/${templateId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Delete failed");
       setTemplates((prev) => prev.filter((t) => t.id !== templateId));
-    })
-    .catch((err) => console.error("Delete failed:", err));
-};
-
+      toast.success("Template deleted successfully");
+    } catch (err) {
+      console.error("Delete failed:", err);
+      toast.error("Failed to delete template");
+    }
+  };
 
   const handleSort = (field) => {
     if (field === sortField) {
@@ -75,15 +79,6 @@ const handleDeleteTemplate = (templateId) => {
     }
   };
 
-  const getSortIcon = (field) => {
-    if (field !== sortField) return null;
-    return sortDirection === "asc" ? (
-      <ArrowDropUpIcon fontSize="small" sx={{ color: "#ec008c" }} />
-    ) : (
-      <ArrowDropDownIcon fontSize="small" sx={{ color: "#ec008c" }} />
-    );
-  };
-
   const renderSortLabel = (label, field) => (
     <Box
       display="flex"
@@ -92,7 +87,12 @@ const handleDeleteTemplate = (templateId) => {
       onClick={() => handleSort(field)}
     >
       {label}
-      {getSortIcon(field)}
+      {sortField === field &&
+        (sortDirection === "asc" ? (
+          <ArrowDropUpIcon fontSize="small" />
+        ) : (
+          <ArrowDropDownIcon fontSize="small" />
+        ))}
     </Box>
   );
 
@@ -115,7 +115,7 @@ const handleDeleteTemplate = (templateId) => {
   );
 
   const openNewTemplateModal = () => {
-    setSelectedTemplate(null); // New template
+    setSelectedTemplate(null);
     setIsModalOpen(true);
   };
 
@@ -130,20 +130,19 @@ const handleDeleteTemplate = (templateId) => {
   };
 
   const handleSaveTemplate = (savedTemplate) => {
-    // Update state after save (refresh list or update locally)
     if (selectedTemplate) {
-      // Edit mode - update in list
       setTemplates((prev) =>
         prev.map((t) => (t.id === savedTemplate.id ? savedTemplate : t))
       );
     } else {
-      // New mode - add to list
       setTemplates((prev) => [...prev, savedTemplate]);
     }
+    handleModalClose();
   };
 
   return (
     <Box p={3}>
+      {/* Title + Add */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography
           variant="h5"
@@ -178,116 +177,99 @@ const handleDeleteTemplate = (templateId) => {
         </Button>
       </Box>
 
-      {/* Search and Entries Per Page */}
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
-        flexWrap="wrap"
-        gap={2}
-      >
-        <TextField
-          label="Search by name"
-          variant="outlined"
-          size="small"
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setCurrentPage(1);
-          }}
-          sx={{ minWidth: 250 }}
-        />
+      {/* Table */}
+      <Paper elevation={2} sx={{ borderRadius: 2, p: 2, height: 800, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel>Entries per page</InputLabel>
-          <Select
-            value={entriesPerPage}
-            label="Entries per page"
+        {/* Search and Entries Per Page */}
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <FormControl variant="standard">
+            <InputLabel>Show</InputLabel>
+            <Select
+              value={entriesPerPage}
+              onChange={(e) => {
+                setEntriesPerPage(parseInt(e.target.value));
+                setCurrentPage(1);
+              }}
+              sx={{ minWidth: 80 }}
+            >
+              {[10, 25, 50, 100].map((count) => (
+                <MenuItem key={count} value={count}>
+                  {count}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            placeholder="🔍 Search..."
+            value={searchQuery}
             onChange={(e) => {
-              setEntriesPerPage(parseInt(e.target.value));
+              setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-          >
-            {[10, 20, 30, 40, 50].map((n) => (
-              <MenuItem key={n} value={n}>
-                {n}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
+            variant="standard"
+            sx={{ width: 300 }}
+          />
+        </Box>
 
- <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
+        <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
-                {[{ label: "Template Name", field: "name" }, { label: "Actions", field: null }].map(
-                  ({ label, field }) => (
-                    <TableCell
-                      key={label}
-                      sx={{
-                        backgroundColor: "#ffe0ef",
-                        color: "#ec008c",
-                        fontWeight: "bold",
-                        cursor: field ? "pointer" : "default",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {field ? renderSortLabel(label, field) : label}
-                    </TableCell>
-                  )
-                )}
+                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
+                  {renderSortLabel("name", "Template Name")}
+                </TableCell>
+                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-               {paginated.map((template) => (
-              <TableRow key={template.id}>
-                <TableCell>{template.name}</TableCell>
-                <TableCell>
-                  <Tooltip title="Edit Template">
-                    <IconButton
-                      color="primary"
-                      onClick={() => openEditTemplateModal(template)}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                  </Tooltip>
-                 <Tooltip title="Delete">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleDeleteTemplate(template.id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                  </Tooltip>
-                </TableCell>
-              </TableRow>
-            ))}
-            {paginated.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={2} align="center" sx={{ py: 4 }}>
-                  No templates found.
-                </TableCell>
-              </TableRow>
-            )}
+              {paginated.length > 0 ? (
+                paginated.map((template) => (
+                  <TableRow key={template.id} hover>
+                    <TableCell>{template.name}</TableCell>
+                    <TableCell>
+                      <Tooltip title="Edit">
+                        <IconButton color="primary" onClick={() => openEditTemplateModal(template)}>
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton color="error" onClick={() => handleDeleteTemplate(template.id)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={2} align="center">
+                    No templates found.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>
 
-      {/* Pagination */}
-      {pageCount > 1 && (
-        <Box mt={3} display="flex" justifyContent="center">
+        {/* Pagination */}
+        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="body2" color="gray">
+            Showing{" "}
+            {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
+            {Math.min(currentPage * entriesPerPage, sorted.length)} of{" "}
+            {sorted.length} entries
+          </Typography>
           <Pagination
             count={pageCount}
             page={currentPage}
             onChange={(_, page) => setCurrentPage(page)}
             color="primary"
-            shape="rounded"
           />
         </Box>
-      )}
+      </Paper>
 
       {/* Modal */}
       <NewTemplateModal

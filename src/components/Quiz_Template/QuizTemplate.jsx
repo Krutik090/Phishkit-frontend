@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import '../assets/style.css';
-import Quiz_question from './Quiz_question';
+import './style.css';
+import Quiz_question from '../Quiz_question';
 
 function QuizTemplate() {
   const { publicUrl } = useParams(); // Get the unique public URL slug
