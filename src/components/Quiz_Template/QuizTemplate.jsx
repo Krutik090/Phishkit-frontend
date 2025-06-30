@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import './style.css';
-import Quiz_question from '../Quiz_question';
+import Quiz_question from './Quiz_question';
 
 function QuizTemplate() {
-  const { publicUrl } = useParams(); // Get the unique public URL slug
+  const { publicUrl } = useParams();
   const [quiz, setQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,7 +13,6 @@ function QuizTemplate() {
     const fetchQuiz = async () => {
       try {
         const response = await fetch(`http://localhost:5000/api/quizzes/url/${publicUrl}`);
-        console.log(response)
         if (!response.ok) throw new Error("Quiz not found");
         const data = await response.json();
         setQuiz(data);
@@ -32,9 +31,9 @@ function QuizTemplate() {
   if (error) return <div className="quiz-container error">{error}</div>;
 
   return (
-    <div>
+    <div className="quiz-page">
       <div className="header">
-        <h1 style={{ color: 'black' }}>{quiz.title}</h1>
+        <h1 className="quiz-title">{quiz.title}</h1>
         <img
           src="https://www.jindalstainless.com/wp-content/themes/jsl/assets/images/Logo-Dark.png"
           alt="JSL Logo"
@@ -43,12 +42,11 @@ function QuizTemplate() {
 
       <div className="animated-bg"></div>
       <div className="quiz-container">
-        {/* Pass full quiz or just questions based on what Quiz_question expects */}
-       <Quiz_question
-  title={quiz.title}
-  description={quiz.description}
-  questions={quiz.questions}
-/>
+        <Quiz_question
+          title={quiz.title}
+          description={quiz.description}
+          questions={quiz.questions}
+        />
       </div>
     </div>
   );
