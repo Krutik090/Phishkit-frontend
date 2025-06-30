@@ -85,30 +85,30 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
   };
 
   const handleFetchFromAD = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/api/ad-users");
-      if (!response.ok) throw new Error("Failed to fetch from AD");
+  try {
+    const response = await fetch("http://localhost:5000/api/ad-users");
+    if (!response.ok) throw new Error("Failed to fetch from AD");
 
-      const adUsers = await response.json();
+    const adData = await response.json();
+    const adUsers = adData.users || [];
 
-      const mappedUsers = adUsers
-        .filter(
-          (u) => u.firstName && u.lastName && u.email && isValidEmail(u.email)
-        )
-        .map((u) => ({
-          first_name: u.firstName,
-          last_name: u.lastName || '',
-          email: u.email,
-          position: "N/A",
-        }));
+    const mappedUsers = adUsers
+      .filter((u) => u.firstName && u.email && isValidEmail(u.email))
+      .map((u) => ({
+        first_name: u.firstName,
+        last_name: u.lastName || '', // Default to empty string if missing
+        email: u.email,
+        position: "N/A",
+      }));
 
-      setUsers((prev) => [...prev, ...mappedUsers]);
-      toast.success("Fetched users from Active Directory successfully!");
-    } catch (err) {
-      toast.error("Failed to fetch users from AD");
-      console.error(err);
-    }
-  };
+    setUsers((prev) => [...prev, ...mappedUsers]);
+    toast.success("Fetched users from Active Directory successfully!");
+  } catch (err) {
+    toast.error("Failed to fetch users from AD");
+    console.error(err);
+  }
+};
+
 
   const handleSave = async () => {
     const isEditing = mode === "edit" && groupData?.id;
@@ -332,7 +332,6 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
           </Button>
         </DialogActions>
       </Dialog>
-      <ToastContainer />
     </>
   );
 };
