@@ -84,6 +84,32 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
     link.click();
   };
 
+  const handleFetchFromAD = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/api/ad-users");
+      if (!response.ok) throw new Error("Failed to fetch from AD");
+
+      const adUsers = await response.json();
+
+      const mappedUsers = adUsers
+        .filter(
+          (u) => u.firstName && u.lastName && u.email && isValidEmail(u.email)
+        )
+        .map((u) => ({
+          first_name: u.firstName,
+          last_name: u.lastName || '',
+          email: u.email,
+          position: "N/A",
+        }));
+
+      setUsers((prev) => [...prev, ...mappedUsers]);
+      toast.success("Fetched users from Active Directory successfully!");
+    } catch (err) {
+      toast.error("Failed to fetch users from AD");
+      console.error(err);
+    }
+  };
+
   const handleSave = async () => {
     const isEditing = mode === "edit" && groupData?.id;
     const data = {
@@ -173,6 +199,13 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
               </Button>
               <Button variant="outlined" onClick={handleDownload}>
                 DOWNLOAD CSV TEMPLATE
+              </Button>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={handleFetchFromAD}
+              >
+                FETCH FROM AD
               </Button>
             </Box>
 
@@ -299,6 +332,7 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
           </Button>
         </DialogActions>
       </Dialog>
+      <ToastContainer />
     </>
   );
 };

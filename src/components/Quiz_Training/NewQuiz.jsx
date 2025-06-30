@@ -23,7 +23,7 @@ const generatePublicUrl = () => {
   for (let i = 0; i < 8; i++) {
     slug += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  return `quiz-${slug}`;
+  return `quiz-${slug}?uid=''`;
 };
 
 const NewQuiz = () => {

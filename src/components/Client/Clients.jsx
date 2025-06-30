@@ -235,13 +235,13 @@ const Clients = () => {
                       </Link>
                     </TableCell>
                     <TableCell>{Array.isArray(client.campaigns) && client.campaigns.length > 0 ? client.campaigns.join(", ") : "—"}</TableCell>
-                    <TableCell>{client.emailSent}</TableCell>
-                    <TableCell>{client.emailFailed}</TableCell>
-                    <TableCell>{client.emailOpened}</TableCell>
-                    <TableCell>{client.linkClicked}</TableCell>
-                    <TableCell>{client.submitted_data}</TableCell>
-                    <TableCell>{client.quizStarted}</TableCell>
-                    <TableCell>{client.quizCompleted}</TableCell>
+                    <TableCell>{client.emailSent ?? 0}</TableCell>
+                    <TableCell>{client.emailFailed ?? 0}</TableCell>
+                    <TableCell>{client.emailOpened ?? 0}</TableCell>
+                    <TableCell>{client.linkClicked ?? 0}</TableCell>
+                    <TableCell>{client.submitted_data ?? 0}</TableCell>
+                    <TableCell>{client.quizStarted ?? 0}</TableCell>
+                    <TableCell>{client.quizCompleted ?? 0}</TableCell>
                     <TableCell>{new Date(client.createdAt).toLocaleString()}</TableCell>
                     <TableCell>
                       {client.certificateTemplatePath ? (
