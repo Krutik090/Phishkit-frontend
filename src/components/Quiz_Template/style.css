@@ -172,3 +172,17 @@ body {
 .btn-submit:hover {
   background-color: #0f9b70;
 }
+
+.timer-bar {
+  background-color: #eee;
+  height: 8px;
+  position: relative;
+  margin-bottom: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.timer-bar .bar {
+  height: 100%;
+  background-color: #ec008c;
+  transition: width 1s linear;
+}

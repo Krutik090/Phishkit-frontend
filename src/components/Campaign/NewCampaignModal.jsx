@@ -44,7 +44,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
     landingPages: [{ id: 1, name: "Mock Landing" }],
     sendingProfiles: [{ id: 1, name: "Mock SMTP" }],
     groups: [{ id: 1, name: "Mock Group" }],
-    quizzes: [{ id: 1, name: "Mock Quiz" }],
+    quizzes: [{ id: 1, name: "Mock Quiz", publicUrl: "sample-url" }],
     clients: [{ _id: "1", name: "Mock Client" }],
   };
 
@@ -106,7 +106,13 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === "quiz") {
+      const selectedQuiz = quizzes.find((q) => (q._id || q.id) === value);
+      setFormData((prev) => ({ ...prev, quiz: selectedQuiz || null }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSave = async () => {
@@ -137,7 +143,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
       launchDate: dayjs(formData.schedule).toISOString(),
       group: { name: formData.group },
       clientId: formData.client,
-      quiz: formData.quiz || null,
+      publicUrl: formData.quiz?.publicUrl || null, // ✅ send public URL
     };
 
     try {
@@ -171,7 +177,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
     schedule: formData?.schedule ? dayjs(formData.schedule) : dayjs(),
     sendingProfile: "",
     group: "",
-    quiz: "",
+    quiz: null,
     ...formData,
   };
 
@@ -293,7 +299,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
           {/* Row 5 */}
           <Box>
             <Typography fontWeight="bold" mb={0.5}>Quiz (Optional)</Typography>
-            <select name="quiz" value={safeFormData.quiz} onChange={handleChange}
+            <select name="quiz" value={safeFormData.quiz?._id || ""} onChange={handleChange}
               onFocus={handleSelectFocus} onBlur={handleSelectBlur} style={inputStyle} disabled={loading}>
               <option value="">Select Quiz</option>
               {quizzes.map((q) => <option key={q._id || q.id} value={q._id || q.id}>{q.title || q.name}</option>)}

@@ -33,19 +33,22 @@ function QuizTemplate() {
   return (
     <div className="quiz-page">
       <div className="header">
-        <h1 className="quiz-title">{quiz.title}</h1>
         <img
           src="https://www.jindalstainless.com/wp-content/themes/jsl/assets/images/Logo-Dark.png"
           alt="JSL Logo"
+          height={50}
         />
+        <h1 className="quiz-title">{quiz.title}</h1>
       </div>
 
       <div className="animated-bg"></div>
+
       <div className="quiz-container">
         <Quiz_question
           title={quiz.title}
           description={quiz.description}
           questions={quiz.questions}
+          uid={quiz.uid || 'anonymous'}
         />
       </div>
     </div>
