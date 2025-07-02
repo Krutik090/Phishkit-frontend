@@ -15,6 +15,8 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const ClientInsights = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
@@ -28,14 +30,14 @@ const ClientInsights = () => {
 
   const loadInsights = async () => {
     try {
-      const clientRes = await fetch(`http://localhost:5000/api/clients/${clientId}`);
+      const clientRes = await fetch(`${API_BASE_URL}/clients/${clientId}`);
       const clientData = await clientRes.json();
       setClient(clientData);
 
       const allResults = [];
 
       const campaignPromises = clientData.campaigns.map((id) =>
-        fetch(`http://localhost:5000/api/campaigns/${id}`)
+        fetch(`${API_BASE_URL}/campaigns/${id}`)
           .then((res) => res.json())
           .catch((err) => {
             console.error("Failed to fetch campaign", id, err.message);

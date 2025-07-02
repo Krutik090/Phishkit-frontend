@@ -15,6 +15,7 @@ import {
   Paper,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const ResultCampaign = () => {
   const { id } = useParams();
@@ -22,7 +23,7 @@ const ResultCampaign = () => {
   const [campaign, setCampaign] = useState(null);
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/campaigns/${id}`)
+   fetch(`${API_BASE_URL}/campaigns/${id}`)
       .then((res) => res.json())
       .then((data) => setCampaign(data))
       .catch((err) => {

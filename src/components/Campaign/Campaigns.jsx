@@ -31,12 +31,13 @@ import {
   ArrowDropUp as ArrowDropUpIcon,
   ArrowDropDown as ArrowDropDownIcon,
   Visibility as VisibilityIcon,
-  CheckBox,
 } from "@mui/icons-material";
 import { pink } from "@mui/material/colors";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import NewCampaignModal from "./NewCampaignModal";
 import { useNavigate } from "react-router-dom";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const Campaigns = () => {
   const [data, setData] = useState([]);
@@ -67,7 +68,7 @@ const Campaigns = () => {
 
   const fetchCampaigns = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/campaigns");
+      const res = await fetch(`${API_BASE_URL}/campaigns`);
       const json = await res.json();
       setData(json);
     } catch (err) {
@@ -79,7 +80,6 @@ const Campaigns = () => {
     fetchCampaigns();
   }, []);
 
-  // Sorting
   const handleSort = (field) => {
     if (field === sortField) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -113,6 +113,7 @@ const Campaigns = () => {
   const filtered = data.filter((row) =>
     row.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
   const sorted = [...filtered].sort((a, b) => {
     const valA = a[sortField] || "";
     const valB = b[sortField] || "";
@@ -136,7 +137,7 @@ const Campaigns = () => {
     if (!campaignId) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/campaigns/${campaignId}`, {
+      const res = await fetch(`${API_BASE_URL}/campaigns/${campaignId}`, {
         method: "DELETE",
       });
 
@@ -161,8 +162,8 @@ const Campaigns = () => {
   };
 
   const handleSaveSuccess = () => {
-    fetchCampaigns(); // refetch campaigns after save
-    handleCloseModal(); // close modal after save
+    fetchCampaigns();
+    handleCloseModal();
   };
 
   return (
@@ -201,7 +202,7 @@ const Campaigns = () => {
         </Button>
       </Box>
 
-      {/* Table Container */}
+      {/* Table */}
       <Paper elevation={2} sx={{ borderRadius: "12px", p: 2, height: 800, display: "flex", flexDirection: "column" }}>
         <Box display="flex" justifyContent="space-between" mb={2}>
           <FormControl variant="standard">
@@ -231,7 +232,6 @@ const Campaigns = () => {
           />
         </Box>
 
-        {/* Table */}
         <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
           <Table stickyHeader size="small">
             <TableHead>
@@ -309,7 +309,6 @@ const Campaigns = () => {
           </Table>
         </TableContainer>
 
-        {/* Pagination */}
         <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="body2" color="gray">
             Showing {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
@@ -324,7 +323,6 @@ const Campaigns = () => {
         </Box>
       </Paper>
 
-      {/* Add Campaign Modal */}
       <NewCampaignModal
         open={openModal}
         onClose={handleCloseModal}
@@ -333,7 +331,6 @@ const Campaigns = () => {
         setFormData={setFormData}
       />
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onClose={cancelDelete}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>

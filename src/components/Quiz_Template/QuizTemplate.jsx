@@ -9,10 +9,12 @@ function QuizTemplate() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/quizzes/url/${publicUrl}`);
+        const response = await fetch(`${API_BASE_URL}/quizzes/url/${publicUrl}`);
         if (!response.ok) throw new Error("Quiz not found");
         const data = await response.json();
         setQuiz(data);
@@ -24,8 +26,11 @@ function QuizTemplate() {
       }
     };
 
-    fetchQuiz();
+    if (publicUrl) {
+      fetchQuiz();
+    }
   }, [publicUrl]);
+
 
   if (loading) return <div className="quiz-container">Loading quiz...</div>;
   if (error) return <div className="quiz-container error">{error}</div>;

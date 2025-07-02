@@ -39,7 +39,7 @@ const Sidebar = () => {
       icon: <QuizIcon fontSize="small" />,
       path: "/quiz-training",
     },
-    { label: "Settings", icon: <FaCog />, path: "/settings" },
+    // { label: "Settings", icon: <FaCog />, path: "/settings" },
   ];
 
   return (

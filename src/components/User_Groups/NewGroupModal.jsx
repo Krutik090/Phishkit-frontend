@@ -20,6 +20,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
   const [users, setUsers] = useState([]);
   const [groupName, setGroupName] = useState("");
@@ -85,30 +87,29 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
   };
 
   const handleFetchFromAD = async () => {
-  try {
-    const response = await fetch("http://localhost:5000/api/ad-users");
-    if (!response.ok) throw new Error("Failed to fetch from AD");
+    try {
+      const response = await fetch(`${API_BASE_URL}/ad-users`);
+      if (!response.ok) throw new Error("Failed to fetch from AD");
 
-    const adData = await response.json();
-    const adUsers = adData.users || [];
+      const adData = await response.json();
+      const adUsers = adData.users || [];
 
-    const mappedUsers = adUsers
-      .filter((u) => u.firstName && u.email && isValidEmail(u.email))
-      .map((u) => ({
-        first_name: u.firstName,
-        last_name: u.lastName || '', // Default to empty string if missing
-        email: u.email,
-        position: "N/A",
-      }));
+      const mappedUsers = adUsers
+        .filter((u) => u.firstName && u.email && isValidEmail(u.email))
+        .map((u) => ({
+          first_name: u.firstName,
+          last_name: u.lastName || '',
+          email: u.email,
+          position: "N/A",
+        }));
 
-    setUsers((prev) => [...prev, ...mappedUsers]);
-    toast.success("Fetched users from Active Directory successfully!");
-  } catch (err) {
-    toast.error("Failed to fetch users from AD");
-    console.error(err);
-  }
-};
-
+      setUsers((prev) => [...prev, ...mappedUsers]);
+      toast.success("Fetched users from Active Directory successfully!");
+    } catch (err) {
+      toast.error("Failed to fetch users from AD");
+      console.error(err);
+    }
+  };
 
   const handleSave = async () => {
     const isEditing = mode === "edit" && groupData?.id;
@@ -121,8 +122,8 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
 
     try {
       const url = isEditing
-        ? `http://localhost:5000/api/groups/${groupData.id}`
-        : `http://localhost:5000/api/groups`;
+        ? `${API_BASE_URL}/groups/${groupData.id}`
+        : `${API_BASE_URL}/groups`;
 
       const method = isEditing ? "PUT" : "POST";
 
@@ -190,12 +191,7 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
                 sx={{ backgroundColor: "red", color: "white" }}
               >
                 BULK IMPORT USERS
-                <input
-                  hidden
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                />
+                <input hidden type="file" accept=".csv" onChange={handleFileUpload} />
               </Button>
               <Button variant="outlined" onClick={handleDownload}>
                 DOWNLOAD CSV TEMPLATE
@@ -276,10 +272,7 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{user.position}</TableCell>
                         <TableCell>
-                          <IconButton
-                            onClick={() => handleDelete(idx)}
-                            color="error"
-                          >
+                          <IconButton onClick={() => handleDelete(idx)} color="error">
                             <DeleteIcon />
                           </IconButton>
                         </TableCell>

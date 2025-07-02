@@ -8,6 +8,8 @@ import {
 } from "@mui/material";
 import { toast } from "react-toastify";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const style = {
   position: "absolute",
   top: "50%",
@@ -25,7 +27,7 @@ const NewClientModal = ({
   onClose,
   formData,
   setFormData,
-  refreshClients, // <-- new prop to update client list
+  refreshClients,
 }) => {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -33,7 +35,7 @@ const NewClientModal = ({
 
   const handleSaveClient = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/clients", {
+      const response = await fetch(`${API_BASE_URL}/clients`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -42,8 +44,8 @@ const NewClientModal = ({
       if (!response.ok) throw new Error("Failed to create client");
 
       toast.success("Client added successfully!");
-      onClose(); // Close modal
-      refreshClients(); // Refresh client list
+      onClose();
+      refreshClients();
     } catch (err) {
       console.error(err);
       toast.error("Failed to add client");

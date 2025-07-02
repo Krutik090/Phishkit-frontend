@@ -14,6 +14,9 @@ import { Link } from "react-router-dom";
 import NewClientModal from "./NewClientModal";
 import { toast } from "react-toastify";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+const FILE_BASE_URL = API_BASE_URL.replace("/api", "");
+
 const Clients = () => {
   const [clients, setClients] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -34,13 +37,13 @@ const Clients = () => {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/clients");
+      const response = await fetch(`${API_BASE_URL}/clients`);
       const clients = await response.json();
 
       await Promise.all(
         clients.map(async (client) => {
           try {
-            const syncRes = await fetch(`http://localhost:5000/api/clients/sync-stats/${client._id}`, {
+            const syncRes = await fetch(`${API_BASE_URL}/clients/sync-stats/${client._id}`, {
               method: "POST"
             });
             if (!syncRes.ok) {
@@ -52,7 +55,7 @@ const Clients = () => {
         })
       );
 
-      const refreshed = await fetch("http://localhost:5000/api/clients");
+      const refreshed = await fetch(`${API_BASE_URL}/clients`);
       const updatedClients = await refreshed.json();
       setClients(updatedClients);
 
@@ -116,7 +119,7 @@ const Clients = () => {
     formData.append("certificate", file);
 
     try {
-      await fetch(`http://localhost:5000/api/clients/${clientId}/upload-template`, {
+      await fetch(`${API_BASE_URL}/clients/${clientId}/upload-template`, {
         method: "POST",
         body: formData,
       });
@@ -129,7 +132,7 @@ const Clients = () => {
   };
 
   const handlePreview = (path) => {
-    const url = `http://localhost:5000/${path}`;
+    const url = `${FILE_BASE_URL}/${path}`;
     setPreviewUrl(url);
     setPreviewDialogOpen(true);
   };

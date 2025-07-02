@@ -18,6 +18,10 @@ import {
   Select,
   MenuItem,
   InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -26,16 +30,11 @@ import {
   ArrowDropUp as ArrowDropUpIcon,
   ArrowDropDown as ArrowDropDownIcon,
 } from "@mui/icons-material";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from "@mui/material";
 import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import NewSendingProfileModal from "./NewSendingProfileModal";
 
-const API_BASE_URL = "http://localhost:5000/api/sending-profiles";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const SendingProfiles = () => {
   const [profiles, setProfiles] = useState([]);
@@ -48,19 +47,18 @@ const SendingProfiles = () => {
   const [editingProfile, setEditingProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [groupToDelete, setGroupToDelete] = useState(null);
+  const [profileToDelete, setProfileToDelete] = useState(null);
 
-  // Fetch profiles on mount
   const fetchProfiles = async () => {
     setLoading(true);
     try {
-      const res = await fetch(API_BASE_URL);
+      const res = await fetch(`${API_BASE_URL}/sending-profiles`);
       if (!res.ok) throw new Error("Failed to fetch profiles");
       const data = await res.json();
       setProfiles(data);
     } catch (err) {
       console.error("Failed to fetch profiles:", err);
-      alert("Failed to load sending profiles.");
+      toast.error("Failed to load sending profiles.");
     }
     setLoading(false);
   };
@@ -99,7 +97,6 @@ const SendingProfiles = () => {
     </Box>
   );
 
-  // Filtering & sorting
   const filtered = profiles.filter((p) =>
     p.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -118,42 +115,47 @@ const SendingProfiles = () => {
     currentPage * entriesPerPage
   );
 
-  // Delete profile handler
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this sending profile?")) return;
+  const confirmDelete = (profile) => {
+    setProfileToDelete(profile);
+    setDeleteDialogOpen(true);
+  };
 
+  const handleDelete = async () => {
+    if (!profileToDelete) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE_URL}/sending-profiles/${profileToDelete.id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Failed to delete profile");
-
-      setDeleteDialogOpen(false);
-      setGroupToDelete(null);
-      setProfiles((prev) => prev.filter((p) => p.id !== id));
-
-      // ✅ Add this line
+      setProfiles((prev) => prev.filter((p) => p.id !== profileToDelete.id));
       toast.success("Sending profile deleted successfully!");
     } catch (err) {
-      console.error("Failed to delete profile:", err);
+      console.error("Delete error:", err);
       toast.error("Failed to delete the sending profile.");
+    } finally {
+      setDeleteDialogOpen(false);
+      setProfileToDelete(null);
     }
-
   };
 
   return (
     <Box p={3}>
-      {/* <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent>
-          Are you sure you want to delete the group{" "}
-          <strong>{groupToDelete?.name}</strong>?
+          Are you sure you want to delete the sending profile{" "}
+          <strong>{profileToDelete?.name}</strong>?
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDelete(groupToDelete)} color="error" variant="contained">
+          <Button color="error" variant="contained" onClick={handleDelete}>
             Yes, Delete
           </Button>
         </DialogActions>
-      </Dialog> */}
+      </Dialog>
+
+      {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h5" fontWeight="bold" color="#343a40">
           📧 Sending Profiles
@@ -185,6 +187,7 @@ const SendingProfiles = () => {
         </Button>
       </Box>
 
+      {/* Table Wrapper */}
       <Paper
         elevation={2}
         sx={{
@@ -196,6 +199,7 @@ const SendingProfiles = () => {
           overflow: "hidden",
         }}
       >
+        {/* Filters */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <FormControl variant="standard">
             <InputLabel>Show</InputLabel>
@@ -227,6 +231,7 @@ const SendingProfiles = () => {
           />
         </Box>
 
+        {/* Table */}
         <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
           <Table stickyHeader size="small">
             <TableHead>
@@ -278,11 +283,7 @@ const SendingProfiles = () => {
                         <IconButton
                           size="small"
                           color="error"
-                          //                         onClick={() => {
-                          //                           setGroupToDelete(profile.id);
-                          //                 setDeleteDialogOpen(true);
-                          // }}
-                          onClick={() => handleDelete(profile.id)}
+                          onClick={() => confirmDelete(profile)}
                         >
                           <DeleteIcon />
                         </IconButton>
@@ -301,10 +302,10 @@ const SendingProfiles = () => {
           </Table>
         </TableContainer>
 
+        {/* Pagination */}
         <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="body2" color="gray">
-            Showing{" "}
-            {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
+            Showing {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
             {Math.min(currentPage * entriesPerPage, sorted.length)} of {sorted.length} entries
           </Typography>
           <Pagination
@@ -316,44 +317,25 @@ const SendingProfiles = () => {
         </Box>
       </Paper>
 
-      {/* <NewSendingProfileModal
-        open={openModal}
-        handleClose={() => setOpenModal(false)}
-        onSave={async (data) => {
-          if (editingProfile) {
-            // Update backend to get the latest saved profile (already done inside modal)
-            // We update UI locally here
-            setProfiles((prev) =>
-              prev.map((p) => (p.id === editingProfile.id ? { ...p, ...data } : p))
-            );
-          } else {
-            // Optimistically add new profile with temporary id
-            // Ideally, you would refetch or get real id from backend
-            setProfiles((prev) => [...prev, { id: Date.now(), ...data }]);
-          }
-          setOpenModal(false);
-        }}
-        initialData={editingProfile}
-      /> */}
+      {/* New/Edit Modal */}
       <NewSendingProfileModal
         open={openModal}
-        handleClose={() => setOpenModal(false)}
+        handleClose={() => {
+          setOpenModal(false);
+          setEditingProfile(null);
+        }}
         onSave={(savedProfile) => {
           if (editingProfile) {
-            // It's an update, so replace the existing profile in the list
             setProfiles((prev) =>
               prev.map((p) => (p.id === savedProfile.id ? savedProfile : p))
             );
           } else {
-            // It's a new profile created via POST, backend returned full object including ID
             setProfiles((prev) => [...prev, savedProfile]);
           }
           setOpenModal(false);
         }}
         initialData={editingProfile}
       />
-
-
     </Box>
   );
 };

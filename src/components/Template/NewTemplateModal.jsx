@@ -22,6 +22,7 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import { toast } from "react-toastify";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 const pink = "#ec008c";
 
 const pinkTextFieldSx = {
@@ -67,7 +68,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
     const selectedFiles = Array.from(e.target.files);
     setFiles((prev) => [...prev, ...selectedFiles]);
     toast.success("File(s) added");
-    console.log("Toast: File(s) added");
   };
 
   const handleFileDelete = (index) => {
@@ -75,10 +75,8 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
     if (confirmed) {
       setFiles((prev) => prev.filter((_, i) => i !== index));
       toast.success("File deleted");
-      console.log("Toast: File deleted");
     } else {
       toast.info("Delete cancelled");
-      console.log("Toast: Delete cancelled");
     }
   };
 
@@ -111,8 +109,8 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
       };
 
       const url = templateData?.id
-        ? `http://localhost:5000/api/templates/${templateData.id}`
-        : "http://localhost:5000/api/templates";
+        ? `${API_BASE_URL}/templates/${templateData.id}`
+        : `${API_BASE_URL}/templates`;
 
       const method = templateData?.id ? "PUT" : "POST";
 
@@ -127,16 +125,13 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
       const savedData = await response.json();
 
       toast.success("Template saved successfully!");
-      console.log("Toast: Template saved successfully");
-
       setTimeout(() => {
         onSave(savedData);
         onClose();
-      }, 1000); // increased to allow toast to appear before unmount
+      }, 1000);
     } catch (error) {
       console.error(error);
       toast.error("Error saving template. Please try again.");
-      console.log("Toast: Error saving template");
     }
   };
 
@@ -169,7 +164,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
       </DialogTitle>
 
       <DialogContent dividers sx={{ p: 4 }}>
-        {/* Name */}
         <Typography variant="body2" fontWeight="500" mb={0.5}>
           Name
         </Typography>
@@ -182,7 +176,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           onChange={(e) => setName(e.target.value)}
         />
 
-        {/* Import Button (Not functional yet) */}
         <Button
           variant="contained"
           sx={{
@@ -200,7 +193,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           IMPORT EMAIL
         </Button>
 
-        {/* Envelope Sender */}
         <Typography variant="body2" fontWeight="500" mb={0.5}>
           Envelope Sender
         </Typography>
@@ -214,7 +206,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           onChange={(e) => setEnvelopeSender(e.target.value)}
         />
 
-        {/* Subject */}
         <Typography variant="body2" fontWeight="500" mb={0.5}>
           Subject
         </Typography>
@@ -227,7 +218,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           onChange={(e) => setSubject(e.target.value)}
         />
 
-        {/* Tabs for Text / HTML */}
         <Tabs
           value={tab}
           onChange={(_, val) => setTab(val)}
@@ -244,7 +234,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           <Tab label="HTML" sx={{ color: tab === 1 ? pink : "#000", fontWeight: "bold" }} />
         </Tabs>
 
-        {/* Content Field */}
         <Typography variant="body2" fontWeight="500" mb={0.5}>
           {tab === 0 ? "Text Content" : "HTML Content"}
         </Typography>
@@ -262,7 +251,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           }
         />
 
-        {/* Tracking Switch */}
         <FormControlLabel
           control={
             <Switch
@@ -281,7 +269,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           sx={{ mt: 2 }}
         />
 
-        {/* File Upload */}
         <Box mt={3}>
           <Typography variant="body2" fontWeight="500" mb={1}>
             Add Files
@@ -289,7 +276,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           <input type="file" multiple onChange={handleFileChange} />
         </Box>
 
-        {/* File Table */}
         {files.length > 0 && (
           <Box mt={2}>
             <Table size="small">

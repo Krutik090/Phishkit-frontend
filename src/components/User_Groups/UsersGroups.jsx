@@ -34,6 +34,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import NewGroupModal from "./NewGroupModal";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const UsersGroups = () => {
   const [groups, setGroups] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,7 +52,7 @@ const UsersGroups = () => {
   const [groupToDelete, setGroupToDelete] = useState(null);
 
   const fetchGroups = () => {
-    fetch("http://localhost:5000/api/groups")
+    fetch(`${API_BASE_URL}/groups`)
       .then((res) => res.json())
       .then((data) => setGroups(data))
       .catch((err) => console.error("Failed to fetch groups:", err));
@@ -72,7 +74,7 @@ const UsersGroups = () => {
   const handleDeleteGroup = async () => {
     if (!groupToDelete) return;
     try {
-      await fetch(`http://localhost:5000/api/groups/${groupToDelete.id}`, {
+      await fetch(`${API_BASE_URL}/groups/${groupToDelete.id}`, {
         method: "DELETE",
       });
 
@@ -141,6 +143,7 @@ const UsersGroups = () => {
 
   return (
     <Box p={3}>
+      {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent>
@@ -155,6 +158,7 @@ const UsersGroups = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h5" fontWeight="bold" color="#343a40" display="flex" alignItems="center">
           <GroupIcon sx={{ mr: 1 }} />
@@ -185,6 +189,7 @@ const UsersGroups = () => {
         </Button>
       </Box>
 
+      {/* Table Section */}
       <Paper elevation={2} sx={{ borderRadius: "12px", p: 2, height: 800, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <FormControl variant="standard">
@@ -278,6 +283,7 @@ const UsersGroups = () => {
           </Table>
         </TableContainer>
 
+        {/* Pagination */}
         <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="body2" color="gray">
             Showing {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
@@ -293,13 +299,14 @@ const UsersGroups = () => {
         </Box>
       </Paper>
 
+      {/* Modal */}
       <NewGroupModal
         open={openModal}
         handleClose={handleCloseModal}
         mode={modalMode}
         groupData={selectedGroup}
         onSave={() => {
-          fetchGroups(); // ✅ re-fetch for both add/edit
+          fetchGroups(); // Refresh list on save
           handleCloseModal();
         }}
       />

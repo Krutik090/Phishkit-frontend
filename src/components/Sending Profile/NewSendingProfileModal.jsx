@@ -91,11 +91,14 @@ const NewSendingProfileModal = ({ open, handleClose, onSave, initialData }) => {
     setForm(prev => ({ ...prev, headers: newHeaders }));
   };
 
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
+
   const handleSubmit = async () => {
     const isEdit = !!initialData?.id;
     const url = isEdit
-      ? `http://localhost:5000/api/sending-profiles/${initialData.id}`
-      : "http://localhost:5000/api/sending-profiles";
+      ? `${API_BASE_URL}/sending-profiles/${initialData.id}`
+      : `${API_BASE_URL}/sending-profiles`;
+
 
     const method = isEdit ? "PUT" : "POST";
 

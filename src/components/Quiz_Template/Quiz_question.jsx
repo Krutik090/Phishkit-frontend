@@ -1,9 +1,31 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import './style.css';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-function Quiz_question({ questions = [], title, description, uid }) {
+// Inline result component
+function QuizResult({ uid, score, total }) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-200 flex items-center justify-center px-4">
+      <div className="bg-white shadow-2xl rounded-2xl p-10 max-w-xl text-center">
+        <h1 className="text-4xl font-bold text-purple-700 mb-6">🎉 Quiz Completed!</h1>
+        <p className="text-xl mb-4 text-gray-700">User ID: <span className="font-semibold">{uid}</span></p>
+        <p className="text-2xl font-semibold text-green-600">✅ Score: {score}/{total}</p>
+        <p className="text-md text-gray-600 mt-4">Great job! You’ve successfully completed the quiz.</p>
+      </div>
+    </div>
+  );
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+
+function Quiz_question({ questions = [], title, description }) {
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const uid = queryParams.get('uid');
+
   const [userAnswers, setUserAnswers] = useState(() => {
     const saved = sessionStorage.getItem(`answers_${uid}`);
     return saved ? JSON.parse(saved) : {};
@@ -14,13 +36,24 @@ function Quiz_question({ questions = [], title, description, uid }) {
     return saved ? JSON.parse(saved) : {};
   });
 
+  const [stoppedTimers, setStoppedTimers] = useState(() => {
+    const saved = sessionStorage.getItem(`stopped_${uid}`);
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [submitted, setSubmitted] = useState(() => {
+    return localStorage.getItem(`submitted_${uid}`) === 'true';
+  });
+
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [submitted, setSubmitted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
+  const [score, setScore] = useState(null);
+  const [timerVisible, setTimerVisible] = useState(true);
+
   const timerRef = useRef(null);
-  const submittedRef = useRef(false);
-  const scoreRef = useRef(null);
+  const submittedRef = useRef(submitted);
   const autoAdvanceRef = useRef(false);
+  const stopTimerRef = useRef(false);
 
   const q = Array.isArray(questions) && questions.length > 0 ? questions[currentQuestion] : null;
   const selectedIdx = userAnswers[currentQuestion];
@@ -35,38 +68,55 @@ function Quiz_question({ questions = [], title, description, uid }) {
   };
 
   useEffect(() => {
-    if (questions.length > 0) {
-      const saved = sessionStorage.getItem(`current_${uid}`);
-      const parsed = saved ? parseInt(saved, 10) : 0;
-      setCurrentQuestion(parsed >= 0 && parsed < questions.length ? parsed : 0);
-    }
+    const saved = sessionStorage.getItem(`current_${uid}`);
+    const parsed = saved ? parseInt(saved, 10) : 0;
+    setCurrentQuestion(parsed >= 0 && parsed < questions.length ? parsed : 0);
   }, [questions, uid]);
 
   useEffect(() => {
-    if (!submitted && q) {
-      clearInterval(timerRef.current);
-      setTimeLeft(60);
+    clearInterval(timerRef.current);
+
+    if (!submitted && q && !isFrozen && !stoppedTimers[currentQuestion]) {
+      const timerKey = `timer_${uid}_${currentQuestion}`;
+      const storedStart = sessionStorage.getItem(timerKey);
+      const startTime = storedStart ? parseInt(storedStart, 10) : Date.now();
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = 60 - elapsed;
+
+      setTimeLeft(Math.max(remaining, 0));
+      setTimerVisible(true);
+      if (!storedStart) sessionStorage.setItem(timerKey, startTime);
+
+      stopTimerRef.current = false;
+
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
+          if (stopTimerRef.current) return prev;
           if (prev <= 1) {
             clearInterval(timerRef.current);
-            if (!isAnswered) {
-              setFrozenQuestions((prev) => {
-                const updated = { ...prev, [currentQuestion]: true };
-                sessionStorage.setItem(`frozen_${uid}`, JSON.stringify(updated));
-                return updated;
-              });
-            }
+            setFrozenQuestions((prevFrozen) => {
+              const updated = { ...prevFrozen, [currentQuestion]: true };
+              sessionStorage.setItem(`frozen_${uid}`, JSON.stringify(updated));
+              return updated;
+            });
+
+            setStoppedTimers((prevStopped) => {
+              const updated = { ...prevStopped, [currentQuestion]: true };
+              sessionStorage.setItem(`stopped_${uid}`, JSON.stringify(updated));
+              return updated;
+            });
+
             autoAdvanceRef.current = true;
-            return 60;
+            return 0;
           }
+
           return prev - 1;
         });
       }, 1000);
     }
 
     return () => clearInterval(timerRef.current);
-  }, [currentQuestion, submitted, q]);
+  }, [currentQuestion, submitted, q, isFrozen, stoppedTimers, uid]);
 
   useEffect(() => {
     if (autoAdvanceRef.current && !submitted) {
@@ -74,7 +124,7 @@ function Quiz_question({ questions = [], title, description, uid }) {
       if (currentQuestion < questions.length - 1) {
         setCurrentQuestion((prev) => prev + 1);
       } else {
-        handleSubmit(new Event('submit'));
+        document.getElementById('quiz-form')?.requestSubmit();
       }
     }
   }, [timeLeft, submitted]);
@@ -88,70 +138,69 @@ function Quiz_question({ questions = [], title, description, uid }) {
 
   useEffect(() => {
     if (submitted) {
-      sessionStorage.removeItem(`answers_${uid}`);
-      sessionStorage.removeItem(`current_${uid}`);
-      sessionStorage.removeItem(`frozen_${uid}`);
+      Object.keys(sessionStorage).forEach((key) => {
+        if (
+          key.startsWith(`answers_${uid}`) ||
+          key.startsWith(`frozen_${uid}`) ||
+          key.startsWith(`stopped_${uid}`) ||
+          key.startsWith(`timer_${uid}`) ||
+          key.startsWith(`current_${uid}`)
+        ) {
+          sessionStorage.removeItem(key);
+        }
+      });
     }
   }, [submitted, uid]);
 
-  useEffect(() => {
-    const preventExit = (e) => {
-      if (!submitted) {
-        e.preventDefault();
-        e.returnValue = '';
-        return '';
-      }
-    };
-
-    const handleVisibility = () => {
-      if (document.hidden && !submitted) {
-        toast.error('🚫 Switching tabs is not allowed!', { position: 'top-center' });
-      }
-    };
-
-    window.addEventListener('beforeunload', preventExit);
-    window.addEventListener('blur', preventExit);
-    document.addEventListener('visibilitychange', handleVisibility);
-
-    return () => {
-      window.removeEventListener('beforeunload', preventExit);
-      window.removeEventListener('blur', preventExit);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, [submitted]);
-
   const handleAnswerChange = (optionIdx) => {
-    if (isAnswered || isFrozen) return;
+    if (isAnswered || isFrozen) {
+      toast.warning('⚠️ You can only answer once!', { position: 'top-center' });
+      return;
+    }
+
     setUserAnswers((prev) => ({
       ...prev,
       [currentQuestion]: optionIdx,
     }));
+
+    stopTimerRef.current = true;
+
+    setStoppedTimers((prev) => {
+      const updated = { ...prev, [currentQuestion]: true };
+      sessionStorage.setItem(`stopped_${uid}`, JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleNext = () => {
     if (!isAnswered && !isFrozen) {
-      toast.warning('Please answer or wait for timeout.', { position: 'top-center' });
+      toast.warning('⏳ Please answer or wait for timeout.', { position: 'top-center' });
       return;
     }
+
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion((prev) => prev + 1);
     }
   };
 
   const handlePrev = () => {
+    setTimerVisible(false);
+    clearInterval(timerRef.current);
+    toast.info('⏪ Moved to previous question', { position: 'top-center' });
+
     if (currentQuestion > 0) {
       setCurrentQuestion((prev) => prev - 1);
     }
   };
 
-  const handleReset = () => {
-    sessionStorage.clear();
-    setUserAnswers({});
-    setFrozenQuestions({});
-    setCurrentQuestion(0);
-    setSubmitted(false);
-    submittedRef.current = false;
-    toast.success('🔁 Quiz reset.');
+  const calculateScore = () => {
+    let sc = 0;
+    questions.forEach((q, idx) => {
+      const correct = q.options.findIndex((opt) => opt.isCorrect);
+      if (userAnswers[idx] === correct) sc++;
+    });
+    setScore(sc);
+    return sc;
   };
 
   const handleSubmit = async (e) => {
@@ -159,35 +208,27 @@ function Quiz_question({ questions = [], title, description, uid }) {
     if (submittedRef.current) return;
     submittedRef.current = true;
 
-    let score = 0;
-    questions.forEach((q, index) => {
-      const selected = userAnswers[index];
-      const correct = q.options.findIndex((opt) => opt.isCorrect);
-      if (selected === correct) score++;
-    });
-
-    if (!uid) {
-      toast.error('User ID is missing.');
-      return;
-    }
+    const finalScore = score ?? calculateScore();
 
     try {
-      const res = await fetch('http://localhost:5000/api/tracking/complete', {
+      const res = await fetch(`${API_BASE_URL}/tracking/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid, score }),
+        body: JSON.stringify({ uid, score: finalScore }),
       });
 
-      if (!res.ok) throw new Error('Tracking failed.');
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Tracking failed: ${errText}`);
+      }
 
-      scoreRef.current = score;
+      localStorage.setItem(`submitted_${uid}`, 'true');
       setSubmitted(true);
-      toast.success(`✅ Quiz completed! Your score: ${score}/${questions.length}`);
     } catch (err) {
-      console.error(err);
-      toast.error('Error tracking completion.');
+      toast.error(`❌ Submission error: ${err.message}`);
     }
   };
+
 
   if (!Array.isArray(questions) || questions.length === 0) {
     return <div className="quiz-card"><ToastContainer /><p>Loading quiz...</p></div>;
@@ -197,93 +238,70 @@ function Quiz_question({ questions = [], title, description, uid }) {
     return <div className="quiz-card"><ToastContainer /><p>Invalid question index.</p></div>;
   }
 
+  if (submitted) {
+    return <QuizResult uid={uid} score={score ?? calculateScore()} total={questions.length} />;
+  }
+
   return (
     <div className="quiz-card">
       <ToastContainer />
       <h2>{title}</h2>
       <p className="quiz-description">{description}</p>
 
-      {!submitted && !isFrozen && (
-        <div className="timer-bar">
-          <div className="bar" style={{ width: `${(timeLeft / 60) * 100}%` }} />
-          <p>Time Left: ⏰ {formatTime(timeLeft)}</p>
+      {timerVisible && (
+        <div className="timer-bar-container">
+          <div className="timer-bar">
+            <div className="bar" style={{ width: `${(timeLeft / 60) * 100}%` }} />
+          </div>
+          <p className="timer-text">⏰ {formatTime(timeLeft)}</p>
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        {!submitted && (
-          <div className="question-block">
-            <p className="question-text"><strong>Q{currentQuestion + 1}:</strong> {q.questionText}</p>
-            {q.options.map((opt, oIdx) => (
-              <label key={opt._id || oIdx} className="option-label">
-                <input
-                  type="radio"
-                  name={`q${currentQuestion}`}
-                  value={oIdx}
-                  checked={selectedIdx === oIdx}
-                  onChange={() => handleAnswerChange(oIdx)}
-                  disabled={isAnswered || isFrozen}
-                />{' '}
-                {opt.text}
-              </label>
-            ))}
-            {(isAnswered || isFrozen) && (
-              <div className="answer-feedback">
-                <p>
-                  {selectedIdx === correctIdx
-                    ? '✅ Correct'
-                    : selectedIdx !== undefined
+      <form id="quiz-form" onSubmit={handleSubmit}>
+        <div className="question-block">
+          <p className="question-text"><strong>Q{currentQuestion + 1}:</strong> {q.questionText}</p>
+          {q.options.map((opt, oIdx) => (
+            <label key={opt._id || oIdx} className="option-label">
+              <input
+                type="radio"
+                name={`q${currentQuestion}`}
+                value={oIdx}
+                checked={selectedIdx === oIdx}
+                onChange={() => handleAnswerChange(oIdx)}
+                disabled={isAnswered || isFrozen}
+              />{' '}
+              {opt.text}
+            </label>
+          ))}
+          {(isAnswered || isFrozen) && (
+            <div className="answer-feedback">
+              <p>
+                {selectedIdx === correctIdx
+                  ? '✅ Correct'
+                  : selectedIdx !== undefined
                     ? '❌ Incorrect'
                     : '⏱️ Time’s up!'}
-                </p>
-                <p><strong>Explanation:</strong> {q.options[selectedIdx]?.explanation || 'No explanation provided.'}</p>
-              </div>
-            )}
-          </div>
-        )}
+              </p>
+              <p><strong>Explanation:</strong> {q.options[selectedIdx]?.explanation || 'No explanation provided.'}</p>
+            </div>
+          )}
+        </div>
 
-        {!submitted && (
-          <div className="nav-buttons">
-            {currentQuestion > 0 && (
-              <button type="button" onClick={handlePrev} className="btn-secondary">⬅ Prev</button>
-            )}
-            {currentQuestion < questions.length - 1 && (
-              <button type="button" onClick={handleNext} className="btn-primary">Next ➡</button>
-            )}
-            {currentQuestion === questions.length - 1 && (isAnswered || isFrozen) && (
-              <button type="submit" className="btn-submit">Submit</button>
-            )}
-            <button type="button" onClick={handleReset} className="btn-danger">🔁 Reset</button>
-          </div>
-        )}
-
-        {submitted && scoreRef.current !== null && (
-          <div className="final-score">
-            <h3>✅ Your final score: {scoreRef.current}/{questions.length}</h3>
-            <hr />
-            {questions.map((q, index) => {
-              const selected = userAnswers[index];
-              const correct = q.options.findIndex((o) => o.isCorrect);
-              return (
-                <div key={index} className="question-summary">
-                  <p><strong>Q{index + 1}:</strong> {q.questionText}</p>
-                  <p>
-                    Your answer: {selected !== undefined ? (
-                      <span style={{ color: selected === correct ? 'green' : 'red' }}>
-                        {q.options[selected]?.text || 'No Answer'} ({selected === correct ? '✅ Correct' : '❌ Incorrect'})
-                      </span>
-                    ) : (
-                      <span style={{ color: 'gray' }}>No Answer</span>
-                    )}
-                  </p>
-                  <p>Correct answer: <strong>{q.options[correct]?.text}</strong></p>
-                  <p><strong>Explanation:</strong> {q.options[selected]?.explanation || q.options[correct]?.explanation || 'No explanation.'}</p>
-                  <hr />
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="nav-buttons">
+          {currentQuestion > 0 && (
+            <button type="button" onClick={handlePrev} className="btn-secondary">⬅ Prev</button>
+          )}
+          {currentQuestion < questions.length - 1 && (
+            <button type="button" onClick={handleNext} className="btn-primary" style={{ marginLeft: 'auto' }}>
+              Next ➡
+            </button>
+          )}
+          {currentQuestion === questions.length - 1 && (isAnswered || isFrozen) && (
+            <button type="submit" className="btn-submit" style={{ marginLeft: 'auto' }}>
+              ✅ Submit Quiz
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );

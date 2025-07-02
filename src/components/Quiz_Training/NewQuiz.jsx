@@ -17,6 +17,8 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const generatePublicUrl = () => {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
   let slug = "";
@@ -37,7 +39,7 @@ const NewQuiz = () => {
 
   useEffect(() => {
     if (id) {
-      fetch(`http://localhost:5000/api/quizzes/${id}`)
+      fetch(`${API_BASE_URL}/quizzes/${id}`)
         .then((res) => res.json())
         .then((data) => {
           setTitle(data.title || "");
@@ -87,43 +89,41 @@ const NewQuiz = () => {
   };
 
   const saveQuiz = async () => {
-  const formattedQuestions = questions.map((q) => ({
-    questionText: q.questionText,
-    options: q.answers.map((ans, idx) => ({
-      text: ans,
-      isCorrect: q.correctIndex === idx,
-      explanation:
-        "Phishing tricks users into revealing personal information via fake emails or websites.",
-    })),
-  }));
+    const formattedQuestions = questions.map((q) => ({
+      questionText: q.questionText,
+      options: q.answers.map((ans, idx) => ({
+        text: ans,
+        isCorrect: q.correctIndex === idx,
+        explanation:
+          "Phishing tricks users into revealing personal information via fake emails or websites.",
+      })),
+    }));
 
-  const quizData = {
-    title,
-    description,
-    publicUrl: id ? undefined : generatePublicUrl(),
-    questions: formattedQuestions,
-  };
+    const quizData = {
+      title,
+      description,
+      publicUrl: id ? undefined : generatePublicUrl(),
+      questions: formattedQuestions,
+    };
 
-  try {
-    const response = await fetch(
-      `http://localhost:5000/api/quizzes/${id || ""}`,
-      {
+    try {
+      const response = await fetch(`${API_BASE_URL}/quizzes/${id || ""}`, {
         method: id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(quizData),
-      }
-    );
+      });
 
-    if (!response.ok) throw new Error("Failed to save quiz");
 
-    const result = await response.json();
-    toast.success(id ? "Quiz updated successfully!" : "🎉 Quiz created successfully!");
-    navigate("/quiz-training");
-  } catch (error) {
-    console.error("Error saving quiz:", error);
-    toast.error("Failed to save quiz. Please try again.");
-  }
-};
+      if (!response.ok) throw new Error("Failed to save quiz");
+
+      const result = await response.json();
+      toast.success(id ? "Quiz updated successfully!" : "🎉 Quiz created successfully!");
+      navigate("/quiz-training");
+    } catch (error) {
+      console.error("Error saving quiz:", error);
+      toast.error("Failed to save quiz. Please try again.");
+    }
+  };
 
   return (
     <Box p={3}>

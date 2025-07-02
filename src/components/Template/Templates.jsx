@@ -29,6 +29,9 @@ import {
 import NewTemplateModal from "./NewTemplateModal";
 import { toast } from "react-toastify";
 
+// ✅ Use environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const Templates = () => {
   const [templates, setTemplates] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,7 +48,7 @@ const Templates = () => {
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/templates");
+      const res = await fetch(`${API_BASE_URL}/templates`);
       const data = await res.json();
       setTemplates(data);
     } catch (err) {
@@ -58,7 +61,7 @@ const Templates = () => {
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/templates/${templateId}`, {
+      const res = await fetch(`${API_BASE_URL}/templates/${templateId}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Delete failed");
@@ -144,13 +147,7 @@ const Templates = () => {
     <Box p={3}>
       {/* Title + Add */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography
-          variant="h5"
-          fontWeight="bold"
-          color="#343a40"
-          display="flex"
-          alignItems="center"
-        >
+        <Typography variant="h5" fontWeight="bold" color="#343a40" display="flex" alignItems="center">
           📄 Email Templates
         </Typography>
         <Button
@@ -179,7 +176,6 @@ const Templates = () => {
 
       {/* Table */}
       <Paper elevation={2} sx={{ borderRadius: 2, p: 2, height: 800, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-
         {/* Search and Entries Per Page */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <FormControl variant="standard">
@@ -217,7 +213,7 @@ const Templates = () => {
             <TableHead>
               <TableRow>
                 <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
-                  {renderSortLabel("name", "Template Name")}
+                  {renderSortLabel("Template Name", "name")}
                 </TableCell>
                 <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
                   Actions

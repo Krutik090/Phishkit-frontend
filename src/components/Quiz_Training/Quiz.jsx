@@ -39,12 +39,15 @@ const Quiz = () => {
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
-    fetch("http://localhost:5000/api/quizzes")
+    fetch(`${API_BASE_URL}/quizzes`)
       .then((res) => res.json())
       .then((data) => setQuizzes(data))
       .catch((err) => console.error("Failed to fetch quizzes:", err));
   }, []);
+
 
   const handleSort = (field) => {
     if (field === sortField) {

@@ -28,6 +28,7 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import NewLandingPageModal from "./NewLandingPageModal";
 import { toast } from "react-toastify";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const LandingPages = () => {
   const [landingPages, setLandingPages] = useState([]);
@@ -45,7 +46,7 @@ const LandingPages = () => {
 
   const fetchLandingPages = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/landing-pages");
+      const response = await fetch(`${API_BASE_URL}/landing-pages`);
       if (!response.ok) throw new Error("Failed to fetch landing pages");
       const data = await response.json();
       setLandingPages(data);
@@ -60,48 +61,41 @@ const LandingPages = () => {
   };
 
   const handleDelete = async (page) => {
-  const confirmDelete = window.confirm(`Are you sure you want to delete "${page.name}"?`);
-  if (!confirmDelete) {
-    toast.info("⚠️ Deletion cancelled.");
-    return;
-  }
+    const confirmDelete = window.confirm(`Are you sure you want to delete "${page.name}"?`);
+    if (!confirmDelete) {
+      toast.info("⚠️ Deletion cancelled.");
+      return;
+    }
 
-  try {
-    const res = await fetch(
-      `http://localhost:5000/api/landing-pages/${page.id}`,
-      { method: "DELETE" }
-    );
-    if (!res.ok) throw new Error("Delete failed");
+    try {
+      const res = await fetch(`${API_BASE_URL}/landing-pages/${page.id}`, {
+        method: "DELETE"
+      });
+      if (!res.ok) throw new Error("Delete failed");
 
-    setLandingPages((prev) => prev.filter((p) => p.id !== page.id));
-    toast.success(`🗑️ "${page.name}" deleted successfully.`);
-  } catch (error) {
-    console.error("Delete error:", error);
-    toast.error("Failed to delete landing page.");
-  }
-};
-
+      setLandingPages((prev) => prev.filter((p) => p.id !== page.id));
+      toast.success(`🗑️ "${page.name}" deleted successfully.`);
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete landing page.");
+    }
+  };
 
   const handleSaveNewPage = async (pageData, mode) => {
     try {
       if (mode === "edit") {
-        // PUT request for edit
-        const res = await fetch(
-          `http://localhost:5000/api/landing-pages/${pageData.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(pageData),
-          }
-        );
+        const res = await fetch(`${API_BASE_URL}/landing-pages/${pageData.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(pageData),
+        });
         if (!res.ok) throw new Error("Failed to update landing page");
         const updatedPage = await res.json();
         setLandingPages((prev) =>
           prev.map((p) => (p.id === updatedPage.id ? updatedPage : p))
         );
       } else {
-        // POST request for create
-        const res = await fetch("http://localhost:5000/api/landing-pages", {
+        const res = await fetch(`${API_BASE_URL}/landing-pages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(pageData),
@@ -165,7 +159,6 @@ const LandingPages = () => {
 
   return (
     <Box p={3}>
-      {/* Title and Add Button */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography
           variant="h5"
@@ -182,7 +175,7 @@ const LandingPages = () => {
           variant="contained"
           onClick={() => {
             setIsModalOpen(true);
-            setEditingPage(null); // reset edit mode
+            setEditingPage(null);
           }}
           startIcon={<AddIcon />}
           sx={{
@@ -205,19 +198,7 @@ const LandingPages = () => {
         </Button>
       </Box>
 
-      {/* Main Table Container */}
-      <Paper
-        elevation={2}
-        sx={{
-          borderRadius: 2,
-          p: 2,
-          height: 800,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* Top Filters */}
+      <Paper elevation={2} sx={{ borderRadius: 2, p: 2, height: 800, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <FormControl variant="standard">
             <InputLabel>Show</InputLabel>
@@ -249,29 +230,20 @@ const LandingPages = () => {
           />
         </Box>
 
-        {/* Table */}
         <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
-                <TableCell
-                  sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
-                >
+                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
                   {renderSortLabel("name", "Name")}
                 </TableCell>
-                <TableCell
-                  sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
-                >
+                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
                   {renderSortLabel("capture_credentials", "Capture Credential")}
                 </TableCell>
-                <TableCell
-                  sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
-                >
+                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
                   {renderSortLabel("redirect_url", "Redirect URL")}
                 </TableCell>
-                <TableCell
-                  sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}
-                >
+                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
                   Actions
                 </TableCell>
               </TableRow>
@@ -307,13 +279,11 @@ const LandingPages = () => {
             </TableBody>
           </Table>
         </TableContainer>
-        {/* Footer */}
+
         <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="body2" color="gray">
-            Showing{" "}
-            {Math.min(filteredPages.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
-            {Math.min(currentPage * entriesPerPage, filteredPages.length)} of{" "}
-            {filteredPages.length} entries
+            Showing {Math.min(filteredPages.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
+            {Math.min(currentPage * entriesPerPage, filteredPages.length)} of {filteredPages.length} entries
           </Typography>
           <Pagination
             count={pageCount}
@@ -324,7 +294,6 @@ const LandingPages = () => {
         </Box>
       </Paper>
 
-      {/* Modal */}
       <NewLandingPageModal
         open={isModalOpen}
         onClose={() => {
@@ -332,7 +301,7 @@ const LandingPages = () => {
           setEditingPage(null);
         }}
         onSave={handleSaveNewPage}
-        pageToEdit={editingPage}  // pass editing page here
+        pageToEdit={editingPage}
       />
     </Box>
   );

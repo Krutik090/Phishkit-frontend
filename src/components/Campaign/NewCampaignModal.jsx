@@ -14,6 +14,7 @@ import dayjs from "dayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const pink = "#ec008c";
 
@@ -78,13 +79,13 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
           clientsData,
           campaignsData,
         ] = await Promise.all([
-          fetchWithFallback("http://localhost:5000/api/templates", mockData.templates),
-          fetchWithFallback("http://localhost:5000/api/landing-pages", mockData.landingPages),
-          fetchWithFallback("http://localhost:5000/api/sending-profiles", mockData.sendingProfiles),
-          fetchWithFallback("http://localhost:5000/api/groups", mockData.groups),
-          fetchWithFallback("http://localhost:5000/api/quizzes", mockData.quizzes),
-          fetchWithFallback("http://localhost:5000/api/clients", mockData.clients),
-          fetchWithFallback("http://localhost:5000/api/campaigns", []),
+          fetchWithFallback(`${API_BASE_URL}/templates`, mockData.templates),
+          fetchWithFallback(`${API_BASE_URL}/landing-pages`, mockData.landingPages),
+          fetchWithFallback(`${API_BASE_URL}/sending-profiles`, mockData.sendingProfiles),
+          fetchWithFallback(`${API_BASE_URL}/groups`, mockData.groups),
+          fetchWithFallback(`${API_BASE_URL}/quizzes`, mockData.quizzes),
+          fetchWithFallback(`${API_BASE_URL}/clients`, mockData.clients),
+          fetchWithFallback(`${API_BASE_URL}/campaigns`, []),
         ]);
 
         setTemplates(templatesData);
@@ -147,7 +148,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/api/campaigns", {
+      const res = await fetch(`${API_BASE_URL}/campaigns`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

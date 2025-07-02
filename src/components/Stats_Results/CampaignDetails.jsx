@@ -15,6 +15,8 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const CampaignDetails = () => {
   const { campaignId } = useParams();
   const navigate = useNavigate();
@@ -28,7 +30,7 @@ const CampaignDetails = () => {
 
   const loadCampaignDetails = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/campaigns/${campaignId}`);
+      const res = await fetch(`${API_BASE_URL}/campaigns/${campaignId}`);
       const data = await res.json();
       setCampaign(data);
 
