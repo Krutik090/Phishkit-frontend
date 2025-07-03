@@ -39,7 +39,7 @@ const Sidebar = () => {
       icon: <QuizIcon fontSize="small" />,
       path: "/quiz-training",
     },
-    // { label: "Settings", icon: <FaCog />, path: "/settings" },
+    { label: "Settings", icon: <FaCog />, path: "/settings" }
   ];
 
   return (
@@ -58,9 +58,15 @@ const Sidebar = () => {
       }}
     >
       <Box sx={{ mb: 3 }}>
-        <h2 style={{ fontSize: "20px", fontWeight: "bold", marginLeft: "5px" }}>
-          Tribastion Admin
-        </h2>
+        {(() => {
+          const user = JSON.parse(localStorage.getItem('user'));
+          return (
+            <h2 style={{ fontSize: "20px", fontWeight: "bold", marginLeft: "5px" }}>
+              {user?.name || ''}
+            </h2>
+          );
+        })()}
+
       </Box>
 
       {menuItems.map((item) => {
