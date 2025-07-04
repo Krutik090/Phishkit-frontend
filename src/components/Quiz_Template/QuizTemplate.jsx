@@ -39,8 +39,8 @@ function QuizTemplate() {
     <div className="quiz-page">
       <div className="header">
         <img
-          src="https://www.jindalstainless.com/wp-content/themes/jsl/assets/images/Logo-Dark.png"
-          alt="JSL Logo"
+          src='/Triabation_Logo.png'
+          alt=" Logo"
           height={50}
         />
         <h1 className="quiz-title">{quiz.title}</h1>

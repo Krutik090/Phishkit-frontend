@@ -3,23 +3,9 @@ import { useLocation } from 'react-router-dom';
 import './style.css';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-// Inline result component
-function QuizResult({ uid, score, total }) {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-200 flex items-center justify-center px-4">
-      <div className="bg-white shadow-2xl rounded-2xl p-10 max-w-xl text-center">
-        <h1 className="text-4xl font-bold text-purple-700 mb-6">🎉 Quiz Completed!</h1>
-        <p className="text-xl mb-4 text-gray-700">User ID: <span className="font-semibold">{uid}</span></p>
-        <p className="text-2xl font-semibold text-green-600">✅ Score: {score}/{total}</p>
-        <p className="text-md text-gray-600 mt-4">Great job! You’ve successfully completed the quiz.</p>
-      </div>
-    </div>
-  );
-}
+import Score from './Score';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-
 
 function Quiz_question({ questions = [], title, description }) {
   const location = useLocation();
@@ -48,6 +34,7 @@ function Quiz_question({ questions = [], title, description }) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60);
   const [score, setScore] = useState(null);
+  const [userName, setUserName] = useState("Anonymous");
   const [timerVisible, setTimerVisible] = useState(true);
 
   const timerRef = useRef(null);
@@ -66,6 +53,22 @@ function Quiz_question({ questions = [], title, description }) {
     const s = String(sec % 60).padStart(2, '0');
     return `${m}:${s}`;
   };
+
+  // ✅ Fetch user full name using UID
+  useEffect(() => {
+    if (uid) {
+      fetch(`${API_BASE_URL}/users/user/${uid}`)
+        .then(res => res.json())
+        .then(data => {
+          const fullName = [data.firstName, data.lastName].filter(Boolean).join(" ");
+          setUserName(fullName || "Anonymous");
+        })
+        .catch(err => {
+          console.error("Failed to fetch user:", err);
+          setUserName("Anonymous");
+        });
+    }
+  }, [uid]);
 
   useEffect(() => {
     const saved = sessionStorage.getItem(`current_${uid}`);
@@ -229,7 +232,6 @@ function Quiz_question({ questions = [], title, description }) {
     }
   };
 
-
   if (!Array.isArray(questions) || questions.length === 0) {
     return <div className="quiz-card"><ToastContainer /><p>Loading quiz...</p></div>;
   }
@@ -239,7 +241,7 @@ function Quiz_question({ questions = [], title, description }) {
   }
 
   if (submitted) {
-    return <QuizResult uid={uid} score={score ?? calculateScore()} total={questions.length} />;
+    return <Score name={userName} score={score ?? calculateScore()} total={questions.length} />;
   }
 
   return (

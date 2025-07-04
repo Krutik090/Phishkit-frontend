@@ -18,14 +18,16 @@ const Layout = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          height: "100vh", // lock height
-          overflow: "hidden", // prevent scroll
+          height: "100vh",
+          overflowY: "auto", // allow vertical scroll in content
+          overflowX: "hidden",
           backgroundColor: "#f9f9f9",
-          p: 3,
+          p: { xs: 1, sm: 2, md: 3 }, // responsive padding
         }}
       >
         <Outlet />
       </Box>
+
     </Box>
   );
 };

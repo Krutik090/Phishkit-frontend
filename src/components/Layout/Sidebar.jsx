@@ -45,7 +45,8 @@ const Sidebar = () => {
   return (
     <Box
       sx={{
-        width: "260px",
+        width: { xs: "200px", sm: "220px", md: "260px" },
+        minWidth: { xs: "200px", sm: "220px", md: "260px" },
         height: "100vh",
         backgroundColor: bgColor,
         color: textColor,
@@ -53,16 +54,16 @@ const Sidebar = () => {
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        fontFamily: "'Segoe UI', sans-serif",
         transition: "all 0.3s",
       }}
     >
+
       <Box sx={{ mb: 3 }}>
         {(() => {
           const user = JSON.parse(localStorage.getItem('user'));
           return (
-            <h2 style={{ fontSize: "20px", fontWeight: "bold", marginLeft: "5px" }}>
-              {user?.name || ''}
+            <h2 style={{ fontSize: "23px", fontWeight: "bold", marginLeft: "43px" }}>
+              Tribastion
             </h2>
           );
         })()}
