@@ -14,14 +14,15 @@ import dayjs from "dayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import { renderTimeViewClock } from "@mui/x-date-pickers/timeViewRenderers";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 const pink = "#ec008c";
 
 const inputStyle = {
   width: "100%",
   padding: "12px",
-  border: "1px solid #d1d5db",
+  border: `1px solid #d1d5db`,
   borderRadius: "4px",
   fontSize: "16px",
   fontFamily: "inherit",
@@ -144,7 +145,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
       launchDate: dayjs(formData.schedule).toISOString(),
       group: { name: formData.group },
       clientId: formData.client,
-      publicUrl: formData.quiz?.publicUrl || null, // ✅ send public URL
+      publicUrl: formData.quiz?.publicUrl || null,
     };
 
     try {
@@ -169,13 +170,15 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
     }
   };
 
+  const defaultSchedule = dayjs().add(2, "minute");
+
   const safeFormData = {
     name: "",
     client: "",
     template: "",
     landingPage: "",
     url: "",
-    schedule: formData?.schedule ? dayjs(formData.schedule) : dayjs(),
+    schedule: formData?.schedule ? dayjs(formData.schedule) : defaultSchedule,
     sendingProfile: "",
     group: "",
     quiz: null,
@@ -210,7 +213,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
 
       <DialogContent sx={{ mt: 2 }}>
         <Box display="flex" flexDirection="column" gap={3}>
-          {/* Row 1 */}
+          {/* Campaign Name & Client */}
           <Box display="flex" gap={2}>
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>Campaign Name *</Typography>
@@ -228,7 +231,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
             </Box>
           </Box>
 
-          {/* Row 2 */}
+          {/* Template and Landing Page */}
           <Box display="flex" gap={2}>
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>Template</Typography>
@@ -248,7 +251,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
             </Box>
           </Box>
 
-          {/* Row 3 */}
+          {/* SMTP and Group */}
           <Box display="flex" gap={2}>
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>Sending Profile</Typography>
@@ -268,7 +271,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
             </Box>
           </Box>
 
-          {/* Row 4 */}
+          {/* URL and Schedule */}
           <Box display="flex" gap={2}>
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>URL *</Typography>
@@ -282,12 +285,23 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
                 <DateTimePicker
                   value={dayjs(safeFormData.schedule)}
                   onChange={(val) => setFormData((prev) => ({ ...prev, schedule: val }))}
+                  minDateTime={dayjs()} // prevent past time
+                  viewRenderers={{
+                    hours: renderTimeViewClock,
+                    minutes: renderTimeViewClock,
+                    seconds: renderTimeViewClock,
+                  }}
                   slotProps={{
                     textField: {
                       fullWidth: true,
                       sx: {
-                        "& .MuiOutlinedInput-root.Mui-focused fieldset": {
-                          borderColor: pink,
+                        "& .MuiOutlinedInput-root": {
+                          "&.Mui-focused fieldset": {
+                            borderColor: pink,
+                          },
+                        },
+                        "& label.Mui-focused": {
+                          color: pink,
                         },
                       },
                     },
@@ -297,13 +311,17 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
             </Box>
           </Box>
 
-          {/* Row 5 */}
+          {/* Quiz */}
           <Box>
-            <Typography fontWeight="bold" mb={0.5}>Quiz (Optional)</Typography>
+            <Typography fontWeight="bold" mb={0.5}>Quiz</Typography>
             <select name="quiz" value={safeFormData.quiz?._id || ""} onChange={handleChange}
               onFocus={handleSelectFocus} onBlur={handleSelectBlur} style={inputStyle} disabled={loading}>
               <option value="">Select Quiz</option>
-              {quizzes.map((q) => <option key={q._id || q.id} value={q._id || q.id}>{q.title || q.name}</option>)}
+              {quizzes.map((q) => (
+                <option key={q._id || q.id} value={q._id || q.id}>
+                  {q.title || q.name}
+                </option>
+              ))}
             </select>
           </Box>
 

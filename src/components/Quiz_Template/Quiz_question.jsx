@@ -34,7 +34,8 @@ function Quiz_question({ questions = [], title, description }) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60);
   const [score, setScore] = useState(null);
-  const [userName, setUserName] = useState("Anonymous");
+  const [userName, setUserName] = useState();
+  const [isLoadingName, setIsLoadingName] = useState(true);
   const [timerVisible, setTimerVisible] = useState(true);
 
   const timerRef = useRef(null);
@@ -60,13 +61,16 @@ function Quiz_question({ questions = [], title, description }) {
       fetch(`${API_BASE_URL}/users/user/${uid}`)
         .then(res => res.json())
         .then(data => {
-          const fullName = [data.firstName, data.lastName].filter(Boolean).join(" ");
+          const fullName = [data.first_name, data.last_name].filter(Boolean).join(" ");
           setUserName(fullName || "Anonymous");
         })
         .catch(err => {
           console.error("Failed to fetch user:", err);
           setUserName("Anonymous");
-        });
+        })
+        .finally(() => setIsLoadingName(false));
+    } else {
+      setIsLoadingName(false);
     }
   }, [uid]);
 
@@ -213,6 +217,11 @@ function Quiz_question({ questions = [], title, description }) {
 
     const finalScore = score ?? calculateScore();
 
+    // ✅ Show result immediately
+    setSubmitted(true);
+    localStorage.setItem(`submitted_${uid}`, 'true');
+
+    // ✅ Fire API in background
     try {
       const res = await fetch(`${API_BASE_URL}/tracking/complete`, {
         method: 'POST',
@@ -224,9 +233,6 @@ function Quiz_question({ questions = [], title, description }) {
         const errText = await res.text();
         throw new Error(`Tracking failed: ${errText}`);
       }
-
-      localStorage.setItem(`submitted_${uid}`, 'true');
-      setSubmitted(true);
     } catch (err) {
       toast.error(`❌ Submission error: ${err.message}`);
     }
@@ -241,6 +247,9 @@ function Quiz_question({ questions = [], title, description }) {
   }
 
   if (submitted) {
+    if (isLoadingName) {
+      return <div className="quiz-card"><ToastContainer /><p>Fetching user name...</p></div>;
+    }
     return <Score name={userName} score={score ?? calculateScore()} total={questions.length} />;
   }
 
