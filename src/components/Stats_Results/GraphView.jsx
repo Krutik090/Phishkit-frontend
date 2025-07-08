@@ -228,7 +228,7 @@ const GraphView = () => {
         {/* Department-wise */}
         <Box flex="1 1 48%" display="flex" flexDirection="column">
           <Box display="flex" justifyContent="flex-end" mb={1}>
-            <FormControl size="small" sx={{ minWidth: 140 }}>
+            <FormControl size="small" sx={{ minWidth: 100 }}>
               <InputLabel>Filter</InputLabel>
               <Select
                 value={filterValue}

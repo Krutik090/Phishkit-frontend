@@ -44,10 +44,9 @@ export default function SignInCard() {
 
     return isValid;
   };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
+const handleLogin = async (e) => {
+  e.preventDefault();
+  if (!validate()) return;
 
     try {
       const response = await axios.post(
