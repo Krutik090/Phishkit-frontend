@@ -126,7 +126,7 @@ const Quiz = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => navigate("/quiz/new")}
+          onClick={() => navigate("/quizz/new")}
           sx={{
             background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
             color: "#fff", fontWeight: "bold", borderRadius: "8px",
@@ -202,7 +202,7 @@ const Quiz = () => {
                     <TableCell>
                       {quiz.publicUrl ? (
                         <MuiLink
-                          href={`/quizz/${quiz.publicUrl}`}
+                          href={`/quiz/${quiz.publicUrl}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           underline="hover"
@@ -248,7 +248,7 @@ const Quiz = () => {
                     </TableCell>
                     <TableCell>
                       <Tooltip title="Edit">
-                        <IconButton size="small" color="secondary" onClick={() => navigate(`/quiz-training/edit/${quiz._id}`)}>
+                        <IconButton size="small" color="secondary" onClick={() => navigate(`/quizz/edit/${quiz._id}`)}>
                           <EditIcon />
                         </IconButton>
                       </Tooltip>

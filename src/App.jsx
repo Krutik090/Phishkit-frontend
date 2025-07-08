@@ -29,7 +29,7 @@ export default function App() {
       <Routes>
         {/* ✅ Public Routes */}
         <Route path="/login" element={<Login />} />
-        <Route path="/quizz/:publicUrl" element={<QuizTemplate />} />
+        <Route path="/quiz/:publicUrl" element={<QuizTemplate />} />
         {/* ✅ New Training Route */}
         <Route path="/training" element={<Training />} />
 
@@ -70,7 +70,7 @@ export default function App() {
             <ProtectedRoute>
               <div className="flex min-h-screen bg-gray-100">
                 <Sidebar />
-                <main className="flex-1 p-6 overflow-auto">
+               <main className="flex-1 p-6 overflow-auto ml-[250px]">
                   <Routes>
                     <Route path="/" element={<Navigate to="/campaigns" replace />} />
                     <Route path="/campaigns" element={<Campaigns />} />
@@ -85,9 +85,9 @@ export default function App() {
                     <Route path="/client/:clientId/insights" element={<ClientInsights />} />
 
                     {/* ✅ Updated paths */}
-                    <Route path="/quiz" element={<Quiz />} />
-                    <Route path="/quiz/new" element={<NewQuiz />} />
-                    <Route path="/quiz/edit/:id" element={<NewQuiz />} />
+                    <Route path="/quizz" element={<Quiz />} />
+                    <Route path="/quizz/new" element={<NewQuiz />} />
+                    <Route path="/quizz/edit/:id" element={<NewQuiz />} />
 
                     <Route path="/settings" element={<Settings />} />
                   </Routes>

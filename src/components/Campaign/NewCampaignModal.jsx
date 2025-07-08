@@ -6,9 +6,14 @@ import {
   DialogActions,
   TextField,
   Button,
+  Select,
+  MenuItem,
+  Chip,
+  OutlinedInput,
   Box,
   Typography,
 } from "@mui/material";
+import CancelIcon from '@mui/icons-material/Cancel';
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -152,6 +157,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
       const res = await fetch(`${API_BASE_URL}/campaigns`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(payload),
       });
 
@@ -200,7 +206,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
       PaperProps={{
         sx: {
           width: "1200px",
-          height: "850px",
+          height: "740px",
           maxHeight: "90vh",
           borderRadius: "16px",
           border: "2px solid #ec008c30",
@@ -251,7 +257,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
             </Box>
           </Box>
 
-          {/* SMTP and Group */}
+          {/* SMTP and Quiz */}
           <Box display="flex" gap={2}>
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>Sending Profile</Typography>
@@ -261,12 +267,18 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
                 {sendingProfiles.map((sp) => <option key={sp.id} value={sp.name}>{sp.name}</option>)}
               </select>
             </Box>
+
+            {/* Quiz moved here */}
             <Box flex={1}>
-              <Typography fontWeight="bold" mb={0.5}>Group</Typography>
-              <select name="group" value={safeFormData.group} onChange={handleChange}
+              <Typography fontWeight="bold" mb={0.5}>Quiz</Typography>
+              <select name="quiz" value={safeFormData.quiz?._id || ""} onChange={handleChange}
                 onFocus={handleSelectFocus} onBlur={handleSelectBlur} style={inputStyle} disabled={loading}>
-                <option value="">Select Group</option>
-                {groups.map((g) => <option key={g.id} value={g.name}>{g.name}</option>)}
+                <option value="">Select Quiz</option>
+                {quizzes.map((q) => (
+                  <option key={q._id || q.id} value={q._id || q.id}>
+                    {q.title || q.name}
+                  </option>
+                ))}
               </select>
             </Box>
           </Box>
@@ -274,57 +286,112 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
           {/* URL and Schedule */}
           <Box display="flex" gap={2}>
             <Box flex={1}>
-              <Typography fontWeight="bold" mb={0.5}>URL *</Typography>
+              <Typography fontWeight="bold" mb={0.5}>URL</Typography>
               <TextField name="url" value={safeFormData.url} onChange={handleChange}
                 fullWidth placeholder="Enter campaign URL"
                 sx={{ "& .MuiOutlinedInput-root.Mui-focused fieldset": { borderColor: pink } }} />
             </Box>
             <Box flex={1}>
-              <Typography fontWeight="bold" mb={0.5}>Launch Date *</Typography>
+              <Typography fontWeight="bold" mb={0.5}>Launch Date </Typography>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DateTimePicker
                   value={dayjs(safeFormData.schedule)}
                   onChange={(val) => setFormData((prev) => ({ ...prev, schedule: val }))}
-                  minDateTime={dayjs()} // prevent past time
-                  viewRenderers={{
-                    hours: renderTimeViewClock,
-                    minutes: renderTimeViewClock,
-                    seconds: renderTimeViewClock,
+                  timeSteps={{ minutes: 1 }}
+                  slots={{
+                    // 👇 these slots disable the clock and force dropdowns
+                    hours: null,
+                    minutes: null,
+                    seconds: null,
                   }}
                   slotProps={{
                     textField: {
                       fullWidth: true,
                       sx: {
-                        "& .MuiOutlinedInput-root": {
-                          "&.Mui-focused fieldset": {
-                            borderColor: pink,
-                          },
-                        },
-                        "& label.Mui-focused": {
-                          color: pink,
+                        "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+                          borderColor: pink,
                         },
                       },
                     },
                   }}
                 />
               </LocalizationProvider>
+
+
             </Box>
           </Box>
 
-          {/* Quiz */}
           <Box>
-            <Typography fontWeight="bold" mb={0.5}>Quiz</Typography>
-            <select name="quiz" value={safeFormData.quiz?._id || ""} onChange={handleChange}
-              onFocus={handleSelectFocus} onBlur={handleSelectBlur} style={inputStyle} disabled={loading}>
-              <option value="">Select Quiz</option>
-              {quizzes.map((q) => (
-                <option key={q._id || q.id} value={q._id || q.id}>
-                  {q.title || q.name}
-                </option>
-              ))}
-            </select>
-          </Box>
-
+            <Typography fontWeight="bold" mb={0.5}>Group</Typography>
+            <Select
+  multiple
+  name="group"
+  value={Array.isArray(formData.group) ? formData.group : []}
+  onChange={(e) => {
+    const {
+      target: { value },
+    } = e;
+    setFormData((prev) => ({
+      ...prev,
+      group: typeof value === "string" ? value.split(",") : value,
+    }));
+  }}
+  disabled={loading}
+  input={<OutlinedInput fullWidth />}
+  renderValue={(selected) => (
+    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+      {selected.map((value) => (
+        <Chip
+          key={value}
+          label={value}
+          onMouseDown={(event) => event.stopPropagation()}
+          onDelete={() => {
+            setFormData((prev) => ({
+              ...prev,
+              group: prev.group.filter((item) => item !== value),
+            }));
+          }}
+          deleteIcon={
+            <CancelIcon
+              sx={{
+                borderRadius: "50%",
+                fontSize: "18px",
+                p: "2px",
+              }}
+            />
+          }
+          sx={{
+            backgroundColor: "white",
+            color: "black",
+            border: "2px solid",
+            borderColor: pink,
+            fontWeight: 500,
+          }}
+        />
+      ))}
+    </Box>
+  )}
+  sx={{
+    "& .MuiOutlinedInput-root": {
+      "& fieldset": {
+        border: "none", // No border at all
+      },
+      "&:hover fieldset": {
+        border: "none", // No border on hover
+      },
+      "&.Mui-focused fieldset": {
+        border: "none", // No border on focus
+      },
+    },
+  }}
+>
+  {groups.map((g) => (
+    <MenuItem key={g.id} value={g.name}>
+      {g.name}
+    </MenuItem>
+  ))}
+</Select>
+</Box>
           {/* Actions */}
           <DialogActions sx={{ borderTop: "1px solid #f8c6dd", pt: 2 }}>
             <Button onClick={onClose} variant="outlined"

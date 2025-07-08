@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import {
   FaTable,
   FaEnvelope,
@@ -30,41 +30,38 @@ const Sidebar = () => {
     { label: "Sending Profiles", icon: <FaEnvelope />, path: "/sending-profiles" },
     { label: "Users & Groups", icon: <FaUsers />, path: "/users-groups" },
     { label: "Clients", icon: <FaUsers />, path: "/clients" },
-    { label: "Quiz", icon: <QuizIcon fontSize="small" />, path: "/quiz" },
-    { label: "Training", icon: <FaFileAlt />, path: "/training", newTab: true }, // ✅ New tab
+    { label: "Quiz", icon: <QuizIcon fontSize="small" />, path: "/quizz" },
+    { label: "Training", icon: <FaFileAlt />, path: "/training", newTab: true },
     { label: "Settings", icon: <FaCog />, path: "/settings" },
   ];
 
   return (
     <Box
-      sx={{
-        width: { xs: "180px", sm: "220px", md: "250px" },
-        minWidth: { xs: "180px", sm: "220px", md: "250px" },
-        height: "100vh",
-        backgroundColor: bgColor,
-        color: textColor,
-        p: 2,
-        boxSizing: "border-box",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        position: "fixed",
-        top: 0,
-        left: 0,
-        zIndex: 1000,
-        borderRight: "1px solid rgba(255,255,255,0.1)",
-      }}
-    >
+  sx={{
+    width: { xs: "180px", sm: "220px", md: "250px" },
+    minWidth: { xs: "180px", sm: "220px", md: "250px" },
+    height: "100vh",
+    backgroundColor: bgColor,
+    color: textColor,
+    p: 2,
+    boxSizing: "border-box",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    overflow: "hidden",
+    borderRight: "1px solid rgba(255,255,255,0.1)",
+    position: "fixed", // <<< FIXED POSITION
+    top: 0,
+    left: 0,
+    zIndex: 1000, // Ensure it's on top of other content
+  }}
+>
+
       {/* Header */}
       <Box sx={{ mb: 3 }}>
-        {(() => {
-          return (
-            <h2 style={{ fontSize: "23px", fontWeight: "bold", marginLeft: "43px" }}>
-              Tribastion
-            </h2>
-          );
-        })()}
-
+        <h2 style={{ fontSize: "23px", fontWeight: "bold", marginLeft: "43px" }}>
+          Tribastion
+        </h2>
       </Box>
 
       {/* Menu */}

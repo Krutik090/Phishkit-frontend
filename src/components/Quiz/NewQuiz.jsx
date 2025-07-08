@@ -58,7 +58,7 @@ const NewQuiz = () => {
         .catch((err) => {
           console.error("Failed to load quiz:", err);
           alert("Quiz not found");
-          navigate("/quiz");
+          navigate("/quizz");
         });
     }
   }, [id]);
@@ -178,7 +178,7 @@ const NewQuiz = () => {
 
       await response.json();
       toast.success(id ? "Quiz updated successfully!" : "🎉 Quiz created successfully!");
-      navigate("/quiz");
+      navigate("/quizz");
     } catch (error) {
       console.error("Error saving quiz:", error);
       toast.error("Failed to save quiz. Please try again.");
