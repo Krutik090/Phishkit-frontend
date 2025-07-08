@@ -150,9 +150,13 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
     try {
       const res = await fetch(`${API_BASE_URL}/campaigns`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // ✅ This enables sending cookies
         body: JSON.stringify(payload),
       });
+
 
       if (res.ok) {
         toast.success("🎯 Campaign saved successfully!");
