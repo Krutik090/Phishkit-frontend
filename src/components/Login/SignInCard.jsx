@@ -24,7 +24,11 @@ export default function SignInCard() {
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [mfaDialogOpen, setMfaDialogOpen] = useState(false);
+  const [mfaToken, setMfaToken] = useState('');
+  const [userInfo, setUserInfo] = useState(null);
+  const [loginErrorDialogOpen, setLoginErrorDialogOpen] = useState(false);
+  const [mfaError, setMfaError] = useState('');
 
   const navigate = useNavigate();
 
@@ -55,22 +59,47 @@ export default function SignInCard() {
         password,
       });
 
+      // MFA not enabled — normal login
       const { token, user } = response.data;
-
-      // 🔐 Store token and user
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-
       toast.success(`Welcome ${user.name || ''}!`, { autoClose: 2000 });
-
-      // Wait briefly before redirecting
-      setTimeout(() => {
-        navigate('/campaigns');
-      }, 1500);
+      setTimeout(() => navigate('/campaigns'), 1500);
     } catch (error) {
-      console.error('Login failed:', error.response?.data || error.message);
-      setDialogOpen(true);
+      const message = error.response?.data?.message;
+
+      if (message === 'MFA token required') {
+        // Show MFA dialog
+        setUserInfo({ email, password });
+        setMfaDialogOpen(true);
+      } else {
+        console.error('Login failed:', error.response?.data || error.message);
+        setLoginErrorDialogOpen(true);
+      }
     }
+  };
+
+  const handleMfaSubmit = async () => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/auth/login`, {
+        email: userInfo.email,
+        password: userInfo.password,
+        token: mfaToken,
+      });
+
+      
+    const { token, user } = res.data;
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    toast.success(`Welcome ${user.name || ''}!`, { autoClose: 2000 });
+    setMfaDialogOpen(false);
+    setMfaError('');
+    setTimeout(() => navigate('/campaigns'), 1500);
+  } catch (err) {
+    console.error('MFA Error:', err.response?.data?.message || err.message);
+    setMfaError('Invalid MFA token. Please try again.');
+    setMfaToken('');
+  }
   };
 
   return (
@@ -112,7 +141,7 @@ export default function SignInCard() {
         </FormControl>
 
         <Box sx={{ textAlign: 'right' }}>
-          <Button onClick={() => setDialogOpen(true)} variant="text" size="small">
+          <Button onClick={() => setLoginErrorDialogOpen(true)} variant="text" size="small">
             Forgot password?
           </Button>
         </Box>
@@ -122,16 +151,45 @@ export default function SignInCard() {
         </Button>
       </Box>
 
-      {/* Error Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} transitionDuration={300}>
+      {/* MFA Dialog */}
+      <Dialog open={mfaDialogOpen} onClose={() => setMfaDialogOpen(false)}>
+        <DialogTitle>MFA Verification</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Enter the 6-digit MFA code from your authenticator app.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="MFA Token"
+            fullWidth
+            variant="standard"
+            value={mfaToken}
+            onChange={(e) => setMfaToken(e.target.value)}
+            inputProps={{ maxLength: 6 }}
+          />
+          {mfaError && (
+  <Typography color="error" sx={{ mt: 1 }}>
+    {mfaError}
+  </Typography>
+)}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMfaDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleMfaSubmit}>Verify</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Login Error Dialog */}
+      <Dialog open={loginErrorDialogOpen} onClose={() => setLoginErrorDialogOpen(false)}>
         <DialogTitle>Login Failed</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Invalid email or password. Please try again or contact your administrator.
+            Invalid credentials or MFA failure. Please try again or contact your administrator.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Close</Button>
+          <Button onClick={() => setLoginErrorDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Card>

@@ -22,6 +22,10 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// ✅ MFA Pages
+import MFASetup from "./components/MFA/MFASetup";
+import MFAVerify from "./components/MFA/MFAVerify";
+
 export default function App() {
   return (
     <Router>
@@ -30,7 +34,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/quiz/:publicUrl" element={<QuizTemplate />} />
 
-        {/* ✅ Protected Route without Sidebar (fullscreen editor) */}
+        {/* ✅ Protected Route without Sidebar */}
         <Route
           path="/fullscreen-editor"
           element={
@@ -40,7 +44,25 @@ export default function App() {
           }
         />
 
-        {/* ✅ Protected Routes with Sidebar Layout */}
+        {/* ✅ MFA Routes */}
+        <Route
+          path="/setup-mfa"
+          element={
+            <ProtectedRoute>
+              <MFASetup />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/verify-mfa"
+          element={
+            <ProtectedRoute>
+              <MFAVerify />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ Main Protected Routes with Sidebar */}
         <Route
           path="/*"
           element={
