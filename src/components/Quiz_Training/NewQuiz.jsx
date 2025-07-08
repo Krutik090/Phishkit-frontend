@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Button,
@@ -13,6 +13,8 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
   ArrowBack as ArrowBackIcon,
+  UploadFile as UploadFileIcon,
+  Download as DownloadIcon,
 } from "@mui/icons-material";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -36,6 +38,8 @@ const NewQuiz = () => {
   const [questions, setQuestions] = useState([
     { questionText: "", answers: ["", "", "", ""], correctIndex: null },
   ]);
+
+  const fileInputRef = useRef();
 
   useEffect(() => {
     if (id) {
@@ -88,6 +92,63 @@ const NewQuiz = () => {
     setQuestions(updated);
   };
 
+  const handleSampleDownload = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/quizzes/template`, {
+        method: "GET",
+      });
+
+      if (!response.ok) throw new Error("Failed to download template");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "sample_quiz_template.xlsx";
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error("Failed to download sample file.");
+      console.error("Download error:", error);
+    }
+  };
+
+  const handleExcelImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/quizzes/import`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Failed to import quiz");
+
+      const data = await response.json();
+
+      // Set title and description from imported quiz
+      setTitle(data.quiz.title || "");
+      setDescription(data.quiz.description || "");
+
+      // Transform options to answers and correctIndex
+      const importedQuestions = data.quiz.questions.map((q) => ({
+        questionText: q.questionText,
+        answers: q.options.map((opt) => opt.text),
+        correctIndex: q.options.findIndex((opt) => opt.isCorrect),
+      }));
+
+      setQuestions(importedQuestions);
+      toast.success("📥 Quiz imported and populated!");
+    } catch (error) {
+      console.error("Import error:", error);
+      toast.error("Failed to import from Excel.");
+    }
+  };
+
   const saveQuiz = async () => {
     const formattedQuestions = questions.map((q) => ({
       questionText: q.questionText,
@@ -113,10 +174,9 @@ const NewQuiz = () => {
         body: JSON.stringify(quizData),
       });
 
-
       if (!response.ok) throw new Error("Failed to save quiz");
 
-      const result = await response.json();
+      await response.json();
       toast.success(id ? "Quiz updated successfully!" : "🎉 Quiz created successfully!");
       navigate("/quiz-training");
     } catch (error) {
@@ -127,13 +187,55 @@ const NewQuiz = () => {
 
   return (
     <Box p={3}>
-      <Box display="flex" alignItems="center" gap={2} mb={3}>
-        <IconButton onClick={() => navigate("/quiz-training")} color="primary">
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h5" fontWeight="bold" color="#343a40">
-          {id ? "✏️ Edit Quiz" : "➕ Create New Quiz"}
-        </Typography>
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+        <Box display="flex" alignItems="center" gap={2}>
+          <IconButton onClick={() => navigate("/quiz-training")} color="primary">
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h5" fontWeight="bold" color="#343a40">
+            {id ? "✏️ Edit Quiz" : "➕ Create New Quiz"}
+          </Typography>
+        </Box>
+
+        <Box display="flex" gap={2}>
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            onChange={handleExcelImport}
+          />
+
+          <Button
+            startIcon={<UploadFileIcon />}
+            onClick={() => fileInputRef.current.click()}
+            sx={{
+              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              color: "#fff",
+              fontWeight: "bold",
+              borderRadius: "8px",
+              textTransform: "uppercase",
+              px: 3,
+            }}
+          >
+            Import from Excel
+          </Button>
+
+          <Button
+            startIcon={<DownloadIcon />}
+            onClick={handleSampleDownload}
+            sx={{
+              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              color: "#fff",
+              fontWeight: "bold",
+              borderRadius: "8px",
+              textTransform: "uppercase",
+              px: 3,
+            }}
+          >
+            Download Sample Template
+          </Button>
+        </Box>
       </Box>
 
       <Paper
@@ -176,22 +278,11 @@ const NewQuiz = () => {
           />
 
           {questions.map((q, qIdx) => (
-            <Paper
-              key={qIdx}
-              variant="outlined"
-              sx={{ p: 2, borderRadius: 2 }}
-            >
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-              >
+            <Paper key={qIdx} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center">
                 <Typography fontWeight="bold">Question {qIdx + 1}</Typography>
                 <Tooltip title="Delete Question">
-                  <IconButton
-                    color="error"
-                    onClick={() => handleDeleteQuestion(qIdx)}
-                  >
+                  <IconButton color="error" onClick={() => handleDeleteQuestion(qIdx)}>
                     <DeleteIcon />
                   </IconButton>
                 </Tooltip>
@@ -207,13 +298,7 @@ const NewQuiz = () => {
               />
 
               {q.answers.map((ans, aIdx) => (
-                <Box
-                  key={aIdx}
-                  display="flex"
-                  alignItems="center"
-                  gap={2}
-                  mt={1}
-                >
+                <Box key={aIdx} display="flex" alignItems="center" gap={2} mt={1}>
                   <Checkbox
                     checked={q.correctIndex === aIdx}
                     onChange={() => handleCorrectAnswer(qIdx, aIdx)}
@@ -223,9 +308,7 @@ const NewQuiz = () => {
                     variant="standard"
                     label={`Answer ${aIdx + 1}`}
                     value={ans}
-                    onChange={(e) =>
-                      handleAnswerChange(qIdx, aIdx, e.target.value)
-                    }
+                    onChange={(e) => handleAnswerChange(qIdx, aIdx, e.target.value)}
                   />
                 </Box>
               ))}
