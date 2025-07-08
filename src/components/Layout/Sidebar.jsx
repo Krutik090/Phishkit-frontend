@@ -57,17 +57,14 @@ const Sidebar = () => {
     >
       {/* Header */}
       <Box sx={{ mb: 3 }}>
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: "bold",
-            textAlign: "center",
-            fontSize: "20px",
-            color: textColor,
-          }}
-        >
-          Tribastion
-        </Typography>
+        {(() => {
+          return (
+            <h2 style={{ fontSize: "23px", fontWeight: "bold", marginLeft: "43px" }}>
+              Tribastion
+            </h2>
+          );
+        })()}
+
       </Box>
 
       {/* Menu */}
