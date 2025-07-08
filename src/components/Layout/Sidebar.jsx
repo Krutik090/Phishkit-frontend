@@ -60,7 +60,6 @@ const Sidebar = () => {
 
       <Box sx={{ mb: 3 }}>
         {(() => {
-          const user = JSON.parse(localStorage.getItem('user'));
           return (
             <h2 style={{ fontSize: "23px", fontWeight: "bold", marginLeft: "43px" }}>
               Tribastion
