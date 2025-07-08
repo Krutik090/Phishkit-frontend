@@ -9,8 +9,9 @@ import LandingPages from "./components/Landing_page/LandingPages";
 import FullScreenEditor from "./components/Landing_page/FullScreenEditor";
 import SendingProfiles from "./components/Sending Profile/SendingProfiles";
 import UsersGroups from "./components/User_Groups/UsersGroups";
-import Quiz from "./components/Quiz_Training/Quiz";
-import NewQuiz from "./components/Quiz_Training/NewQuiz";
+import Quiz from "./components/Quiz/Quiz";
+import NewQuiz from "./components/Quiz/NewQuiz";
+import Training from "./components/Training/Training";
 import Settings from "./components/Settings/Settings";
 import ClientsPage from "./components/Client/Clients";
 import ClientCampaign from "./components/Stats_Results/ClientCampaign";
@@ -28,7 +29,9 @@ export default function App() {
       <Routes>
         {/* ✅ Public Routes */}
         <Route path="/login" element={<Login />} />
-        <Route path="/quiz/:publicUrl" element={<QuizTemplate />} />
+        <Route path="/quizz/:publicUrl" element={<QuizTemplate />} />
+        {/* ✅ New Training Route */}
+        <Route path="/training" element={<Training />} />
 
         {/* ✅ Protected Route without Sidebar (fullscreen editor) */}
         <Route
@@ -40,7 +43,27 @@ export default function App() {
           }
         />
 
-        {/* ✅ Protected Routes with Sidebar Layout */}
+        {/* ✅ Protected Routes without Sidebar (GraphView) */}
+        <Route
+          path="/client/:clientId/insights/graphview"
+          element={
+            <ProtectedRoute>
+              <GraphView />
+              <ToastContainer position="top-right" autoClose={3000} hideProgressBar toastStyle={{ zIndex: 1600 }} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/campaign/:campaignId/graphview"
+          element={
+            <ProtectedRoute>
+              <GraphView />
+              <ToastContainer position="top-right" autoClose={3000} hideProgressBar toastStyle={{ zIndex: 1600 }} />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ Protected Routes with Sidebar */}
         <Route
           path="/*"
           element={
@@ -60,23 +83,19 @@ export default function App() {
                     <Route path="/clients/:clientId" element={<ClientCampaign />} />
                     <Route path="/campaign/:campaignId/details" element={<CampaignDetails />} />
                     <Route path="/client/:clientId/insights" element={<ClientInsights />} />
-                    <Route path="/client/:clientId/insights/graphview" element={<GraphView />} />
-                    <Route path="/campaign/:campaignId/graphview" element={<GraphView />} />
-                    <Route path="/quiz-training" element={<Quiz />} />
-                    <Route path="/quiz-training/new" element={<NewQuiz />} />
-                    <Route path="/quiz-training/edit/:id" element={<NewQuiz />} />
+
+                    {/* ✅ Updated paths */}
+                    <Route path="/quiz" element={<Quiz />} />
+                    <Route path="/quiz/new" element={<NewQuiz />} />
+                    <Route path="/quiz/edit/:id" element={<NewQuiz />} />
+
                     <Route path="/settings" element={<Settings />} />
                   </Routes>
                 </main>
               </div>
 
               {/* ✅ Toast Notifications */}
-              <ToastContainer
-                position="top-right"
-                autoClose={3000}
-                hideProgressBar
-                toastStyle={{ zIndex: 1600 }}
-              />
+              <ToastContainer position="top-right" autoClose={3000} hideProgressBar toastStyle={{ zIndex: 1600 }} />
             </ProtectedRoute>
           }
         />

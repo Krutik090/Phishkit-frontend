@@ -44,34 +44,27 @@ export default function SignInCard() {
 
     return isValid;
   };
+const handleLogin = async (e) => {
+  e.preventDefault();
+  if (!validate()) return;
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/login`,
+      { email, password },
+      { withCredentials: true } // ✅ important to allow cookies
+    );
 
-    try {
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
-        email,
-        password,
-      });
+    toast.success(`Welcome back!`, { autoClose: 2000 });
 
-      const { token, user } = response.data;
-
-      // 🔐 Store token and user
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      toast.success(`Welcome ${user.name || ''}!`, { autoClose: 2000 });
-
-      // Wait briefly before redirecting
-      setTimeout(() => {
-        navigate('/campaigns');
-      }, 1500);
-    } catch (error) {
-      console.error('Login failed:', error.response?.data || error.message);
-      setDialogOpen(true);
-    }
-  };
+    setTimeout(() => {
+      navigate('/campaigns'); // ✅ or wherever your dashboard is
+    }, 1500);
+  } catch (error) {
+    console.error('Login failed:', error.response?.data || error.message);
+    setDialogOpen(true);
+  }
+};
 
   return (
     <Card variant="outlined" sx={{ p: 4, maxWidth: 450, width: '100%' }}>

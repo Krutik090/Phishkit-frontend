@@ -3,32 +3,27 @@ import { Box } from "@mui/material";
 import Sidebar from "./Sidebar";
 import { Outlet } from "react-router-dom";
 
+const sidebarWidth = 250; // match the width in Sidebar.js
+
 const Layout = () => {
   return (
-    <Box
-      sx={{
-        display: "flex",
-        height: "100vh", // full viewport height
-        overflow: "hidden", // prevent body scroll
-      }}
-    >
+    <>
       <Sidebar />
 
       <Box
         component="main"
         sx={{
-          flexGrow: 1,
+          marginLeft: `${sidebarWidth}px`, // push content to the right of sidebar
           height: "100vh",
-          overflowY: "auto", // allow vertical scroll in content
+          overflowY: "auto",
           overflowX: "hidden",
           backgroundColor: "#f9f9f9",
-          p: { xs: 1, sm: 2, md: 3 }, // responsive padding
+          p: { xs: 1, sm: 2, md: 3 },
         }}
       >
         <Outlet />
       </Box>
-
-    </Box>
+    </>
   );
 };
 
