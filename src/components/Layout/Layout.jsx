@@ -8,26 +8,27 @@ const Layout = () => {
     <Box
       sx={{
         display: "flex",
-        height: "100vh", // full viewport height
-        overflow: "hidden", // prevent body scroll
+        height: "100vh",
+        overflow: "hidden",
       }}
     >
       <Sidebar />
 
       <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          height: "100vh",
-          overflowY: "auto", // allow vertical scroll in content
-          overflowX: "hidden",
-          backgroundColor: "#f9f9f9",
-          p: { xs: 1, sm: 2, md: 3 }, // responsive padding
-        }}
-      >
+  component="main"
+  sx={{
+    flexGrow: 1,
+    height: "100vh",
+    overflowY: "auto",
+    overflowX: "hidden",
+    backgroundColor: "#f9f9f9",
+    ml: { xs: "180px", sm: "220px", md: "250px" }, // <<< Add marginLeft
+    p: { xs: 1, sm: 2, md: 3 },
+  }}
+>
+
         <Outlet />
       </Box>
-
     </Box>
   );
 };

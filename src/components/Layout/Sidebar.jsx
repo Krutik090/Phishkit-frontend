@@ -27,79 +27,83 @@ const Sidebar = () => {
     { label: "Campaigns", icon: <FaTable />, path: "/campaigns" },
     { label: "Templates", icon: <FaFileAlt />, path: "/templates" },
     { label: "Landing Pages", icon: <FaGlobe />, path: "/landing-pages" },
-    {
-      label: "Sending Profiles",
-      icon: <FaEnvelope />,
-      path: "/sending-profiles",
-    },
+    { label: "Sending Profiles", icon: <FaEnvelope />, path: "/sending-profiles" },
     { label: "Users & Groups", icon: <FaUsers />, path: "/users-groups" },
-    { label: "Clients", icon: <FaUsers />, path: "/clients" }, // 👈 New Client Section
-    {
-      label: "Quiz & Training",
-      icon: <QuizIcon fontSize="small" />,
-      path: "/quiz-training",
-    },
-    { label: "Settings", icon: <FaCog />, path: "/settings" }
+    { label: "Clients", icon: <FaUsers />, path: "/clients" },
+    { label: "Quiz", icon: <QuizIcon fontSize="small" />, path: "/quizz" },
+    { label: "Training", icon: <FaFileAlt />, path: "/training", newTab: true },
+    { label: "Settings", icon: <FaCog />, path: "/settings" },
   ];
 
   return (
     <Box
-      sx={{
-        width: { xs: "200px", sm: "220px", md: "260px" },
-        minWidth: { xs: "200px", sm: "220px", md: "260px" },
-        height: "100vh",
-        backgroundColor: bgColor,
-        color: textColor,
-        p: 2,
-        boxSizing: "border-box",
-        display: "flex",
-        flexDirection: "column",
-        transition: "all 0.3s",
-      }}
-    >
+  sx={{
+    width: { xs: "180px", sm: "220px", md: "250px" },
+    minWidth: { xs: "180px", sm: "220px", md: "250px" },
+    height: "100vh",
+    backgroundColor: bgColor,
+    color: textColor,
+    p: 2,
+    boxSizing: "border-box",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    overflow: "hidden",
+    borderRight: "1px solid rgba(255,255,255,0.1)",
+    position: "fixed", // <<< FIXED POSITION
+    top: 0,
+    left: 0,
+    zIndex: 1000, // Ensure it's on top of other content
+  }}
+>
 
+      {/* Header */}
       <Box sx={{ mb: 3 }}>
-        {(() => {
-          return (
-            <h2 style={{ fontSize: "23px", fontWeight: "bold", marginLeft: "43px" }}>
-              Tribastion
-            </h2>
-          );
-        })()}
-
+        <h2 style={{ fontSize: "23px", fontWeight: "bold", marginLeft: "43px" }}>
+          Tribastion
+        </h2>
       </Box>
 
-      {menuItems.map((item) => {
-        const isActive = location.pathname === item.path;
+      {/* Menu */}
+      <Box sx={{ flexGrow: 1 }}>
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.path;
 
-        return (
-          <Box
-            key={item.label}
-            onClick={() => navigate(item.path)}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-              px: 2,
-              py: 1.5,
-              my: 1,
-              borderRadius: "12px",
-              cursor: "pointer",
-              backgroundColor: isActive ? activeBg : "transparent",
-              color: isActive ? activeText : textColor,
-              fontWeight: isActive ? "bold" : "normal",
-              boxShadow: isActive ? "0px 2px 6px rgba(0,0,0,0.2)" : "none",
-              transition: "all 0.3s",
-              "&:hover": {
-                backgroundColor: isActive ? activeBg : "#ffffff33",
-              },
-            }}
-          >
-            <Box sx={{ fontSize: 18 }}>{item.icon}</Box>
-            <Box>{item.label}</Box>
-          </Box>
-        );
-      })}
+          return (
+            <Box
+              key={item.label}
+              onClick={() => {
+                if (item.newTab) {
+                  window.open(item.path, "_blank", "noopener,noreferrer");
+                } else {
+                  navigate(item.path);
+                }
+              }}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.5,
+                px: 2,
+                py: 1.5,
+                my: 1,
+                borderRadius: "12px",
+                cursor: "pointer",
+                backgroundColor: isActive ? activeBg : "transparent",
+                color: isActive ? activeText : textColor,
+                fontWeight: isActive ? "bold" : "normal",
+                boxShadow: isActive ? "0px 2px 6px rgba(0,0,0,0.2)" : "none",
+                transition: "all 0.3s",
+                "&:hover": {
+                  backgroundColor: isActive ? activeBg : "#ffffff33",
+                },
+              }}
+            >
+              <Box sx={{ fontSize: 18 }}>{item.icon}</Box>
+              <Box>{item.label}</Box>
+            </Box>
+          );
+        })}
+      </Box>
 
       {/* Dark Mode Toggle */}
       <Box
@@ -110,7 +114,6 @@ const Sidebar = () => {
           gap: 1.5,
           px: 2,
           py: 1.5,
-          mt: "auto",
           borderRadius: "12px",
           cursor: "pointer",
           backgroundColor: "#ffffff22",
