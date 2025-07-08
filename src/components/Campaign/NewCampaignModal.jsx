@@ -162,6 +162,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
         body: JSON.stringify(payload),
       });
 
+
       if (res.ok) {
         toast.success("🎯 Campaign saved successfully!");
         onSave();
