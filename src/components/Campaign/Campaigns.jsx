@@ -49,6 +49,12 @@ const Campaigns = () => {
   const [openModal, setOpenModal] = useState(false);
   const [formData, setFormData] = useState(initialFormState());
   const [deleteDialog, setDeleteDialog] = useState({ open: false, campaign: null });
+  const [usageData, setUsageData] = useState({
+    totalLimit: 0,
+    used: 0,
+    remaining: 0,
+  });
+
   const navigate = useNavigate();
 
   function initialFormState() {
@@ -76,8 +82,27 @@ const Campaigns = () => {
     }
   };
 
+  const fetchUsageData = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/usage`, {
+        method: "GET",
+        credentials: "include", // <-- Add this line
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
+
+      const json = await res.json();
+      setUsageData(json);
+    } catch (err) {
+      console.error("Failed to fetch usage data:", err);
+    }
+  };
+
   useEffect(() => {
     fetchCampaigns();
+    fetchUsageData();
   }, []);
 
   const handleSort = (field) => {
@@ -168,14 +193,83 @@ const Campaigns = () => {
 
   return (
     <Box p={3}>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box display="flex" alignItems="center">
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        flexWrap="wrap"
+        gap={2}
+        mb={4}
+      >
+        {/* Campaign Title */}
+        <Box display="flex" alignItems="center" minWidth="180px">
           <CampaignIcon sx={{ color: pink[500], mr: 1 }} />
           <Typography variant="h5" fontWeight="bold" color="#343a40">
             Campaigns
           </Typography>
         </Box>
+
+      <Box
+  display="flex"
+  justifyContent="center"
+  alignItems="center"
+  gap={2}
+  flex={1}
+  minWidth="300px"
+>
+  <Paper
+    elevation={3}
+    sx={{
+      px: 2,          // horizontal padding
+      py: 1,          // reduced vertical padding
+      borderLeft: "5px solid #1976d2",
+      backgroundColor: "#e3f2fd",
+      borderRadius: 2,
+      minWidth: "150px",
+      textAlign: "center",
+    }}
+  >
+    <Typography variant="h6" fontWeight="600" color="textSecondary">
+      Total Limit : {usageData.totalLimit}
+    </Typography>
+  </Paper>
+
+  <Paper
+    elevation={3}
+    sx={{
+      px: 2,
+      py: 1,
+      borderLeft: "5px solid #d32f2f",
+      backgroundColor: "#ffebee",
+      borderRadius: 2,
+      minWidth: "150px",
+      textAlign: "center",
+    }}
+  >
+    <Typography variant="h6" fontWeight="600" color="textSecondary">
+      Used : {usageData.used}
+    </Typography>
+  </Paper>
+
+  <Paper
+    elevation={3}
+    sx={{
+      px: 2,
+      py: 1,
+      borderLeft: "5px solid #388e3c",
+      backgroundColor: "#e8f5e9",
+      borderRadius: 2,
+      minWidth: "150px",
+      textAlign: "center",
+    }}
+  >
+    <Typography variant="h6" fontWeight="600" color="textSecondary">
+      Remaining : {usageData.remaining}
+    </Typography>
+  </Paper>
+</Box>
+
+        {/* Add Campaign Button */}
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -190,7 +284,7 @@ const Campaigns = () => {
             borderRadius: "8px",
             textTransform: "uppercase",
             px: 3,
-            py: 1,
+            py: 1.5,
             boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
             "&:hover": {
               background: "linear-gradient(135deg, #d6007a, #ff478a)",
