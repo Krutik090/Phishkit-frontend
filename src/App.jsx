@@ -6,6 +6,7 @@ import Campaigns from "./components/Campaign/Campaigns";
 import ResultCampaign from "./components/Campaign/ResultCampaign";
 import Templates from "./components/Template/Templates";
 import LandingPages from "./components/Landing_page/LandingPages";
+import FullScreenEditor from "./components/Landing_page/FullScreenEditor";
 import SendingProfiles from "./components/Sending Profile/SendingProfiles";
 import UsersGroups from "./components/User_Groups/UsersGroups";
 import Quiz from "./components/Quiz_Training/Quiz";
@@ -29,7 +30,17 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/quiz/:publicUrl" element={<QuizTemplate />} />
 
-        {/* ✅ Protected Admin Panel Routes */}
+        {/* ✅ Protected Route without Sidebar (fullscreen editor) */}
+        <Route
+          path="/fullscreen-editor"
+          element={
+            <ProtectedRoute>
+              <FullScreenEditor />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ Protected Routes with Sidebar Layout */}
         <Route
           path="/*"
           element={

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -11,20 +11,23 @@ import {
   Switch,
   FormControlLabel,
 } from "@mui/material";
+import { Editor } from "@tinymce/tinymce-react";
 import { toast } from "react-toastify";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
 
-const pink = "#ec008c";
+const PINK = "#ec008c";
+const GRADIENT = `linear-gradient(to right, ${PINK}, #d946ef)`;
 
 const inputStyle = {
   transition: "all 0.3s ease",
-  "& label.Mui-focused": { color: pink },
+  "& label.Mui-focused": { color: PINK },
   "& .MuiOutlinedInput-root": {
     borderRadius: 2,
     "&.Mui-focused fieldset": {
-      borderColor: pink,
+      borderColor: PINK,
       boxShadow: "0 0 0 0.15rem rgba(236, 0, 140, 0.25)",
     },
-    "&:hover fieldset": { borderColor: pink },
+    "&:hover fieldset": { borderColor: PINK },
   },
 };
 
@@ -33,6 +36,7 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
   const [html, setHtml] = useState("");
   const [captureData, setCaptureData] = useState(false);
   const [redirectUrl, setRedirectUrl] = useState("");
+  const editorRef = useRef(null);
 
   useEffect(() => {
     if (pageToEdit) {
@@ -48,21 +52,23 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
     }
   }, [pageToEdit, open]);
 
-  const handleSave = () => {
-    if (!name.trim() || !html.trim()) {
+  const handleSave = useCallback(() => {
+    const content = editorRef.current?.getContent?.() || html;
+
+    if (!name.trim() || !content.trim()) {
       toast.warning("⚠️ Please fill in both Name and HTML content.");
       return;
     }
 
     const pageData = {
       name,
-      html,
+      html: content,
       capture_credentials: captureData,
       redirect_url: redirectUrl,
     };
 
     try {
-      if (pageToEdit && pageToEdit.id) {
+      if (pageToEdit?.id) {
         onSave({ ...pageData, id: pageToEdit.id }, "edit");
         toast.success("Landing page updated successfully!");
       } else {
@@ -74,44 +80,38 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
       console.error("Landing Page Save Error:", err);
       toast.error("❌ Failed to save landing page.");
     }
-  };
+  }, [name, html, captureData, redirectUrl, onSave, onClose, pageToEdit]);
 
   const handleImportSite = () => {
     toast.info("🚧 Import Site functionality is under development.");
   };
 
+  const handleOpenFullscreenEditor = () => {
+    localStorage.setItem("landingPageHtml", html);
+
+    const editorWindow = window.open("/fullscreen-editor", "_blank");
+
+    const interval = setInterval(() => {
+      if (editorWindow.closed) {
+        clearInterval(interval);
+        const updatedHtml = localStorage.getItem("landingPageHtml") || "";
+        setHtml(updatedHtml);
+        localStorage.removeItem("landingPageHtml");
+        toast.success("✅ HTML updated from fullscreen editor.");
+      }
+    }, 500);
+  };
+
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          width: "900px",
-          height: "900px",
-          maxHeight: "90vh",
-          borderRadius: "16px",
-          border: "2px solid #ec008c30",
-          boxShadow: "0 8px 24px rgba(236, 0, 140, 0.2)",
-        },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          fontWeight: "bold",
-          color: pink,
-          borderBottom: "1px solid #f8c6dd",
-          backgroundColor: "#fff0f7",
-        }}
-      >
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ fontWeight: "bold", color: PINK, backgroundColor: "#fff0f7" }}>
         {pageToEdit ? "✏️ Edit Landing Page" : "🌐 New Landing Page"}
       </DialogTitle>
 
       <DialogContent dividers>
         <Box display="flex" flexDirection="column" gap={2}>
           <Box>
-            <Typography variant="body2" fontWeight="500" mb={0.5}>
+            <Typography variant="body2" fontWeight={500}>
               Name
             </Typography>
             <TextField
@@ -121,48 +121,54 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               sx={inputStyle}
+              aria-label="Landing Page Name"
             />
           </Box>
 
           <Button
             variant="contained"
             onClick={handleImportSite}
-            sx={{
-              backgroundColor: pink,
-              color: "#fff",
-              fontWeight: "bold",
-              borderRadius: 1,
-              px: 2,
-              py: 1,
-              textTransform: "none",
-              alignSelf: "flex-start",
-              "&:hover": {
-                backgroundColor: "#d6007a",
-              },
-            }}
+            sx={{ backgroundColor: PINK }}
           >
             IMPORT SITE
           </Button>
 
           <Box>
-            <Typography variant="body2" fontWeight="500" mb={0.5}>
+            <Typography variant="body2" fontWeight={500} mb={1}>
               HTML Content
             </Typography>
-            <TextField
-              multiline
-              minRows={6}
-              placeholder="Paste your HTML content here..."
-              fullWidth
+
+            <Box display="flex" justifyContent="flex-end" mb={1}>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<FullscreenIcon />}
+                onClick={handleOpenFullscreenEditor}
+                aria-label="Open Fullscreen Editor"
+              >
+                Full Screen Editor
+              </Button>
+            </Box>
+
+            <Editor
+              onInit={(evt, editor) => (editorRef.current = editor)}
+              apiKey="o8z0kqre5x0f3nnn3x68nryugconi6gdd9ql2sc12r0wj5ok"
               value={html}
-              onChange={(e) => setHtml(e.target.value)}
-              sx={{
-                ...inputStyle,
-                "& .MuiOutlinedInput-root": {
-                  ...inputStyle["& .MuiOutlinedInput-root"],
-                  minHeight: "340px",
-                  alignItems: "flex-start",
-                },
-                "& textarea": { height: "100% !important" },
+              onEditorChange={(newValue) => setHtml(newValue)}
+              init={{
+                height: 300,
+                menubar: false,
+                plugins: [
+                  "anchor", "autolink", "charmap", "codesample", "emoticons",
+                  "image", "link", "lists", "media", "searchreplace",
+                  "table", "visualblocks", "wordcount",
+                ],
+                toolbar:
+                  "undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | " +
+                  "link image media table mergetags | addcomment showcomments | " +
+                  "spellcheckdialog a11ycheck typography | align lineheight | " +
+                  "checklist numlist bullist indent outdent | emoticons charmap | removeformat",
+                branding: false,
               }}
             />
           </Box>
@@ -173,18 +179,19 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
                 checked={captureData}
                 onChange={(e) => setCaptureData(e.target.checked)}
                 sx={{
-                  "& .MuiSwitch-switchBase.Mui-checked": { color: pink },
-                  "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-                    backgroundColor: pink,
+                  "& .Mui-checked": { color: PINK },
+                  "& .Mui-checked + .MuiSwitch-track": {
+                    backgroundColor: PINK,
                   },
                 }}
+                aria-label="Toggle capture credentials"
               />
             }
             label="Capture Submitted Data"
           />
 
           <Box>
-            <Typography variant="body2" fontWeight="500" mb={0.5}>
+            <Typography variant="body2" fontWeight={500}>
               Redirect URL
             </Typography>
             <TextField
@@ -193,39 +200,20 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
               value={redirectUrl}
               onChange={(e) => setRedirectUrl(e.target.value)}
               sx={inputStyle}
+              aria-label="Redirect URL"
             />
           </Box>
         </Box>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          sx={{
-            color: "#374151",
-            borderColor: "#d1d5db",
-            fontWeight: "bold",
-            borderRadius: 1,
-            textTransform: "none",
-          }}
-        >
+        <Button onClick={onClose} variant="outlined">
           CANCEL
         </Button>
         <Button
           onClick={handleSave}
           variant="contained"
-          sx={{
-            background: "linear-gradient(to right, #ec4899, #d946ef)",
-            color: "#fff",
-            fontWeight: "bold",
-            borderRadius: 1,
-            textTransform: "none",
-            boxShadow: 1,
-            "&:hover": {
-              background: "linear-gradient(to right, #db2777, #c026d3)",
-            },
-          }}
+          sx={{ background: GRADIENT }}
         >
           {pageToEdit ? "UPDATE PAGE" : "SAVE PAGE"}
         </Button>
