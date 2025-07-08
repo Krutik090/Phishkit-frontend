@@ -4,22 +4,13 @@ import axios from "axios";
 
 const ProtectedRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
-  const location = useLocation(); // ✅ detects path change
+  const location = useLocation();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
     const checkAuth = async () => {
-      if (!token) {
-        setIsAuthenticated(false);
-        return;
-      }
-
       try {
         const res = await axios.get(`${import.meta.env.VITE_API_URL}/protected`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          withCredentials: true, // ✅ Send cookies
         });
 
         setIsAuthenticated(res.status === 200);
@@ -29,9 +20,9 @@ const ProtectedRoute = ({ children }) => {
     };
 
     checkAuth();
-  }, [location.pathname]); // ✅ re-run on route change
+  }, [location.pathname]);
 
-  if (isAuthenticated === null) return null;
+  if (isAuthenticated === null) return null; // or show a loader/spinner
 
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,23 +14,29 @@ const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function Settings() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user'));
-  const isAdmin = user?.role === 'admin';
-
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-  });
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [user, setUser] = useState(null);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogout = () => {
-  localStorage.removeItem("user"); 
-  localStorage.removeItem("token"); 
-  navigate("/login");             
-};
+  // ✅ Fetch authenticated user info via secure cookie
+  useEffect(() => {
+    axios
+      .get(`${API_BASE_URL}/protected`, { withCredentials: true })
+      .then((res) => setUser(res.data.user))
+      .catch(() => navigate('/login'));
+  }, []);
 
+  const isAdmin = user?.role === 'admin';
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API_BASE_URL}/auth/logout`, {}, { withCredentials: true });
+      navigate('/login');
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -40,7 +46,9 @@ export default function Settings() {
     setSuccess('');
     setError('');
     try {
-      const res = await axios.post(`${API_BASE_URL}/auth/register`, form);
+      const res = await axios.post(`${API_BASE_URL}/auth/register`, form, {
+        withCredentials: true,
+      });
       setSuccess(res.data.message);
       setForm({ name: '', email: '', password: '' });
     } catch (err) {
