@@ -19,7 +19,6 @@ import dayjs from "dayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import { renderTimeViewClock } from "@mui/x-date-pickers/timeViewRenderers";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 const pink = "#ec008c";
@@ -148,7 +147,9 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
       smtp: { name: formData.sendingProfile },
       url: formData.url,
       launchDate: dayjs(formData.schedule).toISOString(),
-      group: { name: formData.group },
+      groups: Array.isArray(formData.group)
+        ? formData.group.map((groupName) => ({ name: groupName }))
+        : [],
       clientId: formData.client,
       publicUrl: formData.quiz?.publicUrl || null,
     };
@@ -160,6 +161,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
         credentials: "include",
         body: JSON.stringify(payload),
       });
+
 
       if (res.ok) {
         toast.success("🎯 Campaign saved successfully!");
@@ -186,7 +188,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
     url: "",
     schedule: formData?.schedule ? dayjs(formData.schedule) : defaultSchedule,
     sendingProfile: "",
-    group: "",
+    group: [],
     quiz: null,
     ...formData,
   };
@@ -268,7 +270,6 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
               </select>
             </Box>
 
-            {/* Quiz moved here */}
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>Quiz</Typography>
               <select name="quiz" value={safeFormData.quiz?._id || ""} onChange={handleChange}
@@ -292,18 +293,12 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
                 sx={{ "& .MuiOutlinedInput-root.Mui-focused fieldset": { borderColor: pink } }} />
             </Box>
             <Box flex={1}>
-              <Typography fontWeight="bold" mb={0.5}>Launch Date </Typography>
+              <Typography fontWeight="bold" mb={0.5}>Launch Date</Typography>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DateTimePicker
                   value={dayjs(safeFormData.schedule)}
                   onChange={(val) => setFormData((prev) => ({ ...prev, schedule: val }))}
                   timeSteps={{ minutes: 1 }}
-                  slots={{
-                    // 👇 these slots disable the clock and force dropdowns
-                    hours: null,
-                    minutes: null,
-                    seconds: null,
-                  }}
                   slotProps={{
                     textField: {
                       fullWidth: true,
@@ -316,82 +311,68 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
                   }}
                 />
               </LocalizationProvider>
-
-
             </Box>
           </Box>
 
+          {/* Groups */}
           <Box>
             <Typography fontWeight="bold" mb={0.5}>Group</Typography>
             <Select
-  multiple
-  name="group"
-  value={Array.isArray(formData.group) ? formData.group : []}
-  onChange={(e) => {
-    const {
-      target: { value },
-    } = e;
-    setFormData((prev) => ({
-      ...prev,
-      group: typeof value === "string" ? value.split(",") : value,
-    }));
-  }}
-  disabled={loading}
-  input={<OutlinedInput fullWidth />}
-  renderValue={(selected) => (
-    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-      {selected.map((value) => (
-        <Chip
-          key={value}
-          label={value}
-          onMouseDown={(event) => event.stopPropagation()}
-          onDelete={() => {
-            setFormData((prev) => ({
-              ...prev,
-              group: prev.group.filter((item) => item !== value),
-            }));
-          }}
-          deleteIcon={
-            <CancelIcon
-              sx={{
-                borderRadius: "50%",
-                fontSize: "18px",
-                p: "2px",
+              multiple
+              name="group"
+              value={Array.isArray(formData.group) ? formData.group : []}
+              onChange={(e) => {
+                const {
+                  target: { value },
+                } = e;
+                setFormData((prev) => ({
+                  ...prev,
+                  group: typeof value === "string" ? value.split(",") : value,
+                }));
               }}
-            />
-          }
-          sx={{
-            backgroundColor: "white",
-            color: "black",
-            border: "2px solid",
-            borderColor: pink,
-            fontWeight: 500,
-          }}
-        />
-      ))}
-    </Box>
-  )}
-  sx={{
-    "& .MuiOutlinedInput-root": {
-      "& fieldset": {
-        border: "none", // No border at all
-      },
-      "&:hover fieldset": {
-        border: "none", // No border on hover
-      },
-      "&.Mui-focused fieldset": {
-        border: "none", // No border on focus
-      },
-    },
-  }}
->
-  {groups.map((g) => (
-    <MenuItem key={g.id} value={g.name}>
-      {g.name}
-    </MenuItem>
-  ))}
-</Select>
-</Box>
+              disabled={loading}
+              input={<OutlinedInput fullWidth />}
+              renderValue={(selected) => (
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                  {selected.map((value) => (
+                    <Chip
+                      key={value}
+                      label={value}
+                      onMouseDown={(event) => event.stopPropagation()}
+                      onDelete={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          group: prev.group.filter((item) => item !== value),
+                        }));
+                      }}
+                      deleteIcon={<CancelIcon sx={{ borderRadius: "50%", fontSize: "18px", p: "2px" }} />}
+                      sx={{
+                        backgroundColor: "white",
+                        color: "black",
+                        border: "2px solid",
+                        borderColor: pink,
+                        fontWeight: 500,
+                      }}
+                    />
+                  ))}
+                </Box>
+              )}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": { border: "none" },
+                  "&:hover fieldset": { border: "none" },
+                  "&.Mui-focused fieldset": { border: "none" },
+                },
+              }}
+            >
+              {groups.map((g) => (
+                <MenuItem key={g.id} value={g.name}>
+                  {g.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </Box>
+
           {/* Actions */}
           <DialogActions sx={{ borderTop: "1px solid #f8c6dd", pt: 2 }}>
             <Button onClick={onClose} variant="outlined"
