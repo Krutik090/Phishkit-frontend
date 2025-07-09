@@ -35,12 +35,18 @@ const Quiz = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/quizzes`);
       const data = await res.json();
-      setQuizzes(data);
+      // Patch the quizzes with computed URL if not already present
+      const updatedData = data.map(q => ({
+        ...q,
+        posterPathUrl: q.posterPath ? `${FILE_BASE_URL}/${q.posterPath}` : null,
+      }));
+      setQuizzes(updatedData);
     } catch (err) {
       console.error("Failed to fetch quizzes:", err);
       toast.error("Failed to load quizzes.");
     }
   };
+
 
   const handleSort = (field) => {
     if (field === sortField) {
@@ -71,21 +77,24 @@ const Quiz = () => {
     if (!file || !quizId) return;
 
     setUploadingQuizId(quizId);
+
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("quizId", quizId); // 👈 Required by backend
 
     try {
-      const uploadRes = await fetch(`${API_BASE_URL}/quizzes/${quizId}/poster`, {
+      const uploadRes = await fetch(`${API_BASE_URL}/quizzes/poster`, {
         method: "POST",
         body: formData,
       });
 
       const data = await uploadRes.json();
-      if (data?.posterPathUrl) {
-        await loadQuizzes();
+
+      if (uploadRes.ok && data?.posterPath) {
         toast.success("Poster uploaded successfully!");
+        await loadQuizzes(); // Refresh quiz list with updated poster path
       } else {
-        toast.error("Upload failed.");
+        toast.error(data?.error || "Poster upload failed.");
       }
     } catch (err) {
       console.error("Error uploading poster:", err);
@@ -100,6 +109,7 @@ const Quiz = () => {
     setPreviewUrl(url);
     setPreviewDialogOpen(true);
   };
+
 
   const filtered = quizzes.filter((quiz) =>
     quiz.title?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -213,39 +223,42 @@ const Quiz = () => {
                       ) : "—"}
                     </TableCell>
                     <TableCell>
-                      {quiz.posterPathUrl ? (
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Typography color="green">Uploaded</Typography>
-                          <Tooltip title="Preview">
-                            <IconButton size="small" onClick={() => handlePreview(quiz.posterPathUrl)}>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        {/* {quiz.posterPath && (
+                          <Tooltip title="View in New Tab">
+                            <IconButton
+                              size="small"
+                              component="a"
+                              href={`${FILE_BASE_URL}/posters/${encodeURIComponent(quiz.posterPath)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
                               <VisibilityIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                        </Box>
-                      ) : (
-                        <>
-                          <input
-                            type="file"
-                            accept=".pdf"
-                            style={{ display: "none" }}
-                            id={`upload-poster-${quiz._id}`}
-                            onChange={(e) => handlePosterUpload(e, quiz._id)}
-                          />
-                          <label htmlFor={`upload-poster-${quiz._id}`}>
-                            <Button
-                              component="span"
-                              variant="outlined"
-                              size="small"
-                              color="secondary"
-                              startIcon={<UploadFileIcon />}
-                              disabled={uploadingQuizId === quiz._id}
-                            >
-                              Upload PDF
-                            </Button>
-                          </label>
-                        </>
-                      )}
+                        )} */}
+                        <input
+                          type="file"
+                          accept=".pdf"
+                          style={{ display: "none" }}
+                          id={`upload-poster-${quiz._id}`}
+                          onChange={(e) => handlePosterUpload(e, quiz._id)}
+                        />
+                        <label htmlFor={`upload-poster-${quiz._id}`}>
+                          <Button
+                            component="span"
+                            variant="outlined"
+                            size="small"
+                            color="secondary"
+                            startIcon={<UploadFileIcon />}
+                            disabled={uploadingQuizId === quiz._id}
+                          >
+                            {quiz.posterPathUrl ? "Update Poster" : "Upload PDF"}
+                          </Button>
+                        </label>
+                      </Box>
                     </TableCell>
+
                     <TableCell>
                       <Tooltip title="Edit">
                         <IconButton size="small" color="secondary" onClick={() => navigate(`/quizz/edit/${quiz._id}`)}>
