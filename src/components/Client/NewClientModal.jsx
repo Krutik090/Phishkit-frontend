@@ -56,13 +56,13 @@ const NewClientModal = ({
     <Modal open={open} onClose={onClose}>
       <Box sx={style}>
         <Typography variant="h6" mb={2}>
-          Add New Client
+          Add New Project
         </Typography>
 
         <TextField
           fullWidth
           name="name"
-          label="Client Name"
+          label="Project Name"
           value={formData.name}
           onChange={handleChange}
           margin="normal"

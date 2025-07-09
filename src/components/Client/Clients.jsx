@@ -141,7 +141,7 @@ const Clients = () => {
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" mb={3}>
         <Typography variant="h5" fontWeight="bold" color="#343a40">
-          🧑‍💼 Clients
+          📁 Projects
         </Typography>
         <Button
           variant="contained"
@@ -156,7 +156,7 @@ const Clients = () => {
             textTransform: "uppercase",
           }}
         >
-          Add Client
+          Add Project
         </Button>
       </Box>
 
@@ -197,7 +197,7 @@ const Clients = () => {
             <TableHead>
               <TableRow>
                 {[
-                  { label: "Client Name", field: "name" },
+                  { label: "Project Name", field: "name" },
                   { label: "Campaigns", field: "campaigns" },
                   { label: "Sent", field: "emailSent" },
                   { label: "Failed", field: "emailFailed" },

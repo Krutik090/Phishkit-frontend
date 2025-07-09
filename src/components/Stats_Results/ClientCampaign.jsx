@@ -77,9 +77,11 @@ const ClientCampaign = () => {
   };
 
   const handleInsightsClick = () => {
-    const campaignIds = campaigns.map((c) => c.id || c._id).filter(Boolean);
-    navigate(`/client/${clientId}/insights`, { state: { campaignIds } });
-  };
+  const campaignIds = campaigns.map((c) => c.id || c._id).filter(Boolean);
+  const campaignNames = campaigns.map((c) => c.name || "Unnamed Campaign");
+  navigate(`/client/${clientId}/insights`, { state: { campaignIds, campaignNames } });
+};
+
 
   const handleCampaignClick = (campaignId) => {
     navigate(`/campaign/${campaignId}/details`);
@@ -105,7 +107,7 @@ const ClientCampaign = () => {
             Back
           </Button>
           <Typography variant="h5" fontWeight="bold" color="#343a40">
-            📊 Campaigns for Client: {client?.name || "Loading..."}
+            📊 Campaigns for Project : {client?.name || "Loading..."}
           </Typography>
         </Box>
 
