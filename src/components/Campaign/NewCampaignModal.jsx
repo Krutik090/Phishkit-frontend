@@ -391,3 +391,4 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
 };
 
 export default NewCampaignModal;
+

@@ -1,4 +1,3 @@
-// src/pages/ResultCampaign.jsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -15,7 +14,9 @@ import {
   Paper,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
+
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+const pink = "#ec008c";
 
 const ResultCampaign = () => {
   const { id } = useParams();
@@ -23,7 +24,7 @@ const ResultCampaign = () => {
   const [campaign, setCampaign] = useState(null);
 
   useEffect(() => {
-   fetch(`${API_BASE_URL}/campaigns/${id}`)
+    fetch(`${API_BASE_URL}/campaigns/${id}`)
       .then((res) => res.json())
       .then((data) => setCampaign(data))
       .catch((err) => {
@@ -32,66 +33,81 @@ const ResultCampaign = () => {
       });
   }, [id]);
 
-  const countByStatus = (status) => {
-    return campaign?.results?.filter((r) => r.status === status)?.length || 0;
-  };
+  const countByStatus = (status) =>
+    campaign?.results?.filter((r) => r.status === status)?.length || 0;
 
-  if (!campaign) return <Box p={4}><CircularProgress /></Box>;
+  if (!campaign) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="70vh">
+        <CircularProgress color="secondary" />
+      </Box>
+    );
+  }
 
   return (
-    <Box p={4}>
-      <Typography variant="h4" fontWeight="bold" mb={3}>
-        Results for {campaign.name}
+    <Box px={4} py={3}>
+      {/* Page Title */}
+      <Typography variant="h4" fontWeight="bold" color={pink} mb={4}>
+        🎯 Results: {campaign.name}
       </Typography>
 
-      {/* Top Buttons */}
-      <Box display="flex" gap={2} mb={3}>
+      {/* Action Buttons */}
+      <Box display="flex" gap={2} flexWrap="wrap" mb={4}>
         <Button variant="outlined" onClick={() => navigate(-1)}>🔙 Back</Button>
         <Button variant="contained" color="success">Export CSV</Button>
-        <Button variant="contained" color="info">Complete</Button>
+        <Button variant="contained" color="info">Mark Complete</Button>
         <Button variant="contained" color="error">Delete</Button>
-        <Button variant="outlined" color="primary">Refresh</Button>
+        <Button variant="outlined" color="primary">🔄 Refresh</Button>
       </Box>
 
-      {/* Donut Chart Summary */}
-      <Grid container spacing={2} justifyContent="center" mb={4}>
+      {/* Stats Summary */}
+      <Grid container spacing={3} justifyContent="center" mb={5}>
         {[
           { label: "Email Sent", value: campaign.results?.length },
           { label: "Email Opened", value: countByStatus("Email Opened") },
           { label: "Clicked Link", value: countByStatus("Clicked Link") },
           { label: "Submitted Data", value: countByStatus("Submitted Data") },
           { label: "Email Reported", value: countByStatus("Email Reported") },
-        ].map((item) => (
-          <Grid item xs={6} sm={4} md={2.3} key={item.label}>
-            <Box textAlign="center">
-              <CircularProgress
-                variant="determinate"
-                value={100}
-                size={80}
-                thickness={5}
-                sx={{ color: item.value > 0 ? "#ec008c" : "#ccc" }}
-              />
-              <Typography variant="h6" mt={1}>{item.value}</Typography>
-              <Typography variant="caption">{item.label}</Typography>
+        ].map((stat, i) => (
+          <Grid item xs={6} sm={4} md={2.4} key={i}>
+            <Box
+              bgcolor="#fff0f7"
+              border={`2px solid ${pink}`}
+              borderRadius="12px"
+              textAlign="center"
+              py={3}
+              px={2}
+              boxShadow="0 4px 12px rgba(0,0,0,0.06)"
+            >
+              <Typography variant="h5" fontWeight="bold" color={pink}>
+                {stat.value}
+              </Typography>
+              <Typography fontSize="14px" color="text.secondary">
+                {stat.label}
+              </Typography>
             </Box>
           </Grid>
         ))}
       </Grid>
 
-      {/* Results Table */}
-      <Typography variant="h5" fontWeight="bold" mb={2}>Details</Typography>
-      <TableContainer component={Paper}>
+      {/* Table Section */}
+      <Typography variant="h5" fontWeight="bold" mb={2}>
+        👥 Result Details
+      </Typography>
+
+      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: 3 }}>
         <Table size="small">
-          <TableHead sx={{ background: "#ffe0ef" }}>
+          <TableHead sx={{ backgroundColor: "#fdf0f6" }}>
             <TableRow>
-              <TableCell>First Name</TableCell>
-              <TableCell>Last Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Position</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Reported</TableCell>
+              <TableCell><strong>First Name</strong></TableCell>
+              <TableCell><strong>Last Name</strong></TableCell>
+              <TableCell><strong>Email</strong></TableCell>
+              <TableCell><strong>Position</strong></TableCell>
+              <TableCell><strong>Status</strong></TableCell>
+              <TableCell><strong>Reported</strong></TableCell>
             </TableRow>
           </TableHead>
+
           <TableBody>
             {campaign.results?.length > 0 ? (
               campaign.results.map((r, idx) => (
@@ -103,10 +119,7 @@ const ResultCampaign = () => {
                   <TableCell>
                     <Typography
                       variant="caption"
-                      color="white"
                       sx={{
-                        px: 1.5,
-                        py: 0.5,
                         backgroundColor:
                           r.status === "Submitted Data"
                             ? "#dc3545"
@@ -115,14 +128,22 @@ const ResultCampaign = () => {
                             : r.status === "Email Opened"
                             ? "#ffc107"
                             : "#6c757d",
-                        borderRadius: 1,
+                        color: "#fff",
                         fontWeight: "bold",
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 1,
+                        display: "inline-block",
+                        minWidth: 100,
+                        textAlign: "center",
                       }}
                     >
                       {r.status}
                     </Typography>
                   </TableCell>
-                  <TableCell>{r.reported ? "✔️" : "❌"}</TableCell>
+                  <TableCell>
+                    {r.reported ? "✅" : "❌"}
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
