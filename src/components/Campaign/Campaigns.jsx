@@ -1,23 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
   Button,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Paper,
-  TextField,
   IconButton,
   Tooltip,
-  Pagination,
-  FormControl,
-  Select,
-  MenuItem,
-  InputLabel,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -26,35 +14,26 @@ import {
 } from "@mui/material";
 import {
   Add as AddIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
-  ArrowDropUp as ArrowDropUpIcon,
-  ArrowDropDown as ArrowDropDownIcon,
   Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 import { pink } from "@mui/material/colors";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import NewCampaignModal from "./NewCampaignModal";
 import { useNavigate } from "react-router-dom";
+import "datatables.net-dt/css/dataTables.dataTables.min.css";
+import $ from "jquery";
+import "datatables.net";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const Campaigns = () => {
   const [data, setData] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState("name");
-  const [sortDirection, setSortDirection] = useState("asc");
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
   const [openModal, setOpenModal] = useState(false);
   const [formData, setFormData] = useState(initialFormState());
   const [deleteDialog, setDeleteDialog] = useState({ open: false, campaign: null });
-  const [usageData, setUsageData] = useState({
-    totalLimit: 0,
-    used: 0,
-    remaining: 0,
-  });
-
+  const [usageData, setUsageData] = useState({ totalLimit: 0, used: 0, remaining: 0 });
+  const tableRef = useRef();
   const navigate = useNavigate();
 
   function initialFormState() {
@@ -86,13 +65,9 @@ const Campaigns = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/auth/usage`, {
         method: "GET",
-        credentials: "include", // <-- Add this line
+        credentials: "include",
       });
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! Status: ${res.status}`);
-      }
-
+      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
       const json = await res.json();
       setUsageData(json);
     } catch (err) {
@@ -105,53 +80,14 @@ const Campaigns = () => {
     fetchUsageData();
   }, []);
 
-  const handleSort = (field) => {
-    if (field === sortField) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
+  useEffect(() => {
+    if (data.length > 0) {
+      const table = $(tableRef.current).DataTable();
+      return () => {
+        table.destroy();
+      };
     }
-  };
-
-  const getSortIcon = (field) => {
-    if (field !== sortField) return null;
-    return sortDirection === "asc" ? (
-      <ArrowDropUpIcon fontSize="small" sx={{ color: "#ec008c" }} />
-    ) : (
-      <ArrowDropDownIcon fontSize="small" sx={{ color: "#ec008c" }} />
-    );
-  };
-
-  const renderSortLabel = (label, field) => (
-    <Box
-      display="flex"
-      alignItems="center"
-      sx={{ cursor: "pointer", userSelect: "none" }}
-      onClick={() => handleSort(field)}
-    >
-      {label}
-      {getSortIcon(field)}
-    </Box>
-  );
-
-  const filtered = data.filter((row) =>
-    row.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const sorted = [...filtered].sort((a, b) => {
-    const valA = a[sortField] || "";
-    const valB = b[sortField] || "";
-    if (valA < valB) return sortDirection === "asc" ? -1 : 1;
-    if (valA > valB) return sortDirection === "asc" ? 1 : -1;
-    return 0;
-  });
-
-  const pageCount = Math.ceil(sorted.length / entriesPerPage);
-  const paginated = sorted.slice(
-    (currentPage - 1) * entriesPerPage,
-    currentPage * entriesPerPage
-  );
+  }, [data]);
 
   const handleDeleteConfirm = (campaign) => {
     setDeleteDialog({ open: true, campaign });
@@ -193,251 +129,135 @@ const Campaigns = () => {
 
   return (
     <Box p={3}>
-      <Box
-        display="flex"
-        alignItems="center"
-        justifyContent="space-between"
-        flexWrap="wrap"
-        gap={2}
-        mb={4}
+      <Paper
+        elevation={3}
+        sx={{
+          p: 4,
+          borderRadius: 3,
+          backgroundColor: "#fff",
+        }}
       >
-        {/* Campaign Title */}
-        <Box display="flex" alignItems="center" minWidth="180px">
-          <CampaignIcon sx={{ color: pink[500], mr: 1 }} />
-          <Typography variant="h5" fontWeight="bold" color="#343a40">
-            Campaigns
-          </Typography>
-        </Box>
-
-      <Box
-  display="flex"
-  justifyContent="center"
-  alignItems="center"
-  gap={2}
-  flex={1}
-  minWidth="300px"
->
-  <Paper
-    elevation={3}
-    sx={{
-      px: 2,          // horizontal padding
-      py: 1,          // reduced vertical padding
-      borderLeft: "5px solid #1976d2",
-      backgroundColor: "#e3f2fd",
-      borderRadius: 2,
-      minWidth: "150px",
-      textAlign: "center",
-    }}
-  >
-    <Typography variant="h6" fontWeight="600" color="textSecondary">
-      Total Limit : {usageData.totalLimit}
-    </Typography>
-  </Paper>
-
-  <Paper
-    elevation={3}
-    sx={{
-      px: 2,
-      py: 1,
-      borderLeft: "5px solid #d32f2f",
-      backgroundColor: "#ffebee",
-      borderRadius: 2,
-      minWidth: "150px",
-      textAlign: "center",
-    }}
-  >
-    <Typography variant="h6" fontWeight="600" color="textSecondary">
-      Used : {usageData.used}
-    </Typography>
-  </Paper>
-
-  <Paper
-    elevation={3}
-    sx={{
-      px: 2,
-      py: 1,
-      borderLeft: "5px solid #388e3c",
-      backgroundColor: "#e8f5e9",
-      borderRadius: 2,
-      minWidth: "150px",
-      textAlign: "center",
-    }}
-  >
-    <Typography variant="h6" fontWeight="600" color="textSecondary">
-      Remaining : {usageData.remaining}
-    </Typography>
-  </Paper>
-</Box>
-
-        {/* Add Campaign Button */}
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => {
-            setFormData(initialFormState());
-            setOpenModal(true);
-          }}
-          sx={{
-            background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
-            color: "#fff",
-            fontWeight: "bold",
-            borderRadius: "8px",
-            textTransform: "uppercase",
-            px: 3,
-            py: 1.5,
-            boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
-            "&:hover": {
-              background: "linear-gradient(135deg, #d6007a, #ff478a)",
-              boxShadow: "0 6px 12px rgba(236, 0, 140, 0.5)",
-            },
-          }}
-        >
-          Add Campaign
-        </Button>
-      </Box>
-
-      {/* Table */}
-      <Paper elevation={2} sx={{ borderRadius: "12px", p: 2, height: 800, display: "flex", flexDirection: "column" }}>
-        <Box display="flex" justifyContent="space-between" mb={2}>
-          <FormControl variant="standard">
-            <InputLabel>Show</InputLabel>
-            <Select
-              value={entriesPerPage}
-              onChange={(e) => {
-                setEntriesPerPage(parseInt(e.target.value));
-                setCurrentPage(1);
-              }}
-              sx={{ minWidth: 80 }}
-            >
-              {[10, 25, 50, 100].map((count) => (
-                <MenuItem key={count} value={count}>{count}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            placeholder="🔍 Search..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Box display="flex" alignItems="center">
+            <CampaignIcon sx={{ color: pink[500], mr: 1 }} />
+            <Typography variant="h5" fontWeight="bold">Campaigns</Typography>
+          </Box>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setFormData(initialFormState());
+              setOpenModal(true);
             }}
-            variant="standard"
-            sx={{ width: 300 }}
-          />
+            sx={{
+              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              color: "#fff",
+              fontWeight: "bold",
+              borderRadius: "8px",
+              px: 3,
+              py: 1.5,
+              textTransform: "uppercase",
+              boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
+              "&:hover": {
+                background: "linear-gradient(135deg, #d6007a, #ff478a)",
+                boxShadow: "0 6px 12px rgba(236, 0, 140, 0.5)",
+              },
+            }}
+          >
+            Add Campaign
+          </Button>
         </Box>
 
-        <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
-          <Table stickyHeader size="small">
-            <TableHead>
-              <TableRow>
-                {[
-                  { label: "ID", field: "id" },
-                  { label: "Name", field: "name" },
-                  { label: "Client ID", field: "client_id" },
-                  { label: "Status", field: "status" },
-                  { label: "Launch Date", field: "launch_date" },
-                  { label: "Email Sent", field: "emails_sent" },
-                ].map(({ label, field }) => (
-                  <TableCell
-                    key={field}
-                    sx={{
-                      backgroundColor: "#ffe0ef",
-                      color: "#ec008c",
-                      fontWeight: "bold",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => handleSort(field)}
-                  >
-                    {renderSortLabel(label, field)}
-                  </TableCell>
-                ))}
-                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
-                  Actions
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginated.length > 0 ? (
-                paginated.map((row) => (
-                  <TableRow key={row.id} hover>
-                    <TableCell>{row.id}</TableCell>
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{row.client_id ?? "—"}</TableCell>
-                    <TableCell>{row.status}</TableCell>
-                    <TableCell>
-                      {row.launch_date
-                        ? new Date(row.launch_date).toLocaleDateString()
-                        : "—"}
-                    </TableCell>
-                    <TableCell>{Array.isArray(row.results) ? row.results.length : 0}</TableCell>
-                    <TableCell>
-                      <Tooltip title="View">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => navigate(`/campaign-results/${row.id}`)}
-                        >
-                          <VisibilityIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDeleteConfirm(row)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    No data found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="body2" color="gray">
-            Showing {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
-            {Math.min(currentPage * entriesPerPage, sorted.length)} of {sorted.length} entries
-          </Typography>
-          <Pagination
-            count={pageCount}
-            page={currentPage}
-            onChange={(_, page) => setCurrentPage(page)}
-            color="primary"
-          />
+        <Box display="flex" gap={2} mb={3} flexWrap="wrap">
+          {[
+            { label: "Total Limit", value: usageData.totalLimit, color: "#1976d2", bg: "#e3f2fd" },
+            { label: "Used", value: usageData.used, color: "#d32f2f", bg: "#ffebee" },
+            { label: "Remaining", value: usageData.remaining, color: "#388e3c", bg: "#e8f5e9" },
+          ].map((item, idx) => (
+            <Paper
+              key={idx}
+              elevation={3}
+              sx={{
+                px: 2,
+                py: 1,
+                borderLeft: `5px solid ${item.color}`,
+                backgroundColor: item.bg,
+                borderRadius: 2,
+                minWidth: "150px",
+                textAlign: "center",
+                flex: 1,
+              }}
+            >
+              <Typography variant="h6" fontWeight={600} color="textSecondary">
+                {item.label} : {item.value}
+              </Typography>
+            </Paper>
+          ))}
         </Box>
+
+        <Box>
+          <table ref={tableRef} className="display" style={{ width: "100%" }}>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Client ID</th>
+                <th>Status</th>
+                <th>Launch Date</th>
+                <th>Email Sent</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.id}</td>
+                  <td>{row.name}</td>
+                  <td>{row.client_id ?? "—"}</td>
+                  <td>{row.status}</td>
+                  <td>{row.launch_date ? new Date(row.launch_date).toLocaleDateString() : "—"}</td>
+                  <td>{Array.isArray(row.results) ? row.results.length : 0}</td>
+                  <td>
+                    <Tooltip title="View">
+                      <IconButton size="small" color="primary" onClick={() => navigate(`/campaign-results/${row.id}`)}>
+                        <VisibilityIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                      <IconButton size="small" color="error" onClick={() => handleDeleteConfirm(row)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+
+        <NewCampaignModal
+          open={openModal}
+          onClose={handleCloseModal}
+          onSave={handleSaveSuccess}
+          formData={formData}
+          setFormData={setFormData}
+        />
+
+        <Dialog open={deleteDialog.open} onClose={cancelDelete}>
+          <DialogTitle>Confirm Delete</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to delete <strong>{deleteDialog.campaign?.name}</strong>?
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={cancelDelete}>Cancel</Button>
+            <Button onClick={confirmDelete} color="error">Delete</Button>
+          </DialogActions>
+        </Dialog>
       </Paper>
 
-      <NewCampaignModal
-        open={openModal}
-        onClose={handleCloseModal}
-        onSave={handleSaveSuccess}
-        formData={formData}
-        setFormData={setFormData}
-      />
-
-      <Dialog open={deleteDialog.open} onClose={cancelDelete}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete <strong>{deleteDialog.campaign?.name}</strong>?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={cancelDelete}>Cancel</Button>
-          <Button onClick={confirmDelete} color="error">Delete</Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+    </Box >
   );
 };
 
