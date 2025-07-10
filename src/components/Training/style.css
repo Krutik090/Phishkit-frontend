@@ -42,5 +42,48 @@
                    left:50%; transform:translateX(-50%);}
 .note             {font-weight:600; color:#d32f2f;}
 
+/* ---------- Password game ---------- */
+.pw-list {display:flex; flex-wrap:wrap; gap:0.75rem;}
+.pw-card {padding:0.4rem 0.8rem; background:#eee; border-radius:0.3rem;
+          cursor:grab; user-select:none;}
+.pw-card.placed {background:var(--active); color:#fff;}
+
+.zones {display:flex; gap:1rem; margin-top:1rem; flex-wrap:wrap;}
+.dropzone {flex:1 1 200px; min-height:120px; border:2px dashed #ccc;
+           border-radius:0.5rem; padding:0.75rem; display:flex;
+           flex-direction:column; gap:0.5rem;}
+
 /* simple helper */
 .center-text      {text-align:center;}
+
+/* ---------- Phishing Game Styles (Module 3) ---------- */
+.image-container {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.phishing-image {
+  width: 150%;
+  height: auto;
+  border-radius: 0.5rem;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  display: block;
+}
+
+.phishing-spot {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(255, 0, 0, 0.3); /* Red (unselected) */
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
+
+.phishing-spot.clicked {
+  background-color: rgba(0, 255, 0, 0.5); /* Green (selected) */
+}
