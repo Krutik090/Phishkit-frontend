@@ -23,6 +23,10 @@ import Layout from "./components/Layout/Layout";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// ✅ MFA Pages
+import MFASetup from "./components/MFA/MFASetup";
+import MFAVerify from "./components/MFA/MFAVerify";
+
 export default function App() {
   return (
     <Router>
@@ -34,6 +38,10 @@ export default function App() {
         <Route path="/client/:clientId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
         <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
 
+        {/* ✅ MFA Routes */}
+        <Route path="/setup-mfa" element={<ProtectedRoute><MFASetup /> </ProtectedRoute>} />
+        <Route path="/verify-mfa" element={<ProtectedRoute><MFAVerify /> </ProtectedRoute>} />
+        
         {/* Layout with Sidebar */}
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/campaigns" replace />} />
