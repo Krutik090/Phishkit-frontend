@@ -88,17 +88,25 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
 
   const handleFetchFromAD = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/ad-users`);
-      if (!response.ok) throw new Error("Failed to fetch from AD");
+      const response = await fetch(`${API_BASE_URL}/ad-users`, {
+        method: "GET",
+        credentials: "include", // include cookies/session
+      });
 
-      const adData = await response.json();
-      const adUsers = adData.users || [];
+      const data = await response.json();
+
+      // ✅ Check if response has an 'error' key
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const adUsers = data.users || [];
 
       const mappedUsers = adUsers
         .filter((u) => u.firstName && u.email && isValidEmail(u.email))
         .map((u) => ({
           first_name: u.firstName,
-          last_name: u.lastName || '',
+          last_name: u.lastName || '',  
           email: u.email,
           position: "N/A",
         }));
@@ -106,7 +114,7 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
       setUsers((prev) => [...prev, ...mappedUsers]);
       toast.success("Fetched users from Active Directory successfully!");
     } catch (err) {
-      toast.error("Failed to fetch users from AD");
+      toast.error(err.message || "Failed to fetch users from Active Directory");
       console.error(err);
     }
   };

@@ -1,30 +1,26 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
-  Paper,
+  Button,
   IconButton,
   Tooltip,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Pagination,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import LanguageIcon from "@mui/icons-material/Language";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Language as LanguageIcon,
+} from "@mui/icons-material";
+import $ from "jquery";
+import "datatables.net";
+import "datatables.net-dt/css/dataTables.dataTables.min.css";
+
 import NewLandingPageModal from "./NewLandingPageModal";
 import { toast } from "react-toastify";
 
@@ -34,265 +30,153 @@ const LandingPages = () => {
   const [landingPages, setLandingPages] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPage, setEditingPage] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState("name");
-  const [sortOrder, setSortOrder] = useState("asc");
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, page: null });
+  const tableRef = useRef(null);
 
   useEffect(() => {
     fetchLandingPages();
   }, []);
 
+  useEffect(() => {
+    if (landingPages.length > 0) {
+      const table = $(tableRef.current).DataTable();
+      return () => table.destroy();
+    }
+  }, [landingPages]);
+
   const fetchLandingPages = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/landing-pages`);
-      if (!response.ok) throw new Error("Failed to fetch landing pages");
-      const data = await response.json();
+      const res = await fetch(`${API_BASE_URL}/landing-pages`);
+      const data = await res.json();
       setLandingPages(data);
-    } catch (error) {
-      console.error("Error:", error);
+    } catch (err) {
+      console.error("Failed to fetch landing pages:", err);
     }
   };
 
-  const handleEdit = (page) => {
+  const handleOpenModal = () => {
+    setEditingPage(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditPage = (page) => {
     setEditingPage(page);
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (page) => {
-    const confirmDelete = window.confirm(`Are you sure you want to delete "${page.name}"?`);
-    if (!confirmDelete) {
-      toast.info("⚠️ Deletion cancelled.");
-      return;
-    }
+  const handleSaveSuccess = () => {
+    fetchLandingPages();
+    setIsModalOpen(false);
+    setEditingPage(null);
+  };
 
+  const confirmDelete = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/landing-pages/${page.id}`, {
-        method: "DELETE"
+      const id = deleteDialog.page.id;
+      const res = await fetch(`${API_BASE_URL}/landing-pages/${id}`, {
+        method: "DELETE",
       });
-      if (!res.ok) throw new Error("Delete failed");
-
-      setLandingPages((prev) => prev.filter((p) => p.id !== page.id));
-      toast.success(`🗑️ "${page.name}" deleted successfully.`);
-    } catch (error) {
-      console.error("Delete error:", error);
+      if (!res.ok) throw new Error();
+      setLandingPages((prev) => prev.filter((p) => p.id !== id));
+      toast.success(`🗑️ "${deleteDialog.page.name}" deleted successfully.`);
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to delete landing page.");
+    } finally {
+      setDeleteDialog({ open: false, page: null });
     }
   };
-
-  const handleSaveNewPage = async (pageData, mode) => {
-    try {
-      if (mode === "edit") {
-        const res = await fetch(`${API_BASE_URL}/landing-pages/${pageData.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(pageData),
-        });
-        if (!res.ok) throw new Error("Failed to update landing page");
-        const updatedPage = await res.json();
-        setLandingPages((prev) =>
-          prev.map((p) => (p.id === updatedPage.id ? updatedPage : p))
-        );
-      } else {
-        const res = await fetch(`${API_BASE_URL}/landing-pages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(pageData),
-        });
-        if (!res.ok) throw new Error("Failed to create landing page");
-        const savedPage = await res.json();
-        setLandingPages((prev) => [...prev, savedPage]);
-      }
-
-      setIsModalOpen(false);
-      setEditingPage(null);
-    } catch (error) {
-      console.error("Save error:", error);
-      alert("Failed to save landing page.");
-    }
-  };
-
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortOrder("asc");
-    }
-  };
-
-  const filteredPages = landingPages
-    .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) => {
-      const aVal = a[sortField] || "";
-      const bVal = b[sortField] || "";
-      const aComp = typeof aVal === "string" ? aVal.toLowerCase() : aVal;
-      const bComp = typeof bVal === "string" ? bVal.toLowerCase() : bVal;
-      if (aComp < bComp) return sortOrder === "asc" ? -1 : 1;
-      if (aComp > bComp) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-
-  const pageCount = Math.ceil(filteredPages.length / entriesPerPage);
-  const paginatedPages = filteredPages.slice(
-    (currentPage - 1) * entriesPerPage,
-    currentPage * entriesPerPage
-  );
-
-  const renderSortLabel = (field, label) => (
-    <Box
-      display="flex"
-      alignItems="center"
-      sx={{ cursor: "pointer", userSelect: "none" }}
-      onClick={() => handleSort(field)}
-    >
-      {label}
-      {sortField === field &&
-        (sortOrder === "asc" ? (
-          <ArrowDropUpIcon fontSize="small" />
-        ) : (
-          <ArrowDropDownIcon fontSize="small" />
-        ))}
-    </Box>
-  );
 
   return (
     <Box p={3}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography
-          variant="h5"
-          fontWeight="bold"
-          color="#343a40"
-          display="flex"
-          alignItems="center"
-          gap={1}
-        >
+      <Box display="flex" justifyContent="space-between" mb={3}>
+        <Typography variant="h5" fontWeight="bold" display="flex" alignItems="center" gap={1}>
           <LanguageIcon color="primary" />
           Landing Pages
         </Typography>
         <Button
           variant="contained"
-          onClick={() => {
-            setIsModalOpen(true);
-            setEditingPage(null);
-          }}
-          startIcon={<AddIcon />}
+          onClick={handleOpenModal}
           sx={{
             background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
             color: "#fff",
             fontWeight: "bold",
             borderRadius: "8px",
-            textTransform: "uppercase",
             px: 3,
             py: 1,
-            boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
-            transition: "all 0.3s ease",
-            "&:hover": {
-              background: "linear-gradient(135deg, #c60078, #ff478a)",
-              boxShadow: "0 6px 12px rgba(236, 0, 140, 0.5)",
-            },
+            textTransform: "uppercase",
           }}
+          startIcon={<AddIcon />}
         >
           New Landing Page
         </Button>
       </Box>
 
-      <Paper elevation={2} sx={{ borderRadius: 2, p: 2, height: 800, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <FormControl variant="standard">
-            <InputLabel>Show</InputLabel>
-            <Select
-              value={entriesPerPage}
-              onChange={(e) => {
-                setEntriesPerPage(parseInt(e.target.value));
-                setCurrentPage(1);
-              }}
-              sx={{ minWidth: 80 }}
+      <table
+  ref={tableRef}
+  className="display stripe"
+  style={{
+    width: "100%",
+    borderCollapse: "collapse",
+    textAlign: "center",
+    border: "1px solid #ddd",
+  }}
+>
+  <thead>
+    <tr>
+      {["Name", "Capture Credentials", "Redirect URL", "Actions"].map((h, i) => (
+        <th key={i} style={{ border: "1px solid #ccc", padding: 10 }}>{h}</th>
+      ))}
+    </tr>
+  </thead>
+  <tbody>
+    {landingPages.map((page) => (
+      <tr key={page.id}>
+        <td style={{ border: "1px solid #ddd", padding: 8 }}>{page.name}</td>
+        <td style={{ border: "1px solid #ddd", padding: 8 }}>
+          {page.capture_credentials ? "Yes" : "No"}
+        </td>
+        <td style={{ border: "1px solid #ddd", padding: 8 }}>
+          {page.redirect_url || "—"}
+        </td>
+        <td style={{ border: "1px solid #ddd", padding: 8 }}>
+          <Tooltip title="Edit">
+            <IconButton color="primary" onClick={() => handleEditPage(page)}>
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <IconButton
+              color="error"
+              onClick={() => setDeleteDialog({ open: true, page })}
             >
-              {[10, 25, 50, 100].map((count) => (
-                <MenuItem key={count} value={count}>
-                  {count}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
 
-          <TextField
-            variant="standard"
-            placeholder="🔍 Search..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            sx={{ width: 300 }}
-          />
-        </Box>
-
-        <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
-          <Table stickyHeader size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
-                  {renderSortLabel("name", "Name")}
-                </TableCell>
-                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
-                  {renderSortLabel("capture_credentials", "Capture Credential")}
-                </TableCell>
-                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
-                  {renderSortLabel("redirect_url", "Redirect URL")}
-                </TableCell>
-                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
-                  Actions
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginatedPages.length > 0 ? (
-                paginatedPages.map((page) => (
-                  <TableRow key={page.id} hover>
-                    <TableCell>{page.name}</TableCell>
-                    <TableCell>{page.capture_credentials ? "Yes" : "No"}</TableCell>
-                    <TableCell>{page.redirect_url || "-"}</TableCell>
-                    <TableCell>
-                      <Tooltip title="Edit">
-                        <IconButton color="secondary" onClick={() => handleEdit(page)}>
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton color="error" onClick={() => handleDelete(page)}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={4} align="center">
-                    No landing pages found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="body2" color="gray">
-            Showing {Math.min(filteredPages.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
-            {Math.min(currentPage * entriesPerPage, filteredPages.length)} of {filteredPages.length} entries
-          </Typography>
-          <Pagination
-            count={pageCount}
-            page={currentPage}
-            onChange={(_, page) => setCurrentPage(page)}
-            color="primary"
-          />
-        </Box>
-      </Paper>
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, page: null })}
+      >
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete the landing page "
+            <strong>{deleteDialog.page?.name}</strong>"?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog({ open: false, page: null })}>Cancel</Button>
+          <Button onClick={confirmDelete} color="error">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <NewLandingPageModal
         open={isModalOpen}
@@ -300,7 +184,7 @@ const LandingPages = () => {
           setIsModalOpen(false);
           setEditingPage(null);
         }}
-        onSave={handleSaveNewPage}
+        onSave={handleSaveSuccess}
         pageToEdit={editingPage}
       />
     </Box>
