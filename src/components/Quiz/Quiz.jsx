@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import {
   Box, Button, Typography, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, TextField, IconButton, Tooltip, Pagination,
-  FormControl, Select, MenuItem, InputLabel, Link as MuiLink, Dialog, DialogTitle, DialogContent
+  FormControl, Select, MenuItem, InputLabel, Link as MuiLink, Dialog,
+  DialogTitle, DialogContent
 } from "@mui/material";
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
@@ -24,6 +25,9 @@ const Quiz = () => {
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [quizToDelete, setQuizToDelete] = useState(null);
+
   const API_BASE_URL = import.meta.env.VITE_API_URL;
   const FILE_BASE_URL = API_BASE_URL.replace("/api", "");
 
@@ -35,7 +39,6 @@ const Quiz = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/quizzes`);
       const data = await res.json();
-      // Patch the quizzes with computed URL if not already present
       const updatedData = data.map(q => ({
         ...q,
         posterPathUrl: q.posterPath ? `${FILE_BASE_URL}/${q.posterPath}` : null,
@@ -46,7 +49,6 @@ const Quiz = () => {
       toast.error("Failed to load quizzes.");
     }
   };
-
 
   const handleSort = (field) => {
     if (field === sortField) {
@@ -80,7 +82,7 @@ const Quiz = () => {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("quizId", quizId); // 👈 Required by backend
+    formData.append("quizId", quizId);
 
     try {
       const uploadRes = await fetch(`${API_BASE_URL}/quizzes/poster`, {
@@ -92,7 +94,7 @@ const Quiz = () => {
 
       if (uploadRes.ok && data?.posterPath) {
         toast.success("Poster uploaded successfully!");
-        await loadQuizzes(); // Refresh quiz list with updated poster path
+        await loadQuizzes();
       } else {
         toast.error(data?.error || "Poster upload failed.");
       }
@@ -110,6 +112,35 @@ const Quiz = () => {
     setPreviewDialogOpen(true);
   };
 
+  const handleOpenDeleteDialog = (quiz) => {
+    setQuizToDelete(quiz);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!quizToDelete) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/quizzes/${quizToDelete._id}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Quiz deleted successfully.");
+        await loadQuizzes();
+      } else {
+        toast.error(data?.error || "Failed to delete quiz.");
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      toast.error("An error occurred while deleting the quiz.");
+    } finally {
+      setDeleteDialogOpen(false);
+      setQuizToDelete(null);
+    }
+  };
 
   const filtered = quizzes.filter((quiz) =>
     quiz.title?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -224,19 +255,6 @@ const Quiz = () => {
                     </TableCell>
                     <TableCell>
                       <Box display="flex" alignItems="center" gap={1}>
-                        {/* {quiz.posterPath && (
-                          <Tooltip title="View in New Tab">
-                            <IconButton
-                              size="small"
-                              component="a"
-                              href={`${FILE_BASE_URL}/posters/${encodeURIComponent(quiz.posterPath)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <VisibilityIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )} */}
                         <input
                           type="file"
                           accept=".pdf"
@@ -266,7 +284,7 @@ const Quiz = () => {
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete">
-                        <IconButton size="small" color="error">
+                        <IconButton size="small" color="error" onClick={() => handleOpenDeleteDialog(quiz)}>
                           <DeleteIcon />
                         </IconButton>
                       </Tooltip>
@@ -305,6 +323,18 @@ const Quiz = () => {
           ) : (
             <Typography color="error">Invalid or unsupported file format.</Typography>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent dividers>
+          <Typography>Are you sure you want to delete <strong>{quizToDelete?.title}</strong>?</Typography>
+          <Box mt={3} display="flex" justifyContent="flex-end" gap={2}>
+            <Button onClick={() => setDeleteDialogOpen(false)} variant="outlined">Cancel</Button>
+            <Button onClick={handleConfirmDelete} color="error" variant="contained">Delete</Button>
+          </Box>
         </DialogContent>
       </Dialog>
     </Box>

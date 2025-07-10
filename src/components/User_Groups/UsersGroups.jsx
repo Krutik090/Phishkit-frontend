@@ -33,6 +33,7 @@ import {
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import NewGroupModal from "./NewGroupModal";
+import LdapConfigDialog from "../LDAP/Ldap";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -50,6 +51,8 @@ const UsersGroups = () => {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState(null);
+  const [ldapDialogOpen, setLdapDialogOpen] = useState(false);
+
 
   const fetchGroups = () => {
     fetch(`${API_BASE_URL}/groups`)
@@ -158,35 +161,66 @@ const UsersGroups = () => {
         </DialogActions>
       </Dialog>
 
+      <LdapConfigDialog open={ldapDialogOpen} onClose={() => setLdapDialogOpen(false)} />
+
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold" color="#343a40" display="flex" alignItems="center">
+        <Typography
+          variant="h5"
+          fontWeight="bold"
+          color="#343a40"
+          display="flex"
+          alignItems="center"
+        >
           <GroupIcon sx={{ mr: 1 }} />
           Users & Groups
         </Typography>
 
-        <Button
-          onClick={handleNewGroup}
-          variant="contained"
-          startIcon={<AddIcon />}
-          sx={{
-            background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
-            color: "#fff",
-            fontWeight: "bold",
-            borderRadius: "8px",
-            textTransform: "uppercase",
-            px: 3,
-            py: 1,
-            boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
-            transition: "all 0.3s ease",
-            "&:hover": {
-              background: "linear-gradient(135deg, #c60078, #ff478a)",
-              boxShadow: "0 6px 12px rgba(236, 0, 140, 0.5)",
-            },
-          }}
-        >
-          New Group
-        </Button>
+        <Box display="flex" gap={2}>
+          <Button
+            onClick={() => setLdapDialogOpen(true)}
+            variant="outlined"
+            sx={{
+              borderColor: "#ec008c",
+              color: "#ec008c",
+              fontWeight: "bold",
+              borderRadius: "8px",
+              textTransform: "uppercase",
+              px: 3,
+              py: 1,
+              transition: "all 0.3s ease",
+              "&:hover": {
+                borderColor: "#c60078",
+                backgroundColor: "#fff0f7",
+              },
+            }}
+          >
+            Upload LDAP Config
+          </Button>
+
+          <Button
+            onClick={handleNewGroup}
+            variant="contained"
+            startIcon={<AddIcon />}
+            sx={{
+              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              color: "#fff",
+              fontWeight: "bold",
+              borderRadius: "8px",
+              textTransform: "uppercase",
+              px: 3,
+              py: 1,
+              boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
+              transition: "all 0.3s ease",
+              "&:hover": {
+                background: "linear-gradient(135deg, #c60078, #ff478a)",
+                boxShadow: "0 6px 12px rgba(236, 0, 140, 0.5)",
+              },
+            }}
+          >
+            New Group
+          </Button>
+        </Box>
       </Box>
 
       {/* Table Section */}

@@ -1,50 +1,47 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
-  Button,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  TextField,
+  Button,
   IconButton,
   Tooltip,
-  Pagination,
-  FormControl,
-  Select,
-  MenuItem,
-  InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import {
   Add as AddIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
-  ArrowDropUp as ArrowDropUpIcon,
-  ArrowDropDown as ArrowDropDownIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
-import NewTemplateModal from "./NewTemplateModal";
-import { toast } from "react-toastify";
+import { pink } from "@mui/material/colors";
+import $ from "jquery";
+import "datatables.net";
+import "datatables.net-dt/css/dataTables.dataTables.min.css";
 
-// ✅ Use environment variable
+import NewTemplateModal from "./NewTemplateModal";
+
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const Templates = () => {
   const [templates, setTemplates] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState("name");
-  const [sortDirection, setSortDirection] = useState("asc");
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, template: null });
+  const tableRef = useRef(null);
 
   useEffect(() => {
     fetchTemplates();
   }, []);
+
+  useEffect(() => {
+    if (templates.length > 0) {
+      const table = $(tableRef.current).DataTable();
+      return () => table.destroy();
+    }
+  }, [templates]);
 
   const fetchTemplates = async () => {
     try {
@@ -56,224 +53,117 @@ const Templates = () => {
     }
   };
 
-  const handleDeleteTemplate = async (templateId) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this template?");
-    if (!confirmDelete) return;
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/templates/${templateId}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Delete failed");
-      setTemplates((prev) => prev.filter((t) => t.id !== templateId));
-      toast.success("Template deleted successfully");
-    } catch (err) {
-      console.error("Delete failed:", err);
-      toast.error("Failed to delete template");
-    }
-  };
-
-  const handleSort = (field) => {
-    if (field === sortField) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
-    }
-  };
-
-  const renderSortLabel = (label, field) => (
-    <Box
-      display="flex"
-      alignItems="center"
-      sx={{ cursor: "pointer", userSelect: "none" }}
-      onClick={() => handleSort(field)}
-    >
-      {label}
-      {sortField === field &&
-        (sortDirection === "asc" ? (
-          <ArrowDropUpIcon fontSize="small" />
-        ) : (
-          <ArrowDropDownIcon fontSize="small" />
-        ))}
-    </Box>
-  );
-
-  const filtered = templates.filter((template) =>
-    template.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const sorted = [...filtered].sort((a, b) => {
-    const valA = a[sortField] || "";
-    const valB = b[sortField] || "";
-    if (valA < valB) return sortDirection === "asc" ? -1 : 1;
-    if (valA > valB) return sortDirection === "asc" ? 1 : -1;
-    return 0;
-  });
-
-  const pageCount = Math.ceil(sorted.length / entriesPerPage);
-  const paginated = sorted.slice(
-    (currentPage - 1) * entriesPerPage,
-    currentPage * entriesPerPage
-  );
-
-  const openNewTemplateModal = () => {
+  const handleOpenModal = () => {
     setSelectedTemplate(null);
     setIsModalOpen(true);
   };
 
-  const openEditTemplateModal = (template) => {
+  const handleEditTemplate = (template) => {
     setSelectedTemplate(template);
     setIsModalOpen(true);
   };
 
-  const handleModalClose = () => {
+  const handleSaveSuccess = () => {
+    fetchTemplates();
     setIsModalOpen(false);
     setSelectedTemplate(null);
   };
 
-  const handleSaveTemplate = (savedTemplate) => {
-    if (selectedTemplate) {
-      setTemplates((prev) =>
-        prev.map((t) => (t.id === savedTemplate.id ? savedTemplate : t))
-      );
-    } else {
-      setTemplates((prev) => [...prev, savedTemplate]);
+  const confirmDelete = async () => {
+    try {
+      const id = deleteDialog.template.id;
+      const res = await fetch(`${API_BASE_URL}/templates/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setTemplates((prev) => prev.filter((t) => t.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete template");
+    } finally {
+      setDeleteDialog({ open: false, template: null });
     }
-    handleModalClose();
   };
 
   return (
     <Box p={3}>
-      {/* Title + Add */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold" color="#343a40" display="flex" alignItems="center">
+      <Box display="flex" justifyContent="space-between" mb={3}>
+        <Typography variant="h5" fontWeight="bold">
           📄 Email Templates
         </Typography>
         <Button
-          onClick={openNewTemplateModal}
           variant="contained"
-          startIcon={<AddIcon />}
+          onClick={handleOpenModal}
           sx={{
             background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
             color: "#fff",
             fontWeight: "bold",
             borderRadius: "8px",
-            textTransform: "uppercase",
             px: 3,
             py: 1,
-            boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
-            transition: "all 0.3s ease",
-            "&:hover": {
-              background: "linear-gradient(135deg, #d6007a, #ff478a)",
-              boxShadow: "0 6px 12px rgba(236, 0, 140, 0.5)",
-            },
+            textTransform: "uppercase",
           }}
         >
           New Template
         </Button>
       </Box>
 
-      {/* Table */}
-      <Paper elevation={2} sx={{ borderRadius: 2, p: 2, height: 800, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* Search and Entries Per Page */}
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <FormControl variant="standard">
-            <InputLabel>Show</InputLabel>
-            <Select
-              value={entriesPerPage}
-              onChange={(e) => {
-                setEntriesPerPage(parseInt(e.target.value));
-                setCurrentPage(1);
-              }}
-              sx={{ minWidth: 80 }}
-            >
-              {[10, 25, 50, 100].map((count) => (
-                <MenuItem key={count} value={count}>
-                  {count}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+      <table
+        ref={tableRef}
+        className="display stripe"
+        style={{
+          width: "100%",
+          textAlign: "center",
+          borderCollapse: "collapse",
+          border: "1px solid #ddd",
+        }}
+      >
+        <thead>
+          <tr>
+            <th style={{ border: "1px solid #ccc", padding: 10 }}>Template Name</th>
+            <th style={{ border: "1px solid #ccc", padding: 10 }}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {templates.map((template) => (
+            <tr key={template.id}>
+              <td style={{ border: "1px solid #ddd", padding: 8 }}>{template.name}</td>
+              <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                <Tooltip title="Edit">
+                  <IconButton color="primary" onClick={() => handleEditTemplate(template)}>
+                    <EditIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Delete">
+                  <IconButton color="error" onClick={() => setDeleteDialog({ open: true, template })}>
+                    <DeleteIcon />
+                  </IconButton>
+                </Tooltip>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-          <TextField
-            placeholder="🔍 Search..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            variant="standard"
-            sx={{ width: 300 }}
-          />
-        </Box>
-
-        <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
-          <Table stickyHeader size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
-                  {renderSortLabel("Template Name", "name")}
-                </TableCell>
-                <TableCell sx={{ backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold" }}>
-                  Actions
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginated.length > 0 ? (
-                paginated.map((template) => (
-                  <TableRow key={template.id} hover>
-                    <TableCell>{template.name}</TableCell>
-                    <TableCell>
-                      <Tooltip title="Edit">
-                        <IconButton color="primary" onClick={() => openEditTemplateModal(template)}>
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton color="error" onClick={() => handleDeleteTemplate(template.id)}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={2} align="center">
-                    No templates found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        {/* Pagination */}
-        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="body2" color="gray">
-            Showing{" "}
-            {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
-            {Math.min(currentPage * entriesPerPage, sorted.length)} of{" "}
-            {sorted.length} entries
-          </Typography>
-          <Pagination
-            count={pageCount}
-            page={currentPage}
-            onChange={(_, page) => setCurrentPage(page)}
-            color="primary"
-          />
-        </Box>
-      </Paper>
-
-      {/* Modal */}
+      {/* New/Edit Modal */}
       <NewTemplateModal
         open={isModalOpen}
-        onClose={handleModalClose}
-        templateData={selectedTemplate}
-        onSave={handleSaveTemplate}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveSuccess}
+        template={selectedTemplate}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, template: null })}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete <strong>{deleteDialog.template?.name}</strong>?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog({ open: false, template: null })}>Cancel</Button>
+          <Button onClick={confirmDelete} color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

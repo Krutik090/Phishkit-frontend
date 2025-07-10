@@ -12,7 +12,7 @@ import {
   Chip,
   Button,
 } from "@mui/material";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { CSVLink } from "react-csv";
 
@@ -21,6 +21,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL;
 const ClientInsights = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ Access route state
+  const campaignNames = location.state?.campaignNames || []; // ✅ Get campaign names
 
   const [client, setClient] = useState(null);
   const [results, setResults] = useState([]);
@@ -112,7 +114,7 @@ const ClientInsights = () => {
             Back
           </Button>
           <Typography variant="h5" fontWeight="bold">
-            📈 Insights for Client: {client?.name}
+            📈 Insights for Project : {client?.name}
           </Typography>
         </Box>
 
@@ -131,7 +133,7 @@ const ClientInsights = () => {
       </Box>
 
       <Typography variant="h6" fontWeight="bold" mb={2}>
-        🧾 Combined Campaign Results
+        🧾 Combined Campaign Results{campaignNames.length > 0 ? `: ${campaignNames.join(", ")}` : ""}
       </Typography>
 
       <TableContainer component={Paper} sx={{ borderRadius: "12px" }}>
