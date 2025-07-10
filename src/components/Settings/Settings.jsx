@@ -50,7 +50,7 @@ export default function Settings() {
         withCredentials: true,
       });
       setSuccess(res.data.message);
-      setForm({ name: '', email: '', password: '' });
+      setForm({ name: '', email: '', password: '', emailLimit: '' });
     } catch (err) {
       setError(err.response?.data?.message || 'Error creating user');
     }
@@ -80,6 +80,15 @@ export default function Settings() {
             fullWidth
             margin="normal"
             value={form.email}
+            onChange={handleChange}
+          />
+           <TextField
+            label="Credit"
+            name="emailLimit"
+            type="number"
+            fullWidth
+            margin="normal"
+            value={form.emailLimit}
             onChange={handleChange}
           />
           <TextField
