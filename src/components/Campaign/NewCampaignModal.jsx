@@ -22,6 +22,7 @@ import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 const pink = "#ec008c";
+const GRADIENT = `linear-gradient(to right, ${pink}, #d946ef)`;
 
 const inputStyle = {
   width: "100%",
@@ -230,10 +231,10 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
                 sx={{ "& .MuiOutlinedInput-root.Mui-focused fieldset": { borderColor: pink } }} />
             </Box>
             <Box flex={1}>
-              <Typography fontWeight="bold" mb={0.5}>Client</Typography>
+              <Typography fontWeight="bold" mb={0.5}>Project</Typography>
               <select name="client" value={safeFormData.client} onChange={handleChange}
                 onFocus={handleSelectFocus} onBlur={handleSelectBlur} style={inputStyle} disabled={loading}>
-                <option value="">Select Client</option>
+                <option value="">Select Project</option>
                 {clients.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
               </select>
             </Box>
@@ -374,13 +375,15 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
           </Box>
 
           {/* Actions */}
-          <DialogActions sx={{ borderTop: "1px solid #f8c6dd", pt: 2 }}>
-            <Button onClick={onClose} variant="outlined"
-              sx={{ color: pink, borderColor: pink, textTransform: "none", "&:hover": { borderColor: pink } }}>
-              Cancel
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={onClose} variant="outlined">
+              CANCEL
             </Button>
-            <Button onClick={handleSave} variant="contained"
-              sx={{ backgroundColor: pink, color: "#fff", textTransform: "none", "&:hover": { backgroundColor: pink } }}>
+            <Button
+              onClick={handleSave}
+              variant="contained"
+              sx={{ background: GRADIENT }}
+            >
               Save Campaign
             </Button>
           </DialogActions>

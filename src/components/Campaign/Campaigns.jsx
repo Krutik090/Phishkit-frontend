@@ -1,16 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
-  Box,
-  Button,
-  Typography,
-  Paper,
-  IconButton,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
+  Box, Button, Typography, Paper, IconButton, Tooltip, Dialog,
+  DialogTitle, DialogContent, DialogContentText, DialogActions
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -18,38 +9,45 @@ import {
   Visibility as VisibilityIcon,
 } from "@mui/icons-material";
 import { pink } from "@mui/material/colors";
-import CampaignIcon from "@mui/icons-material/Campaign";
-import NewCampaignModal from "./NewCampaignModal";
-import { useNavigate } from "react-router-dom";
-import "datatables.net-dt/css/dataTables.dataTables.min.css";
+import { Link } from "react-router-dom";
 import $ from "jquery";
 import "datatables.net";
+import "datatables.net-dt/css/dataTables.dataTables.min.css";
+
+import NewCampaignModal from "./NewCampaignModal";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+const initialFormState = () => ({
+  id: null,
+  name: "",
+  template: "",
+  landingPage: "",
+  url: "",
+  schedule: "",
+  sendingProfile: "",
+  groups: [],
+  quiz: "",
+  client: "",
+});
 
 const Campaigns = () => {
   const [data, setData] = useState([]);
   const [openModal, setOpenModal] = useState(false);
   const [formData, setFormData] = useState(initialFormState());
   const [deleteDialog, setDeleteDialog] = useState({ open: false, campaign: null });
-  const [usageData, setUsageData] = useState({ totalLimit: 0, used: 0, remaining: 0 });
-  const tableRef = useRef();
-  const navigate = useNavigate();
+  const tableRef = useRef(null);
 
-  function initialFormState() {
-    return {
-      id: null,
-      name: "",
-      template: "",
-      landingPage: "",
-      url: "",
-      schedule: "",
-      sendingProfile: "",
-      groups: [],
-      quiz: "",
-      client: "",
-    };
-  }
+  useEffect(() => {
+    fetchCampaigns();
+  }, []);
+
+  useEffect(() => {
+    if (data.length > 0) {
+      const table = $(tableRef.current).DataTable();
+      return () => table.destroy();
+    }
+  }, [data]);
 
   const fetchCampaigns = async () => {
     try {
@@ -57,94 +55,42 @@ const Campaigns = () => {
       const json = await res.json();
       setData(json);
     } catch (err) {
-      console.error("Failed to fetch data:", err);
+      console.error(err);
     }
   };
 
-  const fetchUsageData = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/usage`, {
-        method: "GET",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-      const json = await res.json();
-      setUsageData(json);
-    } catch (err) {
-      console.error("Failed to fetch usage data:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchCampaigns();
-    fetchUsageData();
-  }, []);
-
-  useEffect(() => {
-    if (data.length > 0) {
-      const table = $(tableRef.current).DataTable();
-      return () => {
-        table.destroy();
-      };
-    }
-  }, [data]);
-
-  const handleDeleteConfirm = (campaign) => {
-    setDeleteDialog({ open: true, campaign });
-  };
+  const handleDeleteConfirm = (c) => setDeleteDialog({ open: true, campaign: c });
+  const cancelDelete = () => setDeleteDialog({ open: false, campaign: null });
 
   const confirmDelete = async () => {
-    const campaignId = deleteDialog.campaign?.id;
-    if (!campaignId) return;
-
     try {
-      const res = await fetch(`${API_BASE_URL}/campaigns/${campaignId}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) throw new Error("Failed to delete");
-
-      setData((prev) => prev.filter((c) => c.id !== campaignId));
+      const id = deleteDialog.campaign.id;
+      const res = await fetch(`${API_BASE_URL}/campaigns/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setData(prev => prev.filter(c => c.id !== id));
     } catch (err) {
-      console.error("Delete failed:", err);
-      alert("Failed to delete campaign.");
+      console.error(err);
+      alert("Delete failed");
     } finally {
-      setDeleteDialog({ open: false, campaign: null });
+      cancelDelete();
     }
-  };
-
-  const cancelDelete = () => {
-    setDeleteDialog({ open: false, campaign: null });
-  };
-
-  const handleCloseModal = () => {
-    setOpenModal(false);
-    setFormData(initialFormState());
   };
 
   const handleSaveSuccess = () => {
     fetchCampaigns();
-    handleCloseModal();
+    setOpenModal(false);
+    setFormData(initialFormState());
   };
 
   return (
     <Box p={3}>
-      <Paper
-        elevation={3}
-        sx={{
-          p: 4,
-          borderRadius: 3,
-          backgroundColor: "#fff",
-        }}
-      >
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Box display="flex" alignItems="center">
-            <CampaignIcon sx={{ color: pink[500], mr: 1 }} />
-            <Typography variant="h5" fontWeight="bold">Campaigns</Typography>
-          </Box>
+      <Box>
+        <Box display="flex" justifyContent="space-between" mb={3}>
+          <Typography variant="h5" fontWeight="bold">
+            📢 Campaigns
+          </Typography>
           <Button
             variant="contained"
-            startIcon={<AddIcon />}
             onClick={() => {
               setFormData(initialFormState());
               setOpenModal(true);
@@ -155,89 +101,65 @@ const Campaigns = () => {
               fontWeight: "bold",
               borderRadius: "8px",
               px: 3,
-              py: 1.5,
+              py: 1,
               textTransform: "uppercase",
-              boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #d6007a, #ff478a)",
-                boxShadow: "0 6px 12px rgba(236, 0, 140, 0.5)",
-              },
             }}
           >
             Add Campaign
           </Button>
         </Box>
 
-        <Box display="flex" gap={2} mb={3} flexWrap="wrap">
-          {[
-            { label: "Total Limit", value: usageData.totalLimit, color: "#1976d2", bg: "#e3f2fd" },
-            { label: "Used", value: usageData.used, color: "#d32f2f", bg: "#ffebee" },
-            { label: "Remaining", value: usageData.remaining, color: "#388e3c", bg: "#e8f5e9" },
-          ].map((item, idx) => (
-            <Paper
-              key={idx}
-              elevation={3}
-              sx={{
-                px: 2,
-                py: 1,
-                borderLeft: `5px solid ${item.color}`,
-                backgroundColor: item.bg,
-                borderRadius: 2,
-                minWidth: "150px",
-                textAlign: "center",
-                flex: 1,
-              }}
-            >
-              <Typography variant="h6" fontWeight={600} color="textSecondary">
-                {item.label} : {item.value}
-              </Typography>
-            </Paper>
-          ))}
-        </Box>
-
-        <Box>
-          <table ref={tableRef} className="display" style={{ width: "100%" }}>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Client ID</th>
-                <th>Status</th>
-                <th>Launch Date</th>
-                <th>Email Sent</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.id}</td>
-                  <td>{row.name}</td>
-                  <td>{row.client_id ?? "—"}</td>
-                  <td>{row.status}</td>
-                  <td>{row.launch_date ? new Date(row.launch_date).toLocaleDateString() : "—"}</td>
-                  <td>{Array.isArray(row.results) ? row.results.length : 0}</td>
-                  <td>
-                    <Tooltip title="View">
-                      <IconButton size="small" color="primary" onClick={() => navigate(`/campaign-results/${row.id}`)}>
-                        <VisibilityIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton size="small" color="error" onClick={() => handleDeleteConfirm(row)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </td>
-                </tr>
+        <table
+          ref={tableRef}
+          className="display stripe"
+          style={{
+            width: "100%",
+            textAlign: "center",
+            borderCollapse: "collapse",
+            border: "1px solid #ddd",
+          }}
+        >
+          <thead>
+            <tr>
+              {["Campaign Name", "Client", "Status", "Launch Date", "Sent", "Actions"].map((h, i) => (
+                <th key={i} style={{ border: "1px solid #ccc", padding: 10 }}>
+                  {h}
+                </th>
               ))}
-            </tbody>
-          </table>
-        </Box>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row) => (
+              <tr key={row.id}>
+                <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                  <Link to={`/campaign-results/${row.id}`} style={{ color: "#ec008c", fontWeight: "bold", textDecoration: "none" }}>
+                    {row.name}
+                  </Link>
+                </td>
+                <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.client || "—"}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.status || "—"}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.launch_date ? new Date(row.launch_date).toLocaleString() : "—"}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8 }}>{Array.isArray(row.results) ? row.results.length : 0}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                  <Tooltip title="View">
+                    <IconButton size="small" color="primary" component={Link} to={`/campaign-results/${row.id}`}>
+                      <VisibilityIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Delete">
+                    <IconButton size="small" color="error" onClick={() => handleDeleteConfirm(row)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </Tooltip>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
         <NewCampaignModal
           open={openModal}
-          onClose={handleCloseModal}
+          onClose={() => setOpenModal(false)}
           onSave={handleSaveSuccess}
           formData={formData}
           setFormData={setFormData}
@@ -255,9 +177,8 @@ const Campaigns = () => {
             <Button onClick={confirmDelete} color="error">Delete</Button>
           </DialogActions>
         </Dialog>
-      </Paper>
-
-    </Box >
+      </Box>
+    </Box>
   );
 };
 

@@ -24,6 +24,7 @@ body.dark table.dataTable thead {
   color: #ffffff;
 }
 
+
 body.dark table.dataTable tbody tr {
   background-color: #1e1e2f;
 }
@@ -42,4 +43,11 @@ body.dark .dataTables_length select {
   background-color: #2e3148;
   color: #ffffff;
   border: 1px solid #44475a;
+}
+
+
+/* Data Table */
+
+.custom-datatable th {
+  font-weight: bold;
 }

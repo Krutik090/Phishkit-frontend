@@ -9,17 +9,37 @@ import {
   Alert,
 } from '@mui/material';
 import axios from 'axios';
+import {
+  Unstable_NumberInput as BaseNumberInput,
+} from '@mui/base/Unstable_NumberInput';
+import { styled } from '@mui/system';
+import RemoveIcon from '@mui/icons-material/Remove';
+import AddIcon from '@mui/icons-material/Add';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
+const PINK = "#ec008c";
+const GRADIENT = `linear-gradient(to right, ${PINK}, #d946ef)`;
+
+const inputStyle = {
+  transition: "all 0.3s ease",
+  "& .MuiOutlinedInput-root": {
+    borderRadius: 2,
+    "&.Mui-focused fieldset": {
+      borderColor: PINK,
+      boxShadow: "0 0 0 0.15rem rgba(236, 0, 140, 0.25)",
+    },
+    "&:hover fieldset": { borderColor: PINK },
+  },
+};
+
 export default function Settings() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', emailLimit: '' });
   const [user, setUser] = useState(null);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
-  // ✅ Fetch authenticated user info via secure cookie
   useEffect(() => {
     axios
       .get(`${API_BASE_URL}/protected`, { withCredentials: true })
@@ -45,6 +65,13 @@ export default function Settings() {
   const handleAddUser = async () => {
     setSuccess('');
     setError('');
+
+    const credit = parseInt(form.emailLimit, 10);
+    if (isNaN(credit) || credit <= 0) {
+      setError('Credit must be a positive number');
+      return;
+    }
+
     try {
       const res = await axios.post(`${API_BASE_URL}/auth/register`, form, {
         withCredentials: true,
@@ -64,41 +91,70 @@ export default function Settings() {
 
       {isAdmin ? (
         <Box sx={{ maxWidth: 400, mt: 3 }}>
-          <Typography variant="h6">Add New User</Typography>
+          <Typography variant="h6">Add New Client</Typography>
+
+          <Typography variant="body2" fontWeight={500} sx={{ mt: 2, mb: 1 }}>
+            Name
+          </Typography>
           <TextField
-            label="Name"
             name="name"
             fullWidth
-            margin="normal"
+            placeholder="Enter name"
             value={form.name}
             onChange={handleChange}
+            sx={{ ...inputStyle, mb: 2 }}
           />
+
+          <Typography variant="body2" fontWeight={500} sx={{ mt: 2, mb: 1 }}>
+            Email
+          </Typography>
           <TextField
-            label="Email"
             name="email"
             type="email"
             fullWidth
-            margin="normal"
+            placeholder="Enter email"
             value={form.email}
             onChange={handleChange}
+            sx={{ ...inputStyle, mb: 2 }}
           />
-           <TextField
-            label="Credit"
-            name="emailLimit"
-            type="number"
-            fullWidth
-            margin="normal"
+
+          <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
+            Credit
+          </Typography>
+          <BaseNumberInput
+            aria-label="Credit"
+            min={1}
+            max={9999}
             value={form.emailLimit}
-            onChange={handleChange}
+            onChange={(e, val) => setForm({ ...form, emailLimit: val })}
+            slots={{
+              root: StyledInputRoot,
+              input: StyledInput,
+              incrementButton: StyledButton,
+              decrementButton: StyledButton,
+            }}
+            slotProps={{
+              incrementButton: {
+                children: <AddIcon fontSize="small" />,
+                className: 'increment',
+              },
+              decrementButton: {
+                children: <RemoveIcon fontSize="small" />,
+              },
+            }}
           />
+
+          <Typography variant="body2" fontWeight={500} sx={{ mt: 2, mb: 1 }}>
+            Password
+          </Typography>
           <TextField
-            label="Password"
             name="password"
             type="password"
             fullWidth
-            margin="normal"
+            placeholder="Enter password"
             value={form.password}
             onChange={handleChange}
+            sx={{ ...inputStyle, mb: 2 }}
           />
 
           {success && <Alert severity="success" sx={{ mt: 2 }}>{success}</Alert>}
@@ -106,9 +162,13 @@ export default function Settings() {
 
           <Button
             variant="contained"
-            color="primary"
             onClick={handleAddUser}
-            sx={{ mt: 2 }}
+            sx={{
+              mt: 2,
+              background: GRADIENT,
+              color: 'white',
+              '&:hover': { background: GRADIENT },
+            }}
           >
             Add User
           </Button>
@@ -132,3 +192,58 @@ export default function Settings() {
     </Box>
   );
 }
+
+// ========== Custom Number Input Styling ==========
+
+const StyledInputRoot = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px; /* Adds margin between - button, input, and + button */
+  margin-top: 2px;
+  margin-bottom:8px;
+`;
+
+
+const StyledInput = styled('input')`
+  text-align: center;
+  background: #fff;
+  border: 1px solid #DAE2ED;
+  border-radius: 8px;
+  padding: 10px 12px;
+  width: 5rem;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: ${PINK};
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${PINK};
+    box-shadow: 0 0 0 0.15rem rgba(236, 0, 140, 0.25);
+  }
+`;
+
+const StyledButton = styled('button')`
+  border: 1px solid #E5EAF2;
+  background: #F3F6F9;
+  color: #1C2025;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: ${PINK};
+    border-color: ${PINK};
+    color: white;
+    cursor: pointer;
+  }
+
+  &.increment {
+    order: 1;
+  }
+`;

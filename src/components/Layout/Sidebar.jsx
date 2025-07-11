@@ -1,6 +1,5 @@
 import React from "react";
 import { Box, IconButton, Tooltip } from "@mui/material";
-import PropTypes from "prop-types";
 import { useTheme } from "../../context/ThemeContext";
 import {
   FaTable,
@@ -18,14 +17,16 @@ import { useNavigate, useLocation } from "react-router-dom";
 import QuizIcon from "@mui/icons-material/Quiz";
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
-  const { darkMode, setDarkMode } = useTheme(); // ✅ use context
+  const { darkMode, setDarkMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
   const bgColor = darkMode ? "#1e1e2f" : "#ffffff";
   const textColor = darkMode ? "#ffffffcc" : "#333333";
-  const activeBg = darkMode ? "#2c2c40" : "#f0f0f0";
-  const activeText = darkMode ? "#ffffff" : "#ec008c";
+
+  const primaryColor = "#ec008c";
+  const activeBg = darkMode ? primaryColor : primaryColor + "33"; // pink background in dark vs transparent pink in light
+  const activeText = darkMode ? "#ffffff" : primaryColor;
 
   const menuItems = [
     { label: "Campaigns", icon: <FaTable />, path: "/campaigns" },
@@ -33,7 +34,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     { label: "Landing Pages", icon: <FaGlobe />, path: "/landing-pages" },
     { label: "Sending Profiles", icon: <FaEnvelope />, path: "/sending-profiles" },
     { label: "Users & Groups", icon: <FaUsers />, path: "/users-groups" },
-    { label: "Clients", icon: <FaUsers />, path: "/clients" },
+    { label: "Projects", icon: <FaUsers />, path: "/clients" },
     { label: "Quiz", icon: <QuizIcon fontSize="small" />, path: "/quizz" },
     { label: "Training", icon: <FaFileAlt />, path: "/training", newTab: true },
     { label: "Settings", icon: <FaCog />, path: "/settings" },
@@ -52,7 +53,10 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        borderRight: `1px solid ${darkMode ? "#333" : "#ddd"}`,
+        borderRight: `1px solid ${darkMode ? "#ec008c" : "#ec008c66"}`,
+        boxShadow: darkMode
+          ? "0 0 10px rgba(236, 0, 140, 0.3)"
+          : "0 0 10px rgba(236, 0, 140, 0.1)",
         position: "fixed",
         top: 0,
         left: 0,
@@ -70,7 +74,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         }}
       >
         {!collapsed && (
-          <Box sx={{ fontSize: "22px", fontWeight: "bold", pl: 1 }}>
+          <Box sx={{ fontSize: "22px", marginLeft: "25px", fontWeight: "bold", pl: 1 }}>
             Tribastion
           </Box>
         )}
@@ -115,11 +119,26 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
                   backgroundColor: isActive ? activeBg : "transparent",
                   color: isActive ? activeText : textColor,
                   fontWeight: isActive ? "bold" : "normal",
+                  position: "relative",
+                  overflow: "hidden",
                   transition: "all 0.2s ease-in-out",
-                  "&:hover": {
-                    backgroundColor: darkMode ? "#33334d" : "#f5f5f5",
-                  },
                   justifyContent: collapsed ? "center" : "flex-start",
+                  "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: "4px",
+                    backgroundColor: primaryColor,
+                    transform: isActive ? "scaleY(1)" : "scaleY(0)",
+                    transition: "transform 0.3s ease-in-out",
+                    transformOrigin: "top",
+                    borderRadius: "4px",
+                  },
+                  "&:hover::before": {
+                    transform: "scaleY(1)",
+                  },
                 }}
               >
                 <Box sx={{ fontSize: 18 }}>{item.icon}</Box>
