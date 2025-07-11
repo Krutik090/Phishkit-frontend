@@ -1,7 +1,7 @@
 :root {
-  --primary: #EC008C;
+  --primary: #ec008c;
   --accent:  #A3238E;
-  --active:  #F24EB1;
+  --active:  #f24eb1;
   --text:    #ffffff;
 }
 
@@ -42,5 +42,78 @@
                    left:50%; transform:translateX(-50%);}
 .note             {font-weight:600; color:#d32f2f;}
 
+/* ---------- Password game ---------- */
+.pw-list {display:flex; flex-wrap:wrap; gap:0.75rem;}
+.pw-card {padding:0.4rem 0.8rem; background:#eee; border-radius:0.3rem;
+          cursor:grab; user-select:none;}
+.pw-card.placed {background:var(--active); color:#fff;}
+
+.zones {display:flex; gap:1rem; margin-top:1rem; flex-wrap:wrap;}
+.dropzone {flex:1 1 200px; min-height:120px; border:2px dashed #ccc;
+           border-radius:0.5rem; padding:0.75rem; display:flex;
+           flex-direction:column; gap:0.5rem;}
+
 /* simple helper */
 .center-text      {text-align:center;}
+
+/* ---------- Phishing Game Styles (Module 3) ---------- */
+.image-container {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.phishing-image {
+  width: 150%;
+  height: auto;
+  border-radius: 0.5rem;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  display: block;
+}
+
+.phishing-spot {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #ec008c4d; /* Red (unselected) */
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
+
+.phishing-spot.correct {
+  background-color: #00ff0080; /* Green */
+}
+
+.phishing-spot.incorrect {
+  background-color: #ff000080; /* Red */
+}
+
+/* -----------erroe wrapper in div----------- */
+.success-msg {
+  font-weight: 600;
+  color: green;
+  margin: 0;
+  transition: opacity 0.3s ease;
+}
+
+.error-wrapper {
+  min-height: 2rem; /* or whatever height your message takes */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+}
+
+.error-wrapper .note {
+  margin: 0;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.error-wrapper:empty {
+  opacity: 0;
+}

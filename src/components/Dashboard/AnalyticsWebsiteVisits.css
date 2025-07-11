@@ -1,0 +1,16 @@
+.analytics-website-visits {
+  padding: 1rem;
+  background-color: #fff;
+  border-radius: 8px;
+  Width: 95%;
+}
+
+.analytics-website-visits h3 {
+  color: black;
+  margin-bottom: 0.5rem;
+}
+
+.analytics-website-visits p {
+  margin-bottom: 1rem;
+  color: #555;
+}
