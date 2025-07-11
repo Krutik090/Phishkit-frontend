@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Box } from "@mui/material";
 import { useTheme } from "./context/ThemeContext";
 import QuizTemplate from "./components/Quiz_Template/QuizTemplate";
@@ -21,6 +21,7 @@ import CampaignDetails from "./components/Stats_Results/CampaignDetails";
 import GraphView from "./components/Stats_Results/GraphView";
 import Login from "./components/Login/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute"; // ✅ Import AdminRoute
 import Layout from "./components/Layout/Layout";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -31,69 +32,83 @@ import "./components/Dashboard/dashboard.css";
 import MFASetup from "./components/MFA/MFASetup";
 import MFAVerify from "./components/MFA/MFAVerify";
 
-export default function App() {
+// ✅ Admin-only user list page
+import User_Client from "./components/User_Clients/User_Client"; // Add this import
+
+function AppContent() {
+  const location = useLocation();
   const { darkMode } = useTheme();
+
+  const isLoginPage = location.pathname === "/login";
+  const isDark = isLoginPage ? false : darkMode;
 
   return (
     <Box
-      className={`min-h-screen ${darkMode ? "text-white" : "text-black"}`}
+      className={`min-h-screen ${isDark ? "text-white" : "text-black"}`}
       sx={{
-        backgroundColor: darkMode ? "#1e1e2f" : "#ffffff",
+        backgroundColor: isDark ? "#1e1e2f" : "#ffffff",
         transition: "background-color 0.3s ease",
       }}
     >
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/quiz/:publicUrl" element={<QuizTemplate />} />
-          <Route path="/training" element={<Training />} />
-          <Route path="/fullscreen-editor" element={<ProtectedRoute><FullScreenEditor /></ProtectedRoute>} />
-          <Route path="/client/:clientId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
-          <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/quiz/:publicUrl" element={<QuizTemplate />} />
+        <Route path="/training" element={<Training />} />
+        <Route path="/fullscreen-editor" element={<ProtectedRoute><FullScreenEditor /></ProtectedRoute>} />
+        <Route path="/client/:clientId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
+        <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
 
-          {/* ✅ MFA Routes */}
-          <Route path="/setup-mfa" element={<ProtectedRoute><MFASetup /> </ProtectedRoute>} />
-          <Route path="/verify-mfa" element={<ProtectedRoute><MFAVerify /> </ProtectedRoute>} />
+        {/* ✅ MFA Routes */}
+        <Route path="/setup-mfa" element={<ProtectedRoute><MFASetup /></ProtectedRoute>} />
+        <Route path="/verify-mfa" element={<ProtectedRoute><MFAVerify /></ProtectedRoute>} />
 
-          {/* Layout with Sidebar */}
-          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/campaigns" replace />} />
-            <Route path="campaigns" element={<Campaigns />} />
-            <Route path="campaign-results/:id" element={<ResultCampaign />} />
-            <Route path="templates" element={<Templates />} />
-            <Route path="landing-pages" element={<LandingPages />} />
-            <Route path="sending-profiles" element={<SendingProfiles />} />
-            <Route path="users-groups" element={<UsersGroups />} />
-            <Route path="clients" element={<ClientsPage />} />
-            <Route path="clients/:clientId" element={<ClientCampaign />} />
-            <Route path="campaign/:campaignId/details" element={<CampaignDetails />} />
-            <Route path="client/:clientId/insights" element={<ClientInsights />} />
-            <Route path="quizz" element={<Quiz />} />
-            <Route path="quizz/new" element={<NewQuiz />} />
-            <Route path="quizz/edit/:id" element={<NewQuiz />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+        {/* Layout with Sidebar */}
+        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route index element={<Navigate to="/campaigns" replace />} />
+          <Route path="campaigns" element={<Campaigns />} />
+          <Route path="campaign-results/:id" element={<ResultCampaign />} />
+          <Route path="templates" element={<Templates />} />
+          <Route path="landing-pages" element={<LandingPages />} />
+          <Route path="sending-profiles" element={<SendingProfiles />} />
+          <Route path="users-groups" element={<UsersGroups />} />
+          <Route path="clients" element={<ClientsPage />} />
 
-          </Route>
-        </Routes>
+          {/* ✅ Admin-protected routes */}
+          <Route path="clients-user" element={<AdminRoute><User_Client /></AdminRoute>} />
 
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar
-          toastStyle={{
-            backgroundColor: darkMode ? "#2a2a3b" : "#ffffff",
-            color: darkMode ? "#ffffff" : "#000000",
-            boxShadow: darkMode
-              ? "0 0 10px rgba(255, 255, 255, 0.1)"
-              : "0 0 10px rgba(0, 0, 0, 0.1)",
-            borderRadius: "8px",
-            zIndex: 1600,
-          }}
-          theme={darkMode ? "dark" : "light"} // optional, for built-in react-toastify styling
-        />
+          <Route path="clients/:clientId" element={<ClientCampaign />} />
+          <Route path="campaign/:campaignId/details" element={<CampaignDetails />} />
+          <Route path="client/:clientId/insights" element={<ClientInsights />} />
+          <Route path="quizz" element={<Quiz />} />
+          <Route path="quizz/new" element={<NewQuiz />} />
+          <Route path="quizz/edit/:id" element={<NewQuiz />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+      </Routes>
 
-      </Router>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar
+        toastStyle={{
+          backgroundColor: isDark ? "#2a2a3b" : "#ffffff",
+          color: isDark ? "#ffffff" : "#000000",
+          boxShadow: isDark
+            ? "0 0 10px rgba(255, 255, 255, 0.1)"
+            : "0 0 10px rgba(0, 0, 0, 0.1)",
+          borderRadius: "8px",
+          zIndex: 1600,
+        }}
+        theme={isDark ? "dark" : "light"}
+      />
     </Box>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 }

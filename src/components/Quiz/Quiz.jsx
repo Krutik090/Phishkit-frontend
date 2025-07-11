@@ -1,30 +1,25 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import $ from "jquery";
+import "datatables.net";
+import "datatables.net-dt/css/dataTables.dataTables.min.css";
 import {
-  Box, Button, Typography, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Paper, TextField, IconButton, Tooltip, Pagination,
-  FormControl, Select, MenuItem, InputLabel, Link as MuiLink, Dialog,
+  Box, Button, Typography, IconButton, Tooltip, Dialog,
   DialogTitle, DialogContent
 } from "@mui/material";
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
-  ArrowDropUp as ArrowDropUpIcon, ArrowDropDown as ArrowDropDownIcon,
-  UploadFile as UploadFileIcon, Visibility as VisibilityIcon
+  UploadFile as UploadFileIcon
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 const Quiz = () => {
   const navigate = useNavigate();
+  const tableRef = useRef(null);
   const [quizzes, setQuizzes] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState("title");
-  const [sortDirection, setSortDirection] = useState("asc");
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
   const [uploadingQuizId, setUploadingQuizId] = useState(null);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
-
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quizToDelete, setQuizToDelete] = useState(null);
 
@@ -39,47 +34,33 @@ const Quiz = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/quizzes`);
       const data = await res.json();
-      const updatedData = data.map(q => ({
+      const updatedData = data.map((q) => ({
         ...q,
         posterPathUrl: q.posterPath ? `${FILE_BASE_URL}/${q.posterPath}` : null,
       }));
       setQuizzes(updatedData);
+
+      // Wait for data, then initialize DataTable
+      setTimeout(() => {
+        if ($.fn.dataTable.isDataTable("#quizTable")) {
+          $("#quizTable").DataTable().destroy();
+        }
+        $("#quizTable").DataTable({
+          pageLength: 10,
+          lengthMenu: [10, 25, 50, 100],
+          order: [[0, "asc"]],
+        });
+      }, 100);
     } catch (err) {
-      console.error("Failed to fetch quizzes:", err);
       toast.error("Failed to load quizzes.");
     }
   };
-
-  const handleSort = (field) => {
-    if (field === sortField) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
-    }
-  };
-
-  const getSortIcon = (field) => {
-    if (field !== sortField) return null;
-    return sortDirection === "asc" ? (
-      <ArrowDropUpIcon fontSize="small" sx={{ color: "#ec008c" }} />
-    ) : (
-      <ArrowDropDownIcon fontSize="small" sx={{ color: "#ec008c" }} />
-    );
-  };
-
-  const renderSortLabel = (label, field) => (
-    <Box display="flex" alignItems="center" sx={{ cursor: "pointer", userSelect: "none" }} onClick={() => handleSort(field)}>
-      {label} {getSortIcon(field)}
-    </Box>
-  );
 
   const handlePosterUpload = async (e, quizId) => {
     const file = e.target.files[0];
     if (!file || !quizId) return;
 
     setUploadingQuizId(quizId);
-
     const formData = new FormData();
     formData.append("file", file);
     formData.append("quizId", quizId);
@@ -89,7 +70,6 @@ const Quiz = () => {
         method: "POST",
         body: formData,
       });
-
       const data = await uploadRes.json();
 
       if (uploadRes.ok && data?.posterPath) {
@@ -99,7 +79,6 @@ const Quiz = () => {
         toast.error(data?.error || "Poster upload failed.");
       }
     } catch (err) {
-      console.error("Error uploading poster:", err);
       toast.error("Upload error occurred.");
     } finally {
       setUploadingQuizId(null);
@@ -107,8 +86,7 @@ const Quiz = () => {
   };
 
   const handlePreview = (path) => {
-    const url = `${FILE_BASE_URL}/${path}`;
-    setPreviewUrl(url);
+    setPreviewUrl(`${FILE_BASE_URL}/${path}`);
     setPreviewDialogOpen(true);
   };
 
@@ -119,12 +97,10 @@ const Quiz = () => {
 
   const handleConfirmDelete = async () => {
     if (!quizToDelete) return;
-
     try {
       const res = await fetch(`${API_BASE_URL}/quizzes/${quizToDelete._id}`, {
         method: "DELETE",
       });
-
       const data = await res.json();
 
       if (res.ok) {
@@ -134,34 +110,17 @@ const Quiz = () => {
         toast.error(data?.error || "Failed to delete quiz.");
       }
     } catch (err) {
-      console.error("Delete error:", err);
-      toast.error("An error occurred while deleting the quiz.");
+      toast.error("Error deleting quiz.");
     } finally {
       setDeleteDialogOpen(false);
       setQuizToDelete(null);
     }
   };
 
-  const filtered = quizzes.filter((quiz) =>
-    quiz.title?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const sorted = [...filtered].sort((a, b) => {
-    const valA = (a[sortField] || "").toString().toLowerCase();
-    const valB = (b[sortField] || "").toString().toLowerCase();
-    return sortDirection === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
-  });
-
-  const pageCount = Math.ceil(sorted.length / entriesPerPage);
-  const paginated = sorted.slice(
-    (currentPage - 1) * entriesPerPage,
-    currentPage * entriesPerPage
-  );
-
   return (
     <Box p={3}>
-      <Box display="flex" justifyContent="space-between" mb={3}>
-        <Typography variant="h5" fontWeight="bold" color="#343a40">
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h5" fontWeight="bold">
           🧠 Quiz & Training
         </Typography>
         <Button
@@ -178,141 +137,79 @@ const Quiz = () => {
         </Button>
       </Box>
 
-      <Paper elevation={2} sx={{ borderRadius: "12px", p: 2, height: 800, display: "flex", flexDirection: "column" }}>
-        <Box display="flex" justifyContent="space-between" mb={2}>
-          <FormControl variant="standard">
-            <InputLabel>Show</InputLabel>
-            <Select
-              value={entriesPerPage}
-              onChange={(e) => {
-                setEntriesPerPage(parseInt(e.target.value));
-                setCurrentPage(1);
-              }}
-              sx={{ minWidth: 80 }}
-            >
-              {[10, 25, 50, 100].map((count) => (
-                <MenuItem key={count} value={count}>{count}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <TextField
-            placeholder="🔍 Search..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            variant="standard"
-            sx={{ width: 300 }}
-          />
-        </Box>
-
-        <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
-          <Table stickyHeader size="small">
-            <TableHead>
-              <TableRow>
-                {[
-                  { label: "Quiz Title", field: "title" },
-                  { label: "Description", field: "description" },
-                  { label: "Questions", field: null },
-                  { label: "Public URL", field: null },
-                  { label: "Poster", field: null },
-                  { label: "Actions", field: null },
-                ].map(({ label, field }) => (
-                  <TableCell
-                    key={label}
-                    sx={{
-                      backgroundColor: "#ffe0ef", color: "#ec008c", fontWeight: "bold",
-                      whiteSpace: "nowrap", cursor: field ? "pointer" : "default",
-                    }}
-                  >
-                    {field ? renderSortLabel(label, field) : label}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-
-            <TableBody>
-              {paginated.length > 0 ? (
-                paginated.map((quiz) => (
-                  <TableRow key={quiz._id} hover>
-                    <TableCell>{quiz.title}</TableCell>
-                    <TableCell>{quiz.description}</TableCell>
-                    <TableCell>{quiz.questions?.length || 0}</TableCell>
-                    <TableCell>
-                      {quiz.publicUrl ? (
-                        <MuiLink
-                          href={`/quiz/${quiz.publicUrl}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          underline="hover"
-                          color="primary"
-                        >
-                          Open Link
-                        </MuiLink>
-                      ) : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <input
-                          type="file"
-                          accept=".pdf"
-                          style={{ display: "none" }}
-                          id={`upload-poster-${quiz._id}`}
-                          onChange={(e) => handlePosterUpload(e, quiz._id)}
-                        />
-                        <label htmlFor={`upload-poster-${quiz._id}`}>
-                          <Button
-                            component="span"
-                            variant="outlined"
-                            size="small"
-                            color="secondary"
-                            startIcon={<UploadFileIcon />}
-                            disabled={uploadingQuizId === quiz._id}
-                          >
-                            {quiz.posterPathUrl ? "Update Poster" : "Upload PDF"}
-                          </Button>
-                        </label>
-                      </Box>
-                    </TableCell>
-
-                    <TableCell>
-                      <Tooltip title="Edit">
-                        <IconButton size="small" color="secondary" onClick={() => navigate(`/quizz/edit/${quiz._id}`)}>
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton size="small" color="error" onClick={() => handleOpenDeleteDialog(quiz)}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">No quizzes found.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <Box mt={2} display="flex" justifyContent="space-between">
-          <Typography variant="body2" color="gray">
-            Showing {Math.min(sorted.length, (currentPage - 1) * entriesPerPage + 1)} to{" "}
-            {Math.min(currentPage * entriesPerPage, sorted.length)} of {sorted.length} entries
-          </Typography>
-          <Pagination
-            count={pageCount}
-            page={currentPage}
-            onChange={(_, page) => setCurrentPage(page)}
-            color="primary"
-          />
-        </Box>
-      </Paper>
+      <div className="table-responsive">
+        <table className="display stripe" id="quizTable" ref={tableRef} 
+        style={{
+          width: "100%",
+          textAlign: "center",
+          borderCollapse: "collapse",
+          border: "1px solid #ddd",
+        }}>
+          <thead>
+            <tr>
+              <th style={{ border: "1px solid #ccc", padding: 10 }}>Quiz Title</th>
+              <th style={{ border: "1px solid #ccc", padding: 10 }}>Description</th>
+              <th style={{ border: "1px solid #ccc", padding: 10 }}>Questions</th>
+              <th style={{ border: "1px solid #ccc", padding: 10 }}>Public URL</th>
+              <th style={{ border: "1px solid #ccc", padding: 10 }}>Poster</th>
+              <th style={{ border: "1px solid #ccc", padding: 10 }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {quizzes.map((quiz) => (
+              <tr key={quiz._id}>
+                <td style={{ border: "1px solid #ccc", padding: 10 }}>{quiz.title}</td>
+                <td style={{ border: "1px solid #ccc", padding: 10 }}>{quiz.description}</td>
+                <td style={{ border: "1px solid #ccc", padding: 10 }}>{quiz.questions?.length || 0}</td>
+                <td style={{ border: "1px solid #ccc", padding: 10 }}>
+                  {quiz.publicUrl ? (
+                    <a href={`/quiz/${quiz.publicUrl}`} target="_blank" rel="noopener noreferrer">
+                      Open Link
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td style={{ border: "1px solid #ccc", padding: 10 }}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      style={{ display: "none" }}
+                      id={`upload-poster-${quiz._id}`}
+                      onChange={(e) => handlePosterUpload(e, quiz._id)}
+                    />
+                    <label htmlFor={`upload-poster-${quiz._id}`}>
+                      <Button
+                        component="span"
+                        variant="outlined"
+                        size="small"
+                        color="secondary"
+                        startIcon={<UploadFileIcon />}
+                        disabled={uploadingQuizId === quiz._id}
+                      >
+                        {quiz.posterPathUrl ? "Update Poster" : "Upload PDF"}
+                      </Button>
+                    </label>
+                  </Box>
+                </td>
+                <td style={{ border: "1px solid #ccc", padding: 10 }}>
+                  <Tooltip title="Edit">
+                    <IconButton size="small" color="secondary" onClick={() => navigate(`/quizz/edit/${quiz._id}`)}>
+                      <EditIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Delete">
+                    <IconButton size="small" color="error" onClick={() => handleOpenDeleteDialog(quiz)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </Tooltip>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* PDF Preview Dialog */}
       <Dialog open={previewDialogOpen} onClose={() => setPreviewDialogOpen(false)} maxWidth="lg" fullWidth>
@@ -330,7 +227,9 @@ const Quiz = () => {
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent dividers>
-          <Typography>Are you sure you want to delete <strong>{quizToDelete?.title}</strong>?</Typography>
+          <Typography>
+            Are you sure you want to delete <strong>{quizToDelete?.title}</strong>?
+          </Typography>
           <Box mt={3} display="flex" justifyContent="flex-end" gap={2}>
             <Button onClick={() => setDeleteDialogOpen(false)} variant="outlined">Cancel</Button>
             <Button onClick={handleConfirmDelete} color="error" variant="contained">Delete</Button>
