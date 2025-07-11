@@ -1,96 +1,124 @@
-import React, { useEffect, useRef, useState } from 'react';
-import $ from "jquery";
-import "datatables.net";
-import "datatables.net-dt/css/dataTables.dataTables.min.css";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
+  Typography,
   Button,
+  IconButton,
+  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   DialogActions,
-  TextField,
-  Typography,
-} from '@mui/material';
-import axios from 'axios';
+} from "@mui/material";
+import {
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+} from "@mui/icons-material";
+import $ from "jquery";
+import "datatables.net";
+import "datatables.net-dt/css/dataTables.dataTables.min.css";
+
+import NewUserClientModal from "./NewUserClientModal";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-export default function User_Client() {
-  const tableRef = useRef();
+const User_Client = () => {
   const [users, setUsers] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', credit: '' });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
 
-  const fetchUsers = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/auth/users`, { withCredentials: true });
-      setUsers(res.data.users || []);
-    } catch (err) {
-      console.error('Error fetching users:', err);
-    }
-  };
+  const tableRef = useRef(null);
+  const dataTable = useRef(null);
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
   useEffect(() => {
-    if (users.length && tableRef.current) {
-      const table = $(tableRef.current).DataTable();
-      table.clear().rows.add(users).draw();
+    if (dataTable.current) {
+      dataTable.current.destroy();
+    }
+
+    if (users.length > 0 && tableRef.current) {
+      dataTable.current = $(tableRef.current).DataTable({
+        pageLength: 10,
+        searching: true,
+        ordering: true,
+        lengthChange: true,
+        destroy: true,
+      });
     }
   }, [users]);
 
-  useEffect(() => {
-    if (tableRef.current && !$.fn.DataTable.isDataTable(tableRef.current)) {
-      $(tableRef.current).DataTable({
-        columns: [
-          { data: 'name' },
-          { data: 'email' },
-          { data: 'credit' },
-          {
-            data: null,
-            orderable: false,
-            render: () => `<button class="edit-btn">Edit</button>`,
-          },
-        ],
-      });
-
-      // Bind edit click event
-      $(tableRef.current).on('click', '.edit-btn', function () {
-        const rowData = $(tableRef.current).DataTable().row($(this).parents('tr')).data();
-        setForm({ name: rowData.name, email: rowData.email, credit: rowData.credit });
-        setOpen(true);
-      });
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/users`);
+      const data = await res.json();
+      setUsers(data);
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
     }
-  }, []);
-
-  const handleClose = () => setOpen(false);
-
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = async () => {
+  const handleOpenModal = () => {
+    setSelectedUser(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditUser = (user) => {
+    setSelectedUser(user);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveSuccess = () => {
+    fetchUsers();
+    setIsModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const confirmDelete = async () => {
     try {
-      await axios.put(`${API_BASE_URL}/users/${form.email}`, form, { withCredentials: true });
-      fetchUsers();
-      setOpen(false);
+      const id = deleteDialog.user.id;
+      const res = await fetch(`${API_BASE_URL}/auth/users/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
+      setUsers((prev) => prev.filter((u) => u.id !== id));
     } catch (err) {
-      console.error('Update failed:', err);
+      console.error("Failed to delete user:", err);
+      alert("Failed to delete user");
+    } finally {
+      setDeleteDialog({ open: false, user: null });
     }
   };
 
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h5" gutterBottom>
-        👥 User Clients
-      </Typography>
+    <Box p={3}>
+      <Box display="flex" justifyContent="space-between" mb={3}>
+        <Typography variant="h5" fontWeight="bold">
+          🧑‍💻 Clients
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={handleOpenModal}
+          sx={{
+            background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+            color: "#fff",
+            fontWeight: "bold",
+            borderRadius: "8px",
+            px: 3,
+            py: 1,
+            textTransform: "uppercase",
+          }}
+        >
+          New Client
+        </Button>
+      </Box>
 
-      <Box sx={{ overflowX: 'auto' }}>
-        <table ref={tableRef}
+      <table
+        ref={tableRef}
         className="display stripe"
         style={{
           width: "100%",
@@ -98,54 +126,72 @@ export default function User_Client() {
           borderCollapse: "collapse",
           border: "1px solid #ddd",
         }}
-        >
-          <thead>
-            <tr>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Name</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Email</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Credit</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Action</th>
+      >
+        <thead>
+          <tr>
+            <th style={{ border: "1px solid #ccc", padding: 10 }}>Name</th>
+            <th style={{ border: "1px solid #ccc", padding: 10 }}>Email</th>
+            <th style={{ border: "1px solid #ccc", padding: 10 }}>Credit</th>
+            <th style={{ border: "1px solid #ccc", padding: 10 }}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user) => (
+            <tr key={user.id}>
+              <td style={{ border: "1px solid #ddd", padding: 8 }}>{user.name}</td>
+              <td style={{ border: "1px solid #ddd", padding: 8 }}>{user.email}</td>
+              <td style={{ border: "1px solid #ddd", padding: 8 }}>{user.credit}</td>
+              <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                <Tooltip title="Edit">
+                  <IconButton color="primary" onClick={() => handleEditUser(user)}>
+                    <EditIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Delete">
+                  <IconButton
+                    color="error"
+                    onClick={() => setDeleteDialog({ open: true, user })}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Tooltip>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-          </tbody>
-        </table>
-      </Box>
+          ))}
+        </tbody>
+      </table>
 
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Edit Client</DialogTitle>
+      {/* Modal for New/Edit */}
+      <NewUserClientModal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveSuccess}
+        user={selectedUser}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, user: null })}
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
-          <TextField
-            margin="dense"
-            label="Name"
-            name="name"
-            fullWidth
-            value={form.name}
-            onChange={handleFormChange}
-          />
-          <TextField
-            margin="dense"
-            label="Email"
-            name="email"
-            fullWidth
-            value={form.email}
-            disabled
-          />
-          <TextField
-            margin="dense"
-            label="Credit"
-            name="credit"
-            fullWidth
-            type="number"
-            value={form.credit}
-            onChange={handleFormChange}
-          />
+          <DialogContentText>
+            Are you sure you want to delete{" "}
+            <strong>{deleteDialog.user?.name}</strong>?
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave}>Save</Button>
+          <Button onClick={() => setDeleteDialog({ open: false, user: null })}>
+            Cancel
+          </Button>
+          <Button onClick={confirmDelete} color="error">
+            Delete
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
   );
-}
+};
+
+export default User_Client;
