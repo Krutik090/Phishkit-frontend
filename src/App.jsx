@@ -65,6 +65,7 @@ function AppContent() {
         {/* Layout with Sidebar */}
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/campaigns" replace />} />
+
           <Route path="campaigns" element={<Campaigns />} />
           <Route path="campaign-results/:id" element={<ResultCampaign />} />
           <Route path="templates" element={<Templates />} />
@@ -83,6 +84,8 @@ function AppContent() {
           <Route path="quizz/new" element={<NewQuiz />} />
           <Route path="quizz/edit/:id" element={<NewQuiz />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+
         </Route>
       </Routes>
 
