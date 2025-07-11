@@ -28,10 +28,6 @@ import "react-toastify/dist/ReactToastify.css";
 import Dashboard from "./components/Dashboard/Dashboard";
 import "./components/Dashboard/dashboard.css";
 
-// ✅ MFA Pages
-import MFASetup from "./components/MFA/MFASetup";
-import MFAVerify from "./components/MFA/MFAVerify";
-
 // ✅ Admin-only user list page
 import User_Client from "./components/User_Clients/User_Client"; // Add this import
 
@@ -57,10 +53,6 @@ function AppContent() {
         <Route path="/fullscreen-editor" element={<ProtectedRoute><FullScreenEditor /></ProtectedRoute>} />
         <Route path="/client/:clientId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
         <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
-
-        {/* ✅ MFA Routes */}
-        <Route path="/setup-mfa" element={<ProtectedRoute><MFASetup /></ProtectedRoute>} />
-        <Route path="/verify-mfa" element={<ProtectedRoute><MFAVerify /></ProtectedRoute>} />
 
         {/* Layout with Sidebar */}
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>

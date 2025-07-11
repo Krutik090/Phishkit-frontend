@@ -146,7 +146,7 @@ const NewUserClient = ({ open, onClose, userData, onSave }) => {
           <CustomNumberInput
             aria-label="Credit Input"
             min={1}
-            max={999}
+            max={100000}
             value={credit}
             onChange={(e, val) => setCredit(val)}
           />
