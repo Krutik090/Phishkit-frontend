@@ -24,6 +24,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout/Layout";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Dashboard from "./components/Dashboard/Dashboard";
+import "./components/Dashboard/dashboard.css";
 
 // ✅ MFA Pages
 import MFASetup from "./components/MFA/MFASetup";
@@ -49,10 +51,10 @@ export default function App() {
           <Route path="/client/:clientId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
           <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
 
-        {/* ✅ MFA Routes */}
-        <Route path="/setup-mfa" element={<ProtectedRoute><MFASetup /> </ProtectedRoute>} />
-        <Route path="/verify-mfa" element={<ProtectedRoute><MFAVerify /> </ProtectedRoute>} />
-        
+          {/* ✅ MFA Routes */}
+          <Route path="/setup-mfa" element={<ProtectedRoute><MFASetup /> </ProtectedRoute>} />
+          <Route path="/verify-mfa" element={<ProtectedRoute><MFAVerify /> </ProtectedRoute>} />
+
           {/* Layout with Sidebar */}
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/campaigns" replace />} />
@@ -70,6 +72,8 @@ export default function App() {
             <Route path="quizz/new" element={<NewQuiz />} />
             <Route path="quizz/edit/:id" element={<NewQuiz />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+
           </Route>
         </Routes>
 

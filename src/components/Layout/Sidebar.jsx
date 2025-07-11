@@ -29,6 +29,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   const activeText = darkMode ? "#ffffff" : primaryColor;
 
   const menuItems = [
+    { label: "Dashboard", icon: <FaTable />, path: "/dashboard" },
+
     { label: "Campaigns", icon: <FaTable />, path: "/campaigns" },
     { label: "Templates", icon: <FaFileAlt />, path: "/templates" },
     { label: "Landing Pages", icon: <FaGlobe />, path: "/landing-pages" },
