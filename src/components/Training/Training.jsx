@@ -247,15 +247,39 @@ const Module3Lesson = ({ onNext, onBack }) => (
 
 function Module3Game({ onNext, onBack }) {
   const { complete } = useProgress();
-  const [clicked, setClicked] = useState(Array(7).fill(false));
+
+  const correctIndices = [4, 3]; //correct spots which turns green
+  const initialStatus = useRef(Array(7).fill(null)); // Stable reference
+  const [status, setStatus] = useState(initialStatus.current.slice());
+  const [message, setMessage] = useState("");
+
 
   const handleClick = (index) => {
-    const newClicked = [...clicked];
-    newClicked[index] = true;
-    setClicked(newClicked);
+    if (status[index]) return;
 
-    // Mark complete if all 7 spots are clicked
-    if (newClicked.every(Boolean)) complete(3);
+    if (!correctIndices.includes(index)) {
+      // ❌ Wrong click logic
+      const tempStatus = Array(7).fill(null);
+      tempStatus[index] = "incorrect";
+      setStatus(tempStatus);
+      setMessage("Oops! Try again."); // Show error message
+
+      // Clear both after short delay
+      setTimeout(() => {
+        setStatus(initialStatus.current.slice());
+        setMessage(""); // Clear message
+      }, 1000);
+
+      return;
+    }
+
+    // ✅ Correct click logic
+    const newStatus = [...status];
+    newStatus[index] = "correct";
+    setStatus(newStatus);
+
+    const correctClicked = correctIndices.every((i) => newStatus[i] === "correct");
+    if (correctClicked) complete(3);
   };
 
   const phishingSpots = [
@@ -268,17 +292,21 @@ function Module3Game({ onNext, onBack }) {
     { top: "75px", left: "-175px" },
   ];
 
+
   return (
     <section className="section">
       <h2>Spot the Phishing Links</h2>
-      <p>Click on the areas you think are suspicious or phishing-related.</p>
+      <p>Your goal is to review and find 2 phishing signs hidden in the email.<br></br>
+        After clicking on 2 correct phishing signs, the module will be marked as completed.</p>
       <div className="image-container">
         <img src="/email.jpg" alt="Phishing Email" className="phishing-image" />
         {phishingSpots.map((spot, idx) => (
           <div
             key={idx}
             onClick={() => handleClick(idx)}
-            className={`phishing-spot ${clicked[idx] ? "clicked" : ""}`}
+            className={`phishing-spot ${status[idx] === "correct" ? "correct" :
+              status[idx] === "incorrect" ? "incorrect" : ""
+              }`}
             style={{
               top: spot.top,
               left: spot.left,
@@ -287,7 +315,21 @@ function Module3Game({ onNext, onBack }) {
         ))}
       </div>
 
-      <NavButtons onNext={onNext} onBack={onBack} nextDisabled={!clicked.every(Boolean)} />
+      <div className="error-wrapper">
+  {message && <p className="note">{message}</p>}
+  {!message && correctIndices.every((i) => status[i] === "correct") && (
+    <p className="success-msg">
+      You found all phishing links correctly. You can now finish the training.
+    </p>
+  )}
+</div>
+
+      <NavButtons
+        onNext={onNext}
+        onBack={onBack}
+        nextDisabled={!correctIndices.every((i) => status[i] === "correct")}
+      />
+
     </section>
   );
 }

@@ -1,7 +1,7 @@
 :root {
-  --primary: #EC008C;
+  --primary: #ec008c;
   --accent:  #A3238E;
-  --active:  #F24EB1;
+  --active:  #f24eb1;
   --text:    #ffffff;
 }
 
@@ -79,11 +79,41 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: rgba(255, 0, 0, 0.3); /* Red (unselected) */
+  background-color: #ec008c4d; /* Red (unselected) */
   cursor: pointer;
   transform: translate(-50%, -50%);
 }
 
-.phishing-spot.clicked {
-  background-color: rgba(0, 255, 0, 0.5); /* Green (selected) */
+.phishing-spot.correct {
+  background-color: #00ff0080; /* Green */
+}
+
+.phishing-spot.incorrect {
+  background-color: #ff000080; /* Red */
+}
+
+/* -----------erroe wrapper in div----------- */
+.success-msg {
+  font-weight: 600;
+  color: green;
+  margin: 0;
+  transition: opacity 0.3s ease;
+}
+
+.error-wrapper {
+  min-height: 2rem; /* or whatever height your message takes */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+}
+
+.error-wrapper .note {
+  margin: 0;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.error-wrapper:empty {
+  opacity: 0;
 }
