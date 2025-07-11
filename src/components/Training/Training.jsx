@@ -11,10 +11,26 @@ const ProgressContext = createContext();
 export const useProgress = () => useContext(ProgressContext);
 
 function ProgressProvider({ children }) {
-  const [progress, setProgress] = useState({ 1: false, 2: false, 3: false });
-  const complete = (idx) => setProgress((p) => ({ ...p, [idx]: true }));
+  const [progress, setProgressState] = useState(() => {
+    const stored = localStorage.getItem("cyberProgress");
+    return stored ? JSON.parse(stored) : { 1: false, 2: false, 3: false };
+  });
+
+  const complete = (idx) => {
+    setProgressState((prev) => {
+      const updated = { ...prev, [idx]: true };
+      localStorage.setItem("cyberProgress", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const resetProgress = () => {
+    localStorage.removeItem("cyberProgress");
+    setProgressState({ 1: false, 2: false, 3: false });
+  };
+
   return (
-    <ProgressContext.Provider value={{ progress, complete }}>
+    <ProgressContext.Provider value={{ progress, complete, resetProgress }}>
       {children}
     </ProgressContext.Provider>
   );
@@ -42,6 +58,7 @@ function NavButtons({ onBack, onNext, nextDisabled = false }) {
     </div>
   );
 }
+
 
 /* ---------- Sidebar ---------- */
 function SidebarItem({ id, label, active, done, onClick }) {
@@ -143,7 +160,7 @@ function Module1Video({ onNext, onBack }) {
         src="/videos/phishing.mp4"
         className="video"
         controls
-        //{...antiSkipProps} // ✅ Apply anti-skip only if needed
+        //{...antiSkipProps} // Apply anti-skip only if needed
         onEnded={handleEnded}
         controlsList="nodownload nofullscreen noremoteplayback"
         disablePictureInPicture
@@ -169,63 +186,129 @@ const Module2Lesson = ({ onNext, onBack }) => (
 );
 
 function Module2Game({ onNext, onBack }) {
-  const { complete } = useProgress();
-  const [cards, setCards] = useState([
+  const { complete, progress } = useProgress();
+  const storageKey = "module2_password_game";
+  const [started, setStarted] = useState(false);
+  const [cards, setCards] = useState([]);
+  const [done, setDone] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const initialCards = [
     { id: 1, text: "123456", strength: "weak" },
     { id: 2, text: "password", strength: "weak" },
     { id: 3, text: "Welcome2025", strength: "medium" },
     { id: 4, text: "Sunshine77", strength: "medium" },
     { id: 5, text: "T&y9!aB#p8", strength: "strong" },
     { id: 6, text: "f4Y@Lz73!", strength: "strong" },
-  ]);
-  const [message, setMessage] = useState("");
-  const [done, setDone] = useState(false);
+  ];
+
+  // Load game state on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setCards(parsed.cards);
+      setDone(parsed.done);
+      setStarted(true);
+    } else {
+      setCards(initialCards);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (done) {
+      complete(2);
+      localStorage.setItem(storageKey, JSON.stringify({ cards, done: true }));
+    }
+  }, [done]);
 
   const handleDrop = (e, zone) => {
     const id = Number(e.dataTransfer.getData("text/plain"));
-    setCards((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, zone: c.strength === zone ? zone : c.zone } : c))
-    );
     const card = cards.find((c) => c.id === id);
-    if (card.strength !== zone) {
+    const correct = card.strength === zone;
+
+    const updated = cards.map((c) =>
+      c.id === id ? { ...c, zone: correct ? zone : undefined } : c
+    );
+    setCards(updated);
+
+    if (!correct) {
       setMessage(`"${card.text}" is not a ${zone} password`);
-      setTimeout(() => setMessage(""), 2500);
+      setTimeout(() => setMessage(""), 2000);
     } else {
-      const allPlaced = cards.every((c) => c.zone || c.id === id);
-      if (allPlaced) {
-        setDone(true);
-        complete(2);
-      }
+      const allPlaced = updated.every((c) => c.zone);
+      if (allPlaced) setDone(true);
     }
   };
+
+  const handlePlayOrRestart = () => {
+    // Reset game fully
+    localStorage.removeItem(storageKey); // Clear saved data
+    setCards(initialCards.map((c) => ({ ...c })));
+    setStarted(true);
+    setDone(false);
+    setMessage("");
+  };
+
 
   return (
     <section className="section">
       <h2>Password Hygiene – Drag each password to the right box</h2>
-      <div className="pw-list">
-        {cards.filter((c) => !c.zone).map((c) => (
-          <div key={c.id} className="pw-card" draggable onDragStart={(e) => e.dataTransfer.setData("text/plain", c.id)}>
-            {c.text}
-          </div>
-        ))}
+
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+        <Btn className="btn-accent" onClick={handlePlayOrRestart}>
+          {started ? "Restart Game" : "Play"}
+        </Btn>
       </div>
-      <div className="zones">
-        {["weak", "medium", "strong"].map((zone) => (
-          <div
-            key={zone}
-            className="dropzone"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => handleDrop(e, zone)}
-          >
-            <h3 style={{ textTransform: "capitalize" }}>{zone}</h3>
-            {cards.filter((c) => c.zone === zone).map((c) => (
-              <div key={c.id} className="pw-card placed">{c.text}</div>
+
+      {started && (
+        <>
+          <div className="pw-list">
+            {cards.filter((c) => !c.zone).map((c) => (
+              <div
+                key={c.id}
+                className="pw-card"
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData("text/plain", c.id)}
+              >
+                {c.text}
+              </div>
             ))}
           </div>
-        ))}
-      </div>
-      {message && <p className="note">{message}</p>}
-      <NavButtons onNext={onNext} onBack={onBack} nextDisabled={!done} />
+
+          <div className="zones">
+            {["weak", "medium", "strong"].map((zone) => (
+              <div
+                key={zone}
+                className="dropzone"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => handleDrop(e, zone)}
+              >
+                <h3 style={{ textTransform: "capitalize" }}>{zone}</h3>
+                {cards
+                  .filter((c) => c.zone === zone)
+                  .map((c) => (
+                    <div key={c.id} className="pw-card placed">
+                      {c.text}
+                    </div>
+                  ))}
+              </div>
+            ))}
+          </div>
+
+          <div className="error-wrapper">
+            {message && <p className="note">{message}</p>}
+          </div>
+
+          {done && (
+            <p className="note" style={{ color: "#388e3c", fontWeight: "bold", textAlign: "center" }}>
+              All passwords placed correctly! You can proceed to the next module.
+            </p>
+          )}
+        </>
+      )}
+
+      <NavButtons onNext={onNext} onBack={onBack} nextDisabled={!done && !progress[2]} />
     </section>
   );
 }
@@ -246,97 +329,158 @@ const Module3Lesson = ({ onNext, onBack }) => (
 );
 
 function Module3Game({ onNext, onBack }) {
-  const { complete } = useProgress();
+  const { complete, progress } = useProgress();
 
-  const correctIndices = [4, 3]; //correct spots which turns green
-  const initialStatus = useRef(Array(7).fill(null)); // Stable reference
-  const [status, setStatus] = useState(initialStatus.current.slice());
+  const correctIndices = [4, 3];
+  const initialStatus = Array(7).fill(null);
+
+  const savedStatus = localStorage.getItem("phishingGameStatus");
+  const savedCompleted = localStorage.getItem("phishingGameCompleted") === "true";
+
+  const [status, setStatus] = useState(
+    savedCompleted && savedStatus ? JSON.parse(savedStatus) : initialStatus
+  );
   const [message, setMessage] = useState("");
-
-
-  const handleClick = (index) => {
-    if (status[index]) return;
-
-    if (!correctIndices.includes(index)) {
-      // ❌ Wrong click logic
-      const tempStatus = Array(7).fill(null);
-      tempStatus[index] = "incorrect";
-      setStatus(tempStatus);
-      setMessage("Oops! Try again."); // Show error message
-
-      // Clear both after short delay
-      setTimeout(() => {
-        setStatus(initialStatus.current.slice());
-        setMessage(""); // Clear message
-      }, 1000);
-
-      return;
-    }
-
-    // ✅ Correct click logic
-    const newStatus = [...status];
-    newStatus[index] = "correct";
-    setStatus(newStatus);
-
-    const correctClicked = correctIndices.every((i) => newStatus[i] === "correct");
-    if (correctClicked) complete(3);
-  };
+  const [started, setStarted] = useState(() => savedCompleted); // auto-start if already completed
+  const timeoutRef = useRef(null);
 
   const phishingSpots = [
     { top: "20px", left: "70px" },
     { top: "70px", left: "810px" },
     { top: "190px", left: "-55px" },
-    { top: "275px", left: "600px" }, //correct
-    { top: "360px", left: "-40px" }, //correct
+    { top: "275px", left: "600px" }, // correct
+    { top: "360px", left: "-40px" }, // correct
     { top: "370px", left: "400px" },
     { top: "75px", left: "-175px" },
   ];
 
+  useEffect(() => {
+    const allCorrect = correctIndices.every((i) => status[i] === "correct");
+    if (allCorrect) {
+      localStorage.setItem("phishingGameStatus", JSON.stringify(status));
+      localStorage.setItem("phishingGameCompleted", "true");
+      if (!progress[3]) complete(3);
+    }
+  }, [status, complete, progress]);
+
+  const handleClick = (index) => {
+  if (!started || status[index]) return;
+
+  const newStatus = Array(7).fill(null);
+
+  if (!correctIndices.includes(index)) {
+    newStatus[index] = "incorrect";
+    setStatus(newStatus);
+    setMessage("Oops! Try again.");
+
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setStatus(initialStatus);
+      setMessage("");
+    }, 1000);
+
+    return;
+  }
+
+  const updatedStatus = [...status];
+  updatedStatus[index] = "correct";
+  setStatus(updatedStatus);
+};
+
+  const allCorrect = correctIndices.every((i) => status[i] === "correct");
+  const moduleDone = allCorrect || progress[3];
 
   return (
     <section className="section">
       <h2>Spot the Phishing Links</h2>
-      <p>Your goal is to review and find 2 phishing signs hidden in the email.<br></br>
-        After clicking on 2 correct phishing signs, the module will be marked as completed.</p>
-      <div className="image-container">
-        <img src="/email.jpg" alt="Phishing Email" className="phishing-image" />
-        {phishingSpots.map((spot, idx) => (
-          <div
-            key={idx}
-            onClick={() => handleClick(idx)}
-            className={`phishing-spot ${status[idx] === "correct" ? "correct" :
-              status[idx] === "incorrect" ? "incorrect" : ""
-              }`}
-            style={{
-              top: spot.top,
-              left: spot.left,
-            }}
-          />
-        ))}
+      <p>Your goal is to review and find 2 phishing signs hidden in the email.<br />
+        After clicking on 2 correct phishing signs, the module will be marked as completed.
+      </p>
+
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+        <Btn className="btn-accent" onClick={() => {
+          if (started) {
+            // Restart logic
+            setStatus(initialStatus);
+            setMessage("");
+          }
+          setStarted(true);
+        }}>
+          {started ? "Restart Game" : "Play"}
+        </Btn>
       </div>
 
-      <div className="error-wrapper">
-  {message && <p className="note">{message}</p>}
-  {!message && correctIndices.every((i) => status[i] === "correct") && (
-    <p className="success-msg">
-      You found all phishing links correctly. You can now finish the training.
-    </p>
-  )}
-</div>
+      {started && (
+        <>
+          <div className="image-container">
+            <img src="/email.jpg" alt="Phishing Email" className="phishing-image" />
+            {phishingSpots.map((spot, idx) => (
+              <div
+                key={idx}
+                onClick={() => handleClick(idx)}
+                className={`phishing-spot ${
+                  status[idx] === "correct"
+                    ? "correct"
+                    : status[idx] === "incorrect"
+                      ? "incorrect"
+                      : ""
+                }`}
+                style={{
+                  top: spot.top,
+                  left: spot.left,
+                }}
+              />
+            ))}
+          </div>
+
+          <div className="error-wrapper">
+            {message && <p className="note">{message}</p>}
+            {allCorrect && (
+              <p className="note" style={{ color: "green" }}>
+                You found all phishing links correctly. You can finish the training.
+              </p>
+            )}
+          </div>
+        </>
+      )}
 
       <NavButtons
         onNext={onNext}
         onBack={onBack}
-        nextDisabled={!correctIndices.every((i) => status[i] === "correct")}
+        nextDisabled={!moduleDone}
       />
-
     </section>
   );
 }
 
+/* ---------- Completion Page ---------- */
+const CompletionPage = ({ onBack, onRestart }) => (
+  <section className="section welcome">
+    <h1>Training Completed!</h1>
+    <p>You've successfully completed all modules of the Cybersecurity Awareness Training.</p>
+    <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+      <Btn className="btn-primary" onClick={onBack}>
+        <ArrowLeft size={18} /> Back
+      </Btn>
+      <Btn className="btn-accent" onClick={onRestart}>
+        Restart Training
+      </Btn>
+    </div>
+  </section>
+);
+
+
 /* ---------- Layout ---------- */
 function Layout() {
-  const [stepIndex, setStepIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(() => {
+    const saved = localStorage.getItem("stepIndex");
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("stepIndex", stepIndex);
+  }, [stepIndex]);
+
 
   const steps = [
     <WelcomePage onNext={() => setStepIndex(1)} />,
@@ -345,7 +489,11 @@ function Layout() {
     <Module2Lesson onNext={() => setStepIndex(4)} onBack={() => setStepIndex(2)} />,
     <Module2Game onNext={() => setStepIndex(5)} onBack={() => setStepIndex(3)} />,
     <Module3Lesson onNext={() => setStepIndex(6)} onBack={() => setStepIndex(4)} />,
-    <Module3Game onBack={() => setStepIndex(5)} />,
+    <Module3Game onNext={() => setStepIndex(7)} onBack={() => setStepIndex(5)} />,
+    <CompletionPage
+      onBack={() => setStepIndex(6)}
+      onRestart={() => setStepIndex(0)}
+    />,
   ];
   return (
     <div className="app-shell">
