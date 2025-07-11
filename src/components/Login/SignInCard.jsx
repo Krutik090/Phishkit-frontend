@@ -16,6 +16,7 @@ import {
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { useEffect } from 'react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -30,6 +31,10 @@ export default function SignInCard() {
   const [userInfo, setUserInfo] = useState(null);
   const [loginErrorDialogOpen, setLoginErrorDialogOpen] = useState(false);
   const [mfaError, setMfaError] = useState('');
+
+  const [captchaSvg, setCaptchaSvg] = useState('');
+  const [captchaInput, setCaptchaInput] = useState('');
+
 
   const navigate = useNavigate();
 
@@ -50,60 +55,72 @@ export default function SignInCard() {
     return isValid;
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
-
+  const fetchCaptcha = async () => {
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/auth/login`,
-        { email, password },
-        { withCredentials: true } // ✅ important to allow cookies
-      );
-
-      toast.success(`Welcome back!`, { autoClose: 2000 });
-
-      setTimeout(() => {
-        navigate('/campaigns'); // ✅ or wherever your dashboard is
-      }, 1500);
-    } catch (error) {
-      const message = error.response?.data?.message;
-
-      if (message === 'MFA token required') {
-        // Show MFA dialog
-        setUserInfo({ email, password });
-        setMfaDialogOpen(true);
-      } else {
-        console.error('Login failed:', error.response?.data || error.message);
-        setLoginErrorDialogOpen(true);
-      }
+      const res = await fetch(`${API_BASE_URL}/captcha`, { credentials: 'include' });
+      const svg = await res.text();
+      setCaptchaSvg(svg);
+    } catch (err) {
+      console.error("Failed to load captcha:", err);
     }
   };
+
+  useEffect(() => {
+    fetchCaptcha();
+  }, []);
+
+  const handleLogin = async (e) => {
+  e.preventDefault();
+  if (!validate()) return;
+
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/prelogin`,
+      { email, password, captcha: captchaInput },
+      { withCredentials: true }
+    );
+
+    toast.success("Welcome back!", { autoClose: 2000 });
+    setTimeout(() => {
+      navigate('/campaigns');
+    }, 1500);
+  } catch (error) {
+    const message = error.response?.data?.message;
+
+    if (message === "MFA token required") {
+      setUserInfo({ email, password });
+      setMfaDialogOpen(true);
+    } else {
+      console.error("Login failed:", error.response?.data || error.message);
+      setLoginErrorDialogOpen(true);
+      fetchCaptcha(); // refresh captcha on failure
+    }
+  }
+};
 
   const handleMfaSubmit = async () => {
-    try {
-      const response = await axios.post(
-        `${API_BASE_URL}/auth/login`,
-        {
-          email: userInfo.email,
-          password: userInfo.password,
-          token: mfaToken,
-        },
-        { withCredentials: true } // ✅ important to allow cookies
-      );
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/login`,
+      {
+        email: userInfo.email,
+        password: userInfo.password,
+        token: mfaToken
+      },
+      { withCredentials: true }
+    );
 
-      toast.success(`Welcome back!`, { autoClose: 2000 });
+    toast.success("Welcome back!", { autoClose: 2000 });
+    setTimeout(() => {
+      navigate('/campaigns');
+    }, 1500);
+  } catch (err) {
+    console.error("MFA Error:", err.response?.data?.message || err.message);
+    setMfaError("Invalid MFA token. Please try again.");
+    setMfaToken("");
+  }
+};
 
-      setTimeout(() => {
-        navigate('/campaigns'); // ✅ or wherever your dashboard is
-      }, 1500);
-
-    } catch (err) {
-      console.error('MFA Error:', err.response?.data?.message || err.message);
-      setMfaError('Invalid MFA token. Please try again.');
-      setMfaToken('');
-    }
-  };
   return (
     <Card variant="outlined" sx={{ p: 4, maxWidth: 450, width: '100%' }}>
       <Typography component="h1" variant="h4" gutterBottom>
@@ -147,6 +164,19 @@ export default function SignInCard() {
             Forgot password?
           </Button>
         </Box>
+
+        <Box display="flex" alignItems="center" gap={2}>
+          <div dangerouslySetInnerHTML={{ __html: captchaSvg }} />
+          <Button onClick={fetchCaptcha}>↻ Refresh</Button>
+        </Box>
+
+        <TextField
+          fullWidth
+          label="Enter Captcha"
+          value={captchaInput}
+          onChange={(e) => setCaptchaInput(e.target.value)}
+          required
+        />
 
         <Button type="submit" variant="contained" fullWidth>
           Login
