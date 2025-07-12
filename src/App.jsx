@@ -59,9 +59,17 @@ function AppContent() {
         <Route path="/fullscreen-editor" element={<ProtectedRoute><FullScreenEditor /></ProtectedRoute>} />
         <Route path="/client/:clientId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
         <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
-
-        {/* Main Layout with Sidebar */}
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <>
+                <Layout />
+                <SupportChatBot /> {/* ✅ Now chatbot is always inside layout */}
+              </>
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="/campaigns" replace />} />
           <Route path="campaigns" element={<Campaigns />} />
           <Route path="campaign-results/:id" element={<ResultCampaign />} />
@@ -80,10 +88,11 @@ function AppContent() {
           <Route path="settings" element={<Settings />} />
           <Route path="/dashboard" element={<Dashboard />} />
         </Route>
+
       </Routes>
 
       {/* ✅ Global Chatbot - available on all screens */}
-      <SupportChatBot />
+      {/* <SupportChatBot /> */}
 
       <ToastContainer
         position="top-right"
