@@ -122,7 +122,7 @@ const Campaigns = () => {
           <thead>
             <tr>
               {["Campaign Name", "Client", "Status", "Launch Date", "Sent", "Actions"].map((h, i) => (
-                <th key={i} style={{ border: "1px solid #ccc", padding: 10 }}>
+                <th key={i} style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>
                   {h}
                 </th>
               ))}
@@ -131,16 +131,16 @@ const Campaigns = () => {
           <tbody>
             {data.map((row) => (
               <tr key={row.id}>
-                <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>
                   <Link to={`/campaign-results/${row.id}`} style={{ color: "#ec008c", fontWeight: "bold", textDecoration: "none" }}>
                     {row.name}
                   </Link>
                 </td>
-                <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.client || "—"}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.status || "—"}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.launch_date ? new Date(row.launch_date).toLocaleString() : "—"}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8 }}>{Array.isArray(row.results) ? row.results.length : 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>{row.client || "—"}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>{row.status || "—"}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>{row.launch_date ? new Date(row.launch_date).toLocaleString() : "—"}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>{Array.isArray(row.results) ? row.results.length : 0}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>
                   <Tooltip title="View">
                     <IconButton size="small" color="primary" component={Link} to={`/campaign-results/${row.id}`}>
                       <VisibilityIcon />

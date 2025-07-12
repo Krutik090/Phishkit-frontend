@@ -140,7 +140,16 @@ const Clients = () => {
                 "Submitted Data", "Quiz Started", "Quiz Completed", "Created At",
                 "Certificate", "Upload"
               ].map((header, idx) => (
-                <th key={idx} style={{ border: "1px solid #ccc", padding: "8px" }}>
+                <th
+                  key={idx}
+                  style={{
+                    border: "1px solid #ccc",
+                    padding: "8px",
+                    textAlign: "center", // ← Center align
+                    verticalAlign: "middle",
+                  }}
+                >
+
                   {header}
                 </th>
               ))}
@@ -149,21 +158,28 @@ const Clients = () => {
           <tbody>
             {clients.map((client, idx) => (
               <tr key={idx}>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                <td
+                  style={{
+                    border: "1px solid #ddd",
+                    padding: "8px",
+                    textAlign: "center", // ← Center align
+                    verticalAlign: "middle",
+                  }}
+                >
                   <Link to={`/clients/${client._id}`} style={{ color: "#ec008c", fontWeight: "bold", textDecoration: "none" }}>
                     {client.name}
                   </Link>
                 </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>{Array.isArray(client.campaigns) ? client.campaigns.join(", ") : "—"}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>{client.emailSent ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>{client.emailFailed ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>{client.emailOpened ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>{client.linkClicked ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>{client.submitted_data ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>{client.quizStarted ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>{client.quizCompleted ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>{new Date(client.createdAt).toLocaleString()}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center", verticalAlign: "middle"}}>{Array.isArray(client.campaigns) ? client.campaigns.join(", ") : "—"}</td>
+                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center", verticalAlign: "middle" }}>{client.emailSent ?? 0}</td>
+                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center", verticalAlign: "middle" }}>{client.emailFailed ?? 0}</td>
+                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center", verticalAlign: "middle" }}>{client.emailOpened ?? 0}</td>
+                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center", verticalAlign: "middle" }}>{client.linkClicked ?? 0}</td>
+                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center", verticalAlign: "middle" }}>{client.submitted_data ?? 0}</td>
+                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center", verticalAlign: "middle" }}>{client.quizStarted ?? 0}</td>
+                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center", verticalAlign: "middle" }}>{client.quizCompleted ?? 0}</td>
+                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center", verticalAlign: "middle" }}>{new Date(client.createdAt).toLocaleString()}</td>
+                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center", verticalAlign: "middle" }}>
                   {client.certificateTemplatePath ? (
                     <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
                       <Typography color="green">Uploaded</Typography>
@@ -175,7 +191,7 @@ const Clients = () => {
                     </Box>
                   ) : "N/A"}
                 </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center", verticalAlign: "middle" }}>
                   <Tooltip title="Upload Certificate">
                     <IconButton size="small" component="label">
                       <UploadFileIcon />

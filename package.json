@@ -38,6 +38,7 @@
     "exceljs": "^4.4.0",
     "jquery": "^3.7.1",
     "js-cookie": "^3.0.5",
+    "jsencrypt": "^3.3.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.525.0",
     "prop-types": "^15.8.1",
