@@ -151,21 +151,21 @@ const SendingProfiles = () => {
         >
           <thead>
             <tr>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Name</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>From Address</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Host</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Ignore Cert Errors</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Actions</th>
+              <th style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>Name</th>
+              <th style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>From Address</th>
+              <th style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>Host</th>
+              <th style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>Ignore Cert Errors</th>
+              <th style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {profiles.map((profile) => (
               <tr key={profile.id}>
-                <td style={{ border: "1px solid #ccc", padding: 10 }}>{profile.name}</td>
-                <td style={{ border: "1px solid #ccc", padding: 10 }}>{profile.from_address}</td>
-                <td style={{ border: "1px solid #ccc", padding: 10 }}>{profile.host}</td>
-                <td style={{ border: "1px solid #ccc", padding: 10 }}>{profile.ignore_cert_errors ? "Yes" : "No"}</td>
-                <td style={{ border: "1px solid #ccc", padding: 10 }}> 
+                <td style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>{profile.name}</td>
+                <td style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>{profile.from_address}</td>
+                <td style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>{profile.host}</td>
+                <td style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>{profile.ignore_cert_errors ? "Yes" : "No"}</td>
+                <td style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}> 
                   <IconButton
                     size="small"
                     color="secondary"

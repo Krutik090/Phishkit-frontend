@@ -82,6 +82,21 @@ const CampaignDetails = () => {
             color="secondary"
             startIcon={<ArrowBackIcon />}
             onClick={() => navigate(-1)}
+            sx={{
+              background: "linear-gradient(135deg, #fff, #fff) padding-box, linear-gradient(135deg, #ec008c, #ff6a9f) border-box",
+              color: "#ec008c",
+              border: "2px solid transparent",
+              borderRadius: "8px",
+              fontWeight: "bold",
+              textTransform: "uppercase",
+              px: 3,
+              py: 1,
+              boxShadow: "0 4px 10px rgba(236, 0, 140, 0.2)",
+              "&:hover": {
+                background: "linear-gradient(135deg, #fdfdfd, #fdfdfd) padding-box, linear-gradient(135deg, #d6007a, #ff478a) border-box",
+                boxShadow: "0 6px 12px rgba(236, 0, 140, 0.3)",
+              },
+            }}
           >
             Back
           </Button>
@@ -94,6 +109,25 @@ const CampaignDetails = () => {
           variant="contained"
           color="primary"
           onClick={() => navigate(`/campaign/${campaignId}/graphview`)}
+          sx={{
+            background:
+              "linear-gradient(135deg, #fff, #fff) padding-box, linear-gradient(135deg, #00c9ff, #92fe9d) border-box",
+            color: "#00c9ff",
+            border: "2px solid transparent",
+            borderRadius: "8px",
+            fontWeight: "bold",
+            textTransform: "uppercase",
+            px: 3,
+            py: 1,
+            boxShadow: "0 4px 10px rgba(0, 201, 255, 0.2)",
+            "&:hover": {
+              background:
+                "linear-gradient(135deg, #fdfdfd, #fdfdfd) padding-box, linear-gradient(135deg, #00a5d4, #77e879) border-box",
+              boxShadow: "0 6px 12px rgba(0, 201, 255, 0.3)",
+            },
+          }}
+
+
         >
           Graph View
         </Button>
@@ -107,12 +141,33 @@ const CampaignDetails = () => {
           <CSVLink
             data={enrichedData}
             filename={`campaign_${campaignId}_results.csv`}
-            className="btn btn-success"
+            style={{ textDecoration: "none" }}
           >
-            <Button variant="outlined" color="success">
-              ⬇ Export to CSV
+            <Button
+              variant="outlined"
+              startIcon={"⬇"}
+              sx={{
+                background:
+                  "linear-gradient(135deg, #fff, #fff) padding-box, linear-gradient(135deg, #00b09b, #96c93d) border-box",
+                color: "#00b09b",
+                border: "2px solid transparent",
+                borderRadius: "8px",
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                px: 3,
+                py: 1,
+                boxShadow: "0 4px 10px rgba(0, 176, 155, 0.2)",
+                "&:hover": {
+                  background:
+                    "linear-gradient(135deg, #fdfdfd, #fdfdfd) padding-box, linear-gradient(135deg, #009688, #8bc34a) border-box",
+                  boxShadow: "0 6px 12px rgba(0, 176, 155, 0.3)",
+                },
+              }}
+            >
+              Export to CSV
             </Button>
           </CSVLink>
+
         )}
       </Box>
 

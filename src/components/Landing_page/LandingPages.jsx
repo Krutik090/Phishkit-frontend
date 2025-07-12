@@ -125,21 +125,21 @@ const LandingPages = () => {
   <thead>
     <tr>
       {["Name", "Capture Credentials", "Redirect URL", "Actions"].map((h, i) => (
-        <th key={i} style={{ border: "1px solid #ccc", padding: 10 }}>{h}</th>
+        <th key={i} style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>{h}</th>
       ))}
     </tr>
   </thead>
   <tbody>
     {landingPages.map((page) => (
       <tr key={page.id}>
-        <td style={{ border: "1px solid #ddd", padding: 8 }}>{page.name}</td>
-        <td style={{ border: "1px solid #ddd", padding: 8 }}>
+        <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>{page.name}</td>
+        <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>
           {page.capture_credentials ? "Yes" : "No"}
         </td>
-        <td style={{ border: "1px solid #ddd", padding: 8 }}>
+        <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>
           {page.redirect_url || "—"}
         </td>
-        <td style={{ border: "1px solid #ddd", padding: 8 }}>
+        <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>
           <Tooltip title="Edit">
             <IconButton color="primary" onClick={() => handleEditPage(page)}>
               <EditIcon />

@@ -164,7 +164,7 @@ const UsersGroups = () => {
           <thead>
             <tr>
               {["Name", "# of Members", "Modified Date", "Actions"].map((h, i) => (
-                <th key={i} style={{ border: "1px solid #ccc", padding: 10 }}>
+                <th key={i} style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>
                   {h}
                 </th>
               ))}
@@ -173,14 +173,14 @@ const UsersGroups = () => {
           <tbody>
             {groups.map((group, idx) => (
               <tr key={idx}>
-                <td style={{ border: "1px solid #ddd", padding: 8 }}>{group.name}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{group.name}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
                   {group.targets?.length || 0}
                 </td>
-                <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
                   {new Date(group.modified_date).toLocaleString()}
                 </td>
-                <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
                   <Tooltip title="Edit">
                     <IconButton size="small" onClick={() => handleEditGroup(group)}>
                       <EditIcon />

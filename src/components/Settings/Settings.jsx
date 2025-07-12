@@ -1,53 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  TextField,
   Button,
-  Divider,
+  Checkbox,
+  FormControlLabel,
+  TextField,
   Alert,
+  CircularProgress,
+  Divider,
 } from '@mui/material';
 import axios from 'axios';
-import {
-  Unstable_NumberInput as BaseNumberInput,
-} from '@mui/base/Unstable_NumberInput';
-import { styled } from '@mui/system';
-import RemoveIcon from '@mui/icons-material/Remove';
-import AddIcon from '@mui/icons-material/Add';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-
-const PINK = "#ec008c";
-const GRADIENT = `linear-gradient(to right, ${PINK}, #d946ef)`;
-
-const inputStyle = {
-  transition: "all 0.3s ease",
-  "& .MuiOutlinedInput-root": {
-    borderRadius: 2,
-    "&.Mui-focused fieldset": {
-      borderColor: PINK,
-      boxShadow: "0 0 0 0.15rem rgba(236, 0, 140, 0.25)",
-    },
-    "&:hover fieldset": { borderColor: PINK },
-  },
-};
+const RED_GRADIENT = `linear-gradient(to right, #dc2626, #ef4444)`;
+const GRADIENT = `linear-gradient(to right, #6366f1, #3b82f6)`; // new gradient
 
 export default function Settings() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '', emailLimit: '' });
   const [user, setUser] = useState(null);
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
+
+  const [enableMFA, setEnableMFA] = useState(false);
+  const [qrCode, setQrCode] = useState(null);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaSuccess, setMfaSuccess] = useState('');
+  const [mfaError, setMfaError] = useState('');
+  const [loadingQR, setLoadingQR] = useState(false);
 
   useEffect(() => {
     axios
       .get(`${API_BASE_URL}/protected`, { withCredentials: true })
-      .then((res) => setUser(res.data.user))
+      .then((res) => {
+        setUser(res.data.user);
+        // setEnableMFA(res.data.user?.mfaEnabled);
+      })
       .catch(() => navigate('/login'));
   }, []);
-
-  const isAdmin = user?.role === 'admin';
 
   const handleLogout = async () => {
     try {
@@ -58,192 +47,170 @@ export default function Settings() {
     }
   };
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleEnableMFA = async (checked) => {
+    setEnableMFA(checked);
+    setQrCode(null);
+    setMfaCode('');
+    setMfaSuccess('');
+    setMfaError('');
+
+    if (checked) {
+      setLoadingQR(true);
+      try {
+        const res = await axios.post(
+          `${API_BASE_URL}/auth/mfa/setup`,
+          {},
+          { withCredentials: true }
+        );
+        setQrCode(res.data.qr);
+      } catch (err) {
+        console.error('Error generating QR:', err);
+        setMfaError('Failed to generate QR code.');
+      } finally {
+        setLoadingQR(false);
+      }
+    }
   };
 
-  const handleAddUser = async () => {
-    setSuccess('');
-    setError('');
-
-    const credit = parseInt(form.emailLimit, 10);
-    if (isNaN(credit) || credit <= 0) {
-      setError('Credit must be a positive number');
-      return;
-    }
+  const handleVerifyMFA = async (e) => {
+    e.preventDefault();
+    setMfaSuccess('');
+    setMfaError('');
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/auth/register`, form, {
-        withCredentials: true,
-      });
-      setSuccess(res.data.message);
-      setForm({ name: '', email: '', password: '', emailLimit: '' });
+      await axios.post(
+        `${API_BASE_URL}/auth/mfa/verify`,
+        { token: mfaCode.trim() },
+        { withCredentials: true }
+      );
+      setMfaSuccess('✅ MFA verified successfully!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Error creating user');
+      console.error('MFA verification failed:', err);
+      setMfaError('❌ Invalid MFA code. Please try again.');
     }
   };
 
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        ⚙️ Settings
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4">⚙️ Settings</Typography>
+        <Button
+          onClick={handleLogout}
+          variant="contained"
+          sx={{
+            background: RED_GRADIENT,
+            color: 'white',
+            fontWeight: 500,
+            '&:hover': {
+              background: RED_GRADIENT,
+              opacity: 0.9,
+            },
+          }}
+        >
+          Logout
+        </Button>
+      </Box>
+
+      <Divider sx={{ my: 4 }} />
+
+      {/* MFA Section */}
+      <Typography variant="h5" gutterBottom>🔐 Multi-Factor Authentication</Typography>
+      <Typography variant="body1" sx={{ mb: 2 }}>
+        Add an extra layer of security to your account by enabling MFA using an authenticator app.
       </Typography>
 
-      {isAdmin ? (
-        <Box sx={{ maxWidth: 400, mt: 3 }}>
-          <Typography variant="h6">Add New Client</Typography>
-
-          <Typography variant="body2" fontWeight={500} sx={{ mt: 2, mb: 1 }}>
-            Name
-          </Typography>
-          <TextField
-            name="name"
-            fullWidth
-            placeholder="Enter name"
-            value={form.name}
-            onChange={handleChange}
-            sx={{ ...inputStyle, mb: 2 }}
+      <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {/* Left Column */}
+        <Box sx={{ flex: 1, minWidth: 300 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={enableMFA}
+                onChange={(e) => handleEnableMFA(e.target.checked)}
+              />
+            }
+            label="Enable Multi-Factor Authentication"
           />
 
-          <Typography variant="body2" fontWeight={500} sx={{ mt: 2, mb: 1 }}>
-            Email
-          </Typography>
-          <TextField
-            name="email"
-            type="email"
-            fullWidth
-            placeholder="Enter email"
-            value={form.email}
-            onChange={handleChange}
-            sx={{ ...inputStyle, mb: 2 }}
-          />
+          {enableMFA && (
+            <Box component="form" onSubmit={handleVerifyMFA} sx={{ mt: 2 }}>
+              <TextField
+                fullWidth
+                placeholder="Enter 6-digit code"
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value)}
+                inputProps={{ maxLength: 6 }}
+                sx={{
+                  '& input::placeholder': {
+                    color: '#9ca3af', // Tailwind's gray-400
+                    opacity: 1,
+                  },
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: '#9ca3af', // light gray border
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#ec4899', // pink hover
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#ec4899',
+                      boxShadow: '0 0 0 2px rgba(236, 72, 153, 0.3)',
+                    },
+                  },
+                }}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                sx={{
+                  mt: 2,
+                  background: GRADIENT,
+                  color: 'white',
+                  fontWeight: 500,
+                  '&:hover': {
+                    background: GRADIENT,
+                    opacity: 0.9,
+                  },
+                }}
+              >
+                Verify MFA
+              </Button>
 
-          <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-            Credit
-          </Typography>
-          <BaseNumberInput
-            aria-label="Credit"
-            min={1}
-            max={9999}
-            value={form.emailLimit}
-            onChange={(e, val) => setForm({ ...form, emailLimit: val })}
-            slots={{
-              root: StyledInputRoot,
-              input: StyledInput,
-              incrementButton: StyledButton,
-              decrementButton: StyledButton,
-            }}
-            slotProps={{
-              incrementButton: {
-                children: <AddIcon fontSize="small" />,
-                className: 'increment',
-              },
-              decrementButton: {
-                children: <RemoveIcon fontSize="small" />,
-              },
-            }}
-          />
+              {mfaSuccess && <Alert severity="success" sx={{ mt: 2 }}>{mfaSuccess}</Alert>}
+              {mfaError && <Alert severity="error" sx={{ mt: 2 }}>{mfaError}</Alert>}
+            </Box>
+          )}
+        </Box>
 
-          <Typography variant="body2" fontWeight={500} sx={{ mt: 2, mb: 1 }}>
-            Password
-          </Typography>
-          <TextField
-            name="password"
-            type="password"
-            fullWidth
-            placeholder="Enter password"
-            value={form.password}
-            onChange={handleChange}
-            sx={{ ...inputStyle, mb: 2 }}
-          />
-
-          {success && <Alert severity="success" sx={{ mt: 2 }}>{success}</Alert>}
-          {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-
-          <Button
-            variant="contained"
-            onClick={handleAddUser}
+        {/* Right Column: QR */}
+        {enableMFA && (
+          <Box
             sx={{
-              mt: 2,
-              background: GRADIENT,
-              color: 'white',
-              '&:hover': { background: GRADIENT },
+              flex: 1,
+              minWidth: 300,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            Add User
-          </Button>
-
-          <Divider sx={{ my: 4 }} />
-
-          <Button variant="outlined" color="error" onClick={handleLogout}>
-            Logout
-          </Button>
-        </Box>
-      ) : (
-        <Box sx={{ mt: 3 }}>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            You don’t have access to manage users.
-          </Typography>
-          <Button variant="contained" color="error" onClick={handleLogout}>
-            Logout
-          </Button>
-        </Box>
-      )}
+            {loadingQR ? (
+              <CircularProgress />
+            ) : qrCode ? (
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="body1" sx={{ mb: 1 }}>
+                  Scan with your Authenticator App
+                </Typography>
+                <img src={qrCode} alt="MFA QR Code" width="200" />
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                QR code will appear here
+              </Typography>
+            )}
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 }
-
-// ========== Custom Number Input Styling ==========
-
-const StyledInputRoot = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px; /* Adds margin between - button, input, and + button */
-  margin-top: 2px;
-  margin-bottom:8px;
-`;
-
-
-const StyledInput = styled('input')`
-  text-align: center;
-  background: #fff;
-  border: 1px solid #DAE2ED;
-  border-radius: 8px;
-  padding: 10px 12px;
-  width: 5rem;
-  transition: all 0.3s ease;
-
-  &:hover {
-    border-color: ${PINK};
-  }
-
-  &:focus {
-    outline: none;
-    border-color: ${PINK};
-    box-shadow: 0 0 0 0.15rem rgba(236, 0, 140, 0.25);
-  }
-`;
-
-const StyledButton = styled('button')`
-  border: 1px solid #E5EAF2;
-  background: #F3F6F9;
-  color: #1C2025;
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: ${PINK};
-    border-color: ${PINK};
-    color: white;
-    cursor: pointer;
-  }
-
-  &.increment {
-    order: 1;
-  }
-`;
