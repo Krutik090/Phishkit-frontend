@@ -45,6 +45,7 @@
     "react": "^19.1.0",
     "react-apexcharts": "^1.7.0",
     "react-bootstrap": "^2.10.10",
+    "react-chatbot-kit": "^2.2.2",
     "react-csv": "^2.2.2",
     "react-datepicker": "^8.4.0",
     "react-doc-viewer": "^0.1.14",

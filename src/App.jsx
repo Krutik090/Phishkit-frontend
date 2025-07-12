@@ -1,5 +1,11 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  BrowserRouter,
+} from "react-router-dom";
 import { Box } from "@mui/material";
 import { useTheme } from "./context/ThemeContext";
 import QuizTemplate from "./components/Quiz_Template/QuizTemplate";
@@ -21,15 +27,15 @@ import CampaignDetails from "./components/Stats_Results/CampaignDetails";
 import GraphView from "./components/Stats_Results/GraphView";
 import Login from "./components/Login/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
-import AdminRoute from "./components/AdminRoute"; // ✅ Import AdminRoute
+import AdminRoute from "./components/AdminRoute";
 import Layout from "./components/Layout/Layout";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Dashboard from "./components/Dashboard/Dashboard";
 import "./components/Dashboard/dashboard.css";
 
-// ✅ Admin-only user list page
-import User_Client from "./components/User_Clients/User_Client"; // Add this import
+import SupportChatBot from "./components/Chatbot/SupportChatBot"; // ✅ Chatbot
+import User_Client from "./components/User_Clients/User_Client";
 
 function AppContent() {
   const location = useLocation();
@@ -54,10 +60,9 @@ function AppContent() {
         <Route path="/client/:clientId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
         <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
 
-        {/* Layout with Sidebar */}
+        {/* Main Layout with Sidebar */}
         <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/campaigns" replace />} />
-
           <Route path="campaigns" element={<Campaigns />} />
           <Route path="campaign-results/:id" element={<ResultCampaign />} />
           <Route path="templates" element={<Templates />} />
@@ -65,10 +70,7 @@ function AppContent() {
           <Route path="sending-profiles" element={<SendingProfiles />} />
           <Route path="users-groups" element={<UsersGroups />} />
           <Route path="clients" element={<ClientsPage />} />
-
-          {/* ✅ Admin-protected routes */}
           <Route path="clients-user" element={<AdminRoute><User_Client /></AdminRoute>} />
-
           <Route path="clients/:clientId" element={<ClientCampaign />} />
           <Route path="campaign/:campaignId/details" element={<CampaignDetails />} />
           <Route path="client/:clientId/insights" element={<ClientInsights />} />
@@ -77,9 +79,11 @@ function AppContent() {
           <Route path="quizz/edit/:id" element={<NewQuiz />} />
           <Route path="settings" element={<Settings />} />
           <Route path="/dashboard" element={<Dashboard />} />
-
         </Route>
       </Routes>
+
+      {/* ✅ Global Chatbot - available on all screens */}
+      <SupportChatBot />
 
       <ToastContainer
         position="top-right"
@@ -102,8 +106,8 @@ function AppContent() {
 
 export default function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <AppContent />
-    </Router>
+    </BrowserRouter>
   );
 }
