@@ -34,7 +34,7 @@ import "react-toastify/dist/ReactToastify.css";
 import Dashboard from "./components/Dashboard/Dashboard";
 import "./components/Dashboard/dashboard.css";
 
-import SupportChatBot from "./components/Chatbot/SupportChatBot"; // ✅ Chatbot
+import SupportChatBot from "./components/chatbot/SupportChatBot"; // ✅ Chatbot
 import User_Client from "./components/User_Clients/User_Client";
 
 function AppContent() {
