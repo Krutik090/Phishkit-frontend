@@ -64,11 +64,39 @@ const LandingPages = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveSuccess = () => {
-    fetchLandingPages();
-    setIsModalOpen(false);
-    setEditingPage(null);
+  const handleSaveSuccess = async (data, mode) => {
+    try {
+      const url = mode === "edit"
+        ? `${API_BASE_URL}/landing-pages/${data.id}`
+        : `${API_BASE_URL}/landing-pages`;
+
+      const method = mode === "edit" ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) throw new Error("API call failed");
+
+      // toast.success(
+      //   mode === "edit"
+      //     ? `✅ "${data.name}" updated successfully.`
+      //     : `🎉 "${data.name}" created successfully.`
+      // );
+
+      fetchLandingPages();
+      setIsModalOpen(false);
+      setEditingPage(null);
+    } catch (err) {
+      console.error("Save Error:", err);
+      toast.error("❌ Failed to save landing page.");
+    }
   };
+
 
   const confirmDelete = async () => {
     try {
@@ -113,51 +141,51 @@ const LandingPages = () => {
       </Box>
 
       <table
-  ref={tableRef}
-  className="display stripe"
-  style={{
-    width: "100%",
-    borderCollapse: "collapse",
-    textAlign: "center",
-    border: "1px solid #ddd",
-  }}
->
-  <thead>
-    <tr>
-      {["Name", "Capture Credentials", "Redirect URL", "Actions"].map((h, i) => (
-        <th key={i} style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>{h}</th>
-      ))}
-    </tr>
-  </thead>
-  <tbody>
-    {landingPages.map((page) => (
-      <tr key={page.id}>
-        <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>{page.name}</td>
-        <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>
-          {page.capture_credentials ? "Yes" : "No"}
-        </td>
-        <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>
-          {page.redirect_url || "—"}
-        </td>
-        <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>
-          <Tooltip title="Edit">
-            <IconButton color="primary" onClick={() => handleEditPage(page)}>
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              color="error"
-              onClick={() => setDeleteDialog({ open: true, page })}
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
-        </td>
-      </tr>
-    ))}
-  </tbody>
-</table>
+        ref={tableRef}
+        className="display stripe"
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          textAlign: "center",
+          border: "1px solid #ddd",
+        }}
+      >
+        <thead>
+          <tr>
+            {["Name", "Capture Credentials", "Redirect URL", "Actions"].map((h, i) => (
+              <th key={i} style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {landingPages.map((page) => (
+            <tr key={page.id}>
+              <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{page.name}</td>
+              <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
+                {page.capture_credentials ? "Yes" : "No"}
+              </td>
+              <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
+                {page.redirect_url || "—"}
+              </td>
+              <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
+                <Tooltip title="Edit">
+                  <IconButton color="primary" onClick={() => handleEditPage(page)}>
+                    <EditIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Delete">
+                  <IconButton
+                    color="error"
+                    onClick={() => setDeleteDialog({ open: true, page })}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Tooltip>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <Dialog
         open={deleteDialog.open}

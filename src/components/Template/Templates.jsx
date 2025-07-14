@@ -118,15 +118,15 @@ const Templates = () => {
       >
         <thead>
           <tr>
-            <th style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>Template Name</th>
-            <th style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>Actions</th>
+            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Template Name</th>
+            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {templates.map((template) => (
             <tr key={template.id}>
-              <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>{template.name}</td>
-              <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>
+              <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{template.name}</td>
+              <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
                 <Tooltip title="Edit">
                   <IconButton color="primary" onClick={() => handleEditTemplate(template)}>
                     <EditIcon />
@@ -148,8 +148,9 @@ const Templates = () => {
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveSuccess}
-        template={selectedTemplate}
+        templateData={selectedTemplate}
       />
+
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, template: null })}>

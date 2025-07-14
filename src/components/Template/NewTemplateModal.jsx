@@ -40,7 +40,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
   const [files, setFiles] = useState([]);
   const [tracking, setTracking] = useState(true);
   const [name, setName] = useState("");
-  const [envelopeSender, setEnvelopeSender] = useState("");
   const [subject, setSubject] = useState("");
   const [textContent, setTextContent] = useState("");
   const [htmlContent, setHtmlContent] = useState("");
@@ -59,7 +58,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
       setHtmlContent("");
       setFiles([]);
     }
-    setEnvelopeSender("");
     setTracking(true);
     setTab(0);
   }, [templateData, open]);
@@ -193,24 +191,12 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           IMPORT EMAIL
         </Button>
 
-        <Typography variant="body2" fontWeight="500" mb={0.5}>
-          Envelope Sender
-        </Typography>
-        <TextField
-          fullWidth
-          placeholder="First Last <test@example.com>"
-          variant="outlined"
-          margin="dense"
-          sx={pinkTextFieldSx}
-          value={envelopeSender}
-          onChange={(e) => setEnvelopeSender(e.target.value)}
-        />
-
+  
         <Typography variant="body2" fontWeight="500" mb={0.5}>
           Subject
         </Typography>
         <TextField
-          fullWidth
+          fullWidth 
           variant="outlined"
           margin="dense"
           sx={pinkTextFieldSx}
