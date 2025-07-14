@@ -1,5 +1,7 @@
 import axios from "axios";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 export default class MessageParser {
   constructor(actionProvider, state) {
     this.actionProvider = actionProvider;
@@ -14,7 +16,7 @@ export default class MessageParser {
         messages: [...prev.messages, loadingMessage],
       }));
 
-      const res = await axios.post("http://localhost:5000/api/chatbot/ask", {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/chatbot/ask`, {
         question: message,
       });
 
