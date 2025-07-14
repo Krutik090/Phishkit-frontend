@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import { useTheme } from "../../context/ThemeContext";
 import {
@@ -15,33 +15,64 @@ import {
 } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import QuizIcon from "@mui/icons-material/Quiz";
+import axios from "axios";
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const { darkMode, setDarkMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [isAdmin, setIsAdmin] = useState(null);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/protected`, {
+          withCredentials: true,
+        });
+        if (res.status === 200 && res.data?.user?.role === "admin") {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch {
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdmin();
+  }, [location.pathname]);
+
   const bgColor = darkMode ? "#1e1e2f" : "#ffffff";
   const textColor = darkMode ? "#ffffffcc" : "#333333";
-
   const primaryColor = "#ec008c";
-  const activeBg = darkMode ? primaryColor : primaryColor + "33"; // pink background in dark vs transparent pink in light
+  const activeBg = darkMode ? primaryColor : primaryColor + "33";
   const activeText = darkMode ? "#ffffff" : primaryColor;
 
-  const menuItems = [
+  // Common menu items
+  const baseMenuItems = [
     { label: "Dashboard", icon: <FaTable />, path: "/dashboard" },
-
     { label: "Campaigns", icon: <FaTable />, path: "/campaigns" },
     { label: "Templates", icon: <FaFileAlt />, path: "/templates" },
     { label: "Landing Pages", icon: <FaGlobe />, path: "/landing-pages" },
     { label: "Sending Profiles", icon: <FaEnvelope />, path: "/sending-profiles" },
     { label: "Users & Groups", icon: <FaUsers />, path: "/users-groups" },
     { label: "Projects", icon: <FaUsers />, path: "/clients" },
-    { label: "Clients", icon: <FaUsers />, path: "/clients-user" }, // ✅ NEW MENU ITEM
     { label: "Quiz", icon: <QuizIcon fontSize="small" />, path: "/quizz" },
     { label: "Training", icon: <FaFileAlt />, path: "/training", newTab: true },
     { label: "Settings", icon: <FaCog />, path: "/settings" },
   ];
+
+  // Add Clients only if admin
+  const menuItems =
+    isAdmin === true
+      ? [
+          ...baseMenuItems,
+          { label: "Clients", icon: <FaUsers />, path: "/clients-user" },
+        ]
+      : baseMenuItems;
+
+  if (isAdmin === null) return null; // Or a spinner
 
   return (
     <Box

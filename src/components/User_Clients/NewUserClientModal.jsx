@@ -12,7 +12,6 @@ import {
 import { toast } from "react-toastify";
 import CustomNumberInput from "./CustomNumberInput"; // adjust path as needed
 
-
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 const pink = "#ec008c";
 
@@ -26,22 +25,22 @@ const pinkTextFieldSx = {
   },
 };
 
-const NewUserClient = ({ open, onClose, userData, onSave }) => {
+const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [credit, setCredit] = useState("");
+  const [emailLimit, setEmailLimit] = useState("");
   const [password, setPassword] = useState("");
 
   useEffect(() => {
     if (userData) {
       setName(userData.name || "");
       setEmail(userData.email || "");
-      setCredit(userData.credit || "");
+      setEmailLimit(userData.emailLimit || "");
       setPassword(""); // Clear password on edit for security
     } else {
       setName("");
       setEmail("");
-      setCredit("");
+      setEmailLimit("");
       setPassword("");
     }
   }, [userData, open]);
@@ -51,7 +50,7 @@ const NewUserClient = ({ open, onClose, userData, onSave }) => {
       const payload = {
         name,
         email,
-        credit,
+        emailLimit,
         ...(password && { password }), // Include password only if not empty
       };
 
@@ -141,17 +140,16 @@ const NewUserClient = ({ open, onClose, userData, onSave }) => {
 
         <Box mb={2}>
           <Typography variant="body2" fontWeight="500" mb={0.5}>
-            Credit
+            Email Limit
           </Typography>
           <CustomNumberInput
-            aria-label="Credit Input"
+            aria-label="Email Limit Input"
             min={1}
             max={100000}
-            value={credit}
-            onChange={(e, val) => setCredit(val)}
+            value={emailLimit}
+            onChange={(e, val) => setEmailLimit(val)}
           />
         </Box>
-
 
         <Box mb={2}>
           <Typography variant="body2" fontWeight="500" mb={0.5}>
@@ -205,4 +203,4 @@ const NewUserClient = ({ open, onClose, userData, onSave }) => {
   );
 };
 
-export default NewUserClient;
+export default NewUserClientModal;
