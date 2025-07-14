@@ -174,7 +174,7 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           onChange={(e) => setName(e.target.value)}
         />
 
-        <Button
+        {/* <Button
           variant="contained"
           sx={{
             backgroundColor: pink,
@@ -189,7 +189,7 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           }}
         >
           IMPORT EMAIL
-        </Button>
+        </Button> */}
 
   
         <Typography variant="body2" fontWeight="500" mb={0.5}>
