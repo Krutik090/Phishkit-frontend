@@ -165,7 +165,7 @@ const Quiz = () => {
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h5" fontWeight="bold">
-          🧠 Quiz & Training
+          🧠 Quiz
         </Typography>
         <Button
           variant="contained"

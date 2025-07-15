@@ -12,6 +12,7 @@ import {
   FaSun,
   FaChevronLeft,
   FaChevronRight,
+  FaTachometerAlt,
 } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import QuizIcon from "@mui/icons-material/Quiz";
@@ -49,9 +50,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   const activeBg = darkMode ? primaryColor : primaryColor + "33";
   const activeText = darkMode ? "#ffffff" : primaryColor;
 
-  // Common menu items
   const baseMenuItems = [
-    { label: "Dashboard", icon: <FaTable />, path: "/dashboard" },
+    { label: "Dashboard", icon: <FaTachometerAlt />, path: "/dashboard" },
     { label: "Campaigns", icon: <FaTable />, path: "/campaigns" },
     { label: "Templates", icon: <FaFileAlt />, path: "/templates" },
     { label: "Landing Pages", icon: <FaGlobe />, path: "/landing-pages" },
@@ -63,7 +63,6 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     { label: "Settings", icon: <FaCog />, path: "/settings" },
   ];
 
-  // Add Clients only if admin
   const menuItems =
     isAdmin === true
       ? [
@@ -72,13 +71,13 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         ]
       : baseMenuItems;
 
-  if (isAdmin === null) return null; // Or a spinner
+  if (isAdmin === null) return null;
 
   return (
     <Box
       sx={{
-        width: `${collapsed ? 70 : 250}px`,
-        minWidth: `${collapsed ? 70 : 250}px`,
+        width: collapsed ? 70 : { xs: 70, sm: 250 },
+        minWidth: collapsed ? 70 : { xs: 70, sm: 250 },
         height: "100vh",
         backgroundColor: bgColor,
         color: textColor,
@@ -98,7 +97,6 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         transition: "all 0.3s ease-in-out",
       }}
     >
-      {/* Header */}
       <Box
         sx={{
           mb: 3,
@@ -121,7 +119,6 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         </IconButton>
       </Box>
 
-      {/* Menu */}
       <Box sx={{ flexGrow: 1 }}>
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
@@ -183,7 +180,6 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         })}
       </Box>
 
-      {/* Dark Mode Toggle */}
       <Box
         onClick={() => setDarkMode(!darkMode)}
         sx={{

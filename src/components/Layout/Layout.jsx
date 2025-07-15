@@ -1,13 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Box } from "@mui/material";
 import Sidebar from "./Sidebar";
 import { Outlet } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
-import SupportChatBot from "../chatbot/SupportChatBot"; // ✅ Import chatbot here
+import SupportChatBot from "../chatbot/SupportChatBot";
 
 const Layout = () => {
-  const [collapsed, setCollapsed] = React.useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const { darkMode } = useTheme();
+
+  // Auto-collapse sidebar on small screens
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 600) {
+        setCollapsed(true);
+      } else {
+        setCollapsed(false);
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const sidebarWidth = collapsed ? 70 : 250;
 
   return (
@@ -19,8 +35,7 @@ const Layout = () => {
       }}
     >
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      
-      {/* Main content */}
+
       <Box
         component="main"
         sx={{
@@ -37,12 +52,10 @@ const Layout = () => {
           borderLeft: `1px solid ${darkMode ? "#ec008c" : "#ec008c33"}`,
           boxShadow: darkMode
             ? "inset 0 0 6px rgba(236, 0, 140, 0.2)"
-            : "inset 0 0 6px rgba(236, 0, 140, 0.1)"
+            : "inset 0 0 6px rgba(236, 0, 140, 0.1)",
         }}
       >
         <Outlet />
-
-        {/* ✅ Add chatbot at the root of main content */}
         <SupportChatBot />
       </Box>
     </Box>
