@@ -47,6 +47,7 @@
     "react-bootstrap": "^2.10.10",
     "react-chatbot-kit": "^2.2.2",
     "react-csv": "^2.2.2",
+    "react-data-table-component": "^7.7.0",
     "react-datepicker": "^8.4.0",
     "react-doc-viewer": "^0.1.14",
     "react-dom": "^19.1.0",

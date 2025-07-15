@@ -3,6 +3,7 @@ import { Box } from "@mui/material";
 import Sidebar from "./Sidebar";
 import { Outlet } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
+import SupportChatBot from "../chatbot/SupportChatBot"; // ✅ Import chatbot here
 
 const Layout = () => {
   const [collapsed, setCollapsed] = React.useState(false);
@@ -18,27 +19,32 @@ const Layout = () => {
       }}
     >
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      
+      {/* Main content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          height: "100vh",  
+          height: "100vh",
           overflowY: "auto",
           overflowX: "hidden",
           ml: `${sidebarWidth}px`,
           transition: "margin-left 0.3s ease",
           p: { xs: 1, sm: 2, md: 3 },
-          backgroundColor: darkMode ? "#2e2e42" : "#fdfbff", // soft pinkish-white in light mode
+          pb: 10,
+          backgroundColor: darkMode ? "#2e2e42" : "#fdfbff",
           color: darkMode ? "#ffffff" : "#1e1e2f",
           borderLeft: `1px solid ${darkMode ? "#ec008c" : "#ec008c33"}`,
           boxShadow: darkMode
             ? "inset 0 0 6px rgba(236, 0, 140, 0.2)"
-            : "inset 0 0 6px rgba(236, 0, 140, 0.1)",
+            : "inset 0 0 6px rgba(236, 0, 140, 0.1)"
         }}
       >
         <Outlet />
-      </Box>
 
+        {/* ✅ Add chatbot at the root of main content */}
+        <SupportChatBot />
+      </Box>
     </Box>
   );
 };

@@ -35,11 +35,45 @@ const UsersGroups = () => {
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [ldapDialogOpen, setLdapDialogOpen] = useState(false);
 
+  const initializeDataTable = () => {
+    if (dataTable.current) {
+      dataTable.current.destroy();
+    }
+    
+    if (groups.length > 0) {
+      dataTable.current = $(tableRef.current).DataTable({
+        destroy: true,
+        responsive: true,
+        pageLength: 10,
+        lengthChange: true,
+        searching: true,
+        ordering: true,
+        info: true,
+        autoWidth: false,
+      });
+    }
+  };
+
+  const reloadDataTable = () => {
+    if (dataTable.current) {
+      dataTable.current.clear();
+      dataTable.current.rows.add($(tableRef.current).find('tbody tr'));
+      dataTable.current.draw();
+    }
+  };
+
   const fetchGroups = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/groups`);
       const data = await res.json();
       setGroups(data);
+      
+      // Reload DataTable after fetching new data
+      setTimeout(() => {
+        if (dataTable.current) {
+          reloadDataTable();
+        }
+      }, 100);
     } catch (err) {
       console.error("Failed to fetch groups:", err);
     }
@@ -50,15 +84,8 @@ const UsersGroups = () => {
   }, []);
 
   useEffect(() => {
-    if (dataTable.current) {
-      dataTable.current.destroy();
-    }
-
-    if (groups.length > 0) {
-      dataTable.current = $(tableRef.current).DataTable({
-        destroy: true,
-        responsive: true,
-      });
+    if (groups.length > 0 && !dataTable.current) {
+      initializeDataTable();
     }
   }, [groups]);
 
@@ -69,7 +96,17 @@ const UsersGroups = () => {
         method: "DELETE",
       });
       toast.success("Group deleted successfully!");
-      fetchGroups();
+      
+      // Update state and reload DataTable
+      setGroups((prev) => prev.filter((g) => g.id !== groupToDelete.id));
+      
+      // Reload DataTable after state update
+      setTimeout(() => {
+        if (dataTable.current) {
+          reloadDataTable();
+        }
+      }, 100);
+      
       setDeleteDialogOpen(false);
       setGroupToDelete(null);
     } catch (err) {
@@ -89,6 +126,21 @@ const UsersGroups = () => {
     setModalMode("edit");
     setOpenModal(true);
   };
+
+  const handleSaveSuccess = () => {
+    // Fetch fresh data and reload DataTable
+    fetchGroups();
+    setOpenModal(false);
+  };
+
+  // Cleanup DataTable on component unmount
+  useEffect(() => {
+    return () => {
+      if (dataTable.current) {
+        dataTable.current.destroy();
+      }
+    };
+  }, []);
 
   return (
     <Box p={3}>
@@ -182,7 +234,7 @@ const UsersGroups = () => {
                 </td>
                 <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
                   <Tooltip title="Edit">
-                    <IconButton size="small" onClick={() => handleEditGroup(group)}>
+                    <IconButton color="secondary" size="small" onClick={() => handleEditGroup(group)}>
                       <EditIcon />
                     </IconButton>
                   </Tooltip>
@@ -211,10 +263,7 @@ const UsersGroups = () => {
         handleClose={() => setOpenModal(false)}
         mode={modalMode}
         groupData={selectedGroup}
-        onSave={() => {
-          fetchGroups();
-          setOpenModal(false);
-        }}
+        onSave={handleSaveSuccess}
       />
     </Box>
   );

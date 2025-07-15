@@ -37,23 +37,54 @@ const Campaigns = () => {
   const [formData, setFormData] = useState(initialFormState());
   const [deleteDialog, setDeleteDialog] = useState({ open: false, campaign: null });
   const tableRef = useRef(null);
+  const dataTableRef = useRef(null);
 
   useEffect(() => {
     fetchCampaigns();
   }, []);
 
   useEffect(() => {
-    if (data.length > 0) {
-      const table = $(tableRef.current).DataTable();
-      return () => table.destroy();
+    if (data.length > 0 && !dataTableRef.current) {
+      initializeDataTable();
     }
   }, [data]);
+
+  const initializeDataTable = () => {
+    if (dataTableRef.current) {
+      dataTableRef.current.destroy();
+    }
+    dataTableRef.current = $(tableRef.current).DataTable({
+      destroy: true,
+      responsive: true,
+      pageLength: 10,
+      lengthChange: true,
+      searching: true,
+      ordering: true,
+      info: true,
+      autoWidth: false,
+    });
+  };
+
+  const reloadDataTable = () => {
+    if (dataTableRef.current) {
+      dataTableRef.current.clear();
+      dataTableRef.current.rows.add($(tableRef.current).find('tbody tr'));
+      dataTableRef.current.draw();
+    }
+  };
 
   const fetchCampaigns = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/campaigns`);
       const json = await res.json();
       setData(json);
+      
+      // Reload DataTable after fetching new data
+      setTimeout(() => {
+        if (dataTableRef.current) {
+          reloadDataTable();
+        }
+      }, 100);
     } catch (err) {
       console.error(err);
     }
@@ -67,7 +98,17 @@ const Campaigns = () => {
       const id = deleteDialog.campaign.id;
       const res = await fetch(`${API_BASE_URL}/campaigns/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
+      
+      // Update state and reload DataTable
       setData(prev => prev.filter(c => c.id !== id));
+      
+      // Reload DataTable after state update
+      setTimeout(() => {
+        if (dataTableRef.current) {
+          reloadDataTable();
+        }
+      }, 100);
+      
     } catch (err) {
       console.error(err);
       alert("Delete failed");
@@ -81,6 +122,15 @@ const Campaigns = () => {
     setOpenModal(false);
     setFormData(initialFormState());
   };
+
+  // Cleanup DataTable on component unmount
+  useEffect(() => {
+    return () => {
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+      }
+    };
+  }, []);
 
   return (
     <Box p={3}>

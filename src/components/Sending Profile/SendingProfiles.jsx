@@ -29,6 +29,41 @@ const SendingProfiles = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [profileToDelete, setProfileToDelete] = useState(null);
   const tableRef = useRef(null);
+  const dataTableRef = useRef(null);
+
+  useEffect(() => {
+    fetchProfiles();
+  }, []);
+
+  useEffect(() => {
+    if (profiles.length > 0 && !dataTableRef.current) {
+      initializeDataTable();
+    }
+  }, [profiles]);
+
+  const initializeDataTable = () => {
+    if (dataTableRef.current) {
+      dataTableRef.current.destroy();
+    }
+    dataTableRef.current = $(tableRef.current).DataTable({
+      destroy: true,
+      responsive: true,
+      pageLength: 10,
+      lengthChange: true,
+      searching: true,
+      ordering: true,
+      info: true,
+      autoWidth: false,
+    });
+  };
+
+  const reloadDataTable = () => {
+    if (dataTableRef.current) {
+      dataTableRef.current.clear();
+      dataTableRef.current.rows.add($(tableRef.current).find('tbody tr'));
+      dataTableRef.current.draw();
+    }
+  };
 
   const fetchProfiles = async () => {
     try {
@@ -36,37 +71,18 @@ const SendingProfiles = () => {
       if (!res.ok) throw new Error("Failed to fetch profiles");
       const data = await res.json();
       setProfiles(data);
+      
+      // Reload DataTable after fetching new data
+      setTimeout(() => {
+        if (dataTableRef.current) {
+          reloadDataTable();
+        }
+      }, 100);
     } catch (err) {
       toast.error("Failed to load sending profiles.");
       console.error(err);
     }
   };
-
-  useEffect(() => {
-    fetchProfiles();
-  }, []);
-
-  useEffect(() => {
-    if (profiles.length > 0) {
-      if ($.fn.dataTable.isDataTable("#sendingProfilesTable")) {
-        $("#sendingProfilesTable").DataTable().destroy();
-      }
-
-      setTimeout(() => {
-        $(tableRef.current).DataTable({
-          paging: true,
-          pageLength: 10,
-          lengthMenu: [10, 25, 50, 100],
-          searching: true,
-          ordering: true,
-          responsive: true,
-          language: {
-            search: "Search:",
-          },
-        });
-      }, 0);
-    }
-  }, [profiles]);
 
   const confirmDelete = (profile) => {
     setProfileToDelete(profile);
@@ -80,7 +96,17 @@ const SendingProfiles = () => {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete profile");
+      
+      // Update state and reload DataTable
       setProfiles((prev) => prev.filter((p) => p.id !== profileToDelete.id));
+      
+      // Reload DataTable after state update
+      setTimeout(() => {
+        if (dataTableRef.current) {
+          reloadDataTable();
+        }
+      }, 100);
+      
       toast.success("Sending profile deleted!");
     } catch (err) {
       toast.error("Failed to delete profile.");
@@ -90,6 +116,35 @@ const SendingProfiles = () => {
       setProfileToDelete(null);
     }
   };
+
+  const handleSaveSuccess = (savedProfile) => {
+    if (editingProfile) {
+      setProfiles((prev) =>
+        prev.map((p) => (p.id === savedProfile.id ? savedProfile : p))
+      );
+    } else {
+      setProfiles((prev) => [...prev, savedProfile]);
+    }
+    
+    // Reload DataTable after state update
+    setTimeout(() => {
+      if (dataTableRef.current) {
+        reloadDataTable();
+      }
+    }, 100);
+    
+    setOpenModal(false);
+    setEditingProfile(null);
+  };
+
+  // Cleanup DataTable on component unmount
+  useEffect(() => {
+    return () => {
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+      }
+    };
+  }, []);
 
   return (
     <Box p={3}>
@@ -139,9 +194,8 @@ const SendingProfiles = () => {
       {/* Table */}
       <div className="table-responsive">
         <table
-          id="sendingProfilesTable"
-          className="display stripe"
           ref={tableRef}
+          className="display stripe"
           style={{
             width: "100%",
             borderCollapse: "collapse",
@@ -197,16 +251,7 @@ const SendingProfiles = () => {
           setOpenModal(false);
           setEditingProfile(null);
         }}
-        onSave={(savedProfile) => {
-          if (editingProfile) {
-            setProfiles((prev) =>
-              prev.map((p) => (p.id === savedProfile.id ? savedProfile : p))
-            );
-          } else {
-            setProfiles((prev) => [...prev, savedProfile]);
-          }
-          setOpenModal(false);
-        }}
+        onSave={handleSaveSuccess}
         initialData={editingProfile}
       />
     </Box>

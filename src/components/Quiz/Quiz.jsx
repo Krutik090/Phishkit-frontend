@@ -16,6 +16,7 @@ import { toast } from "react-toastify";
 const Quiz = () => {
   const navigate = useNavigate();
   const tableRef = useRef(null);
+  const dataTableRef = useRef(null);
   const [quizzes, setQuizzes] = useState([]);
   const [uploadingQuizId, setUploadingQuizId] = useState(null);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
@@ -30,6 +31,31 @@ const Quiz = () => {
     loadQuizzes();
   }, []);
 
+  const initializeDataTable = () => {
+    if (dataTableRef.current) {
+      dataTableRef.current.destroy();
+    }
+    dataTableRef.current = $(tableRef.current).DataTable({
+      destroy: true,
+      pageLength: 10,
+      lengthMenu: [10, 25, 50, 100],
+      order: [[0, "asc"]],
+      responsive: true,
+      searching: true,
+      ordering: true,
+      info: true,
+      autoWidth: false,
+    });
+  };
+
+  const reloadDataTable = () => {
+    if (dataTableRef.current) {
+      dataTableRef.current.clear();
+      dataTableRef.current.rows.add($(tableRef.current).find('tbody tr'));
+      dataTableRef.current.draw();
+    }
+  };
+
   const loadQuizzes = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/quizzes`);
@@ -40,16 +66,15 @@ const Quiz = () => {
       }));
       setQuizzes(updatedData);
 
-      // Wait for data, then initialize DataTable
+      // Initialize or reload DataTable after fetching new data
       setTimeout(() => {
-        if ($.fn.dataTable.isDataTable("#quizTable")) {
-          $("#quizTable").DataTable().destroy();
+        if (updatedData.length > 0) {
+          if (!dataTableRef.current) {
+            initializeDataTable();
+          } else {
+            reloadDataTable();
+          }
         }
-        $("#quizTable").DataTable({
-          pageLength: 10,
-          lengthMenu: [10, 25, 50, 100],
-          order: [[0, "asc"]],
-        });
       }, 100);
     } catch (err) {
       toast.error("Failed to load quizzes.");
@@ -105,7 +130,17 @@ const Quiz = () => {
 
       if (res.ok) {
         toast.success("Quiz deleted successfully.");
-        await loadQuizzes();
+
+        // Update state and reload DataTable
+        setQuizzes((prev) => prev.filter((q) => q._id !== quizToDelete._id));
+
+        // Reload DataTable after state update
+        setTimeout(() => {
+          if (dataTableRef.current) {
+            reloadDataTable();
+          }
+        }, 100);
+
       } else {
         toast.error(data?.error || "Failed to delete quiz.");
       }
@@ -116,6 +151,15 @@ const Quiz = () => {
       setQuizToDelete(null);
     }
   };
+
+  // Cleanup DataTable on component unmount
+  useEffect(() => {
+    return () => {
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+      }
+    };
+  }, []);
 
   return (
     <Box p={3}>
@@ -138,21 +182,21 @@ const Quiz = () => {
       </Box>
 
       <div className="table-responsive">
-        <table className="display stripe" id="quizTable" ref={tableRef} 
-        style={{
-          width: "100%",
-          textAlign: "center",
-          borderCollapse: "collapse",
-          border: "1px solid #ddd",
-        }}>
+        <table className="display stripe" id="quizTable" ref={tableRef}
+          style={{
+            width: "100%",
+            textAlign: "center",
+            borderCollapse: "collapse",
+            border: "1px solid #ddd",
+          }}>
           <thead>
             <tr>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Quiz Title</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Description</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Questions</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Public URL</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Poster</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 }}>Actions</th>
+              <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Quiz Title</th>
+              <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Description</th>
+              <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Questions</th>
+              <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Public URL</th>
+              <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Poster</th>
+              <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -160,7 +204,7 @@ const Quiz = () => {
               <tr key={quiz._id}>
                 <td style={{ border: "1px solid #ccc", padding: 10 }}>{quiz.title}</td>
                 <td style={{ border: "1px solid #ccc", padding: 10 }}>{quiz.description}</td>
-                <td style={{ border: "1px solid #ccc", padding: 10 }}>{quiz.questions?.length || 0}</td>
+                <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>{quiz.questions?.length || 0}</td>
                 <td style={{ border: "1px solid #ccc", padding: 10 }}>
                   {quiz.publicUrl ? (
                     <a href={`/quiz/${quiz.publicUrl}`} target="_blank" rel="noopener noreferrer">
@@ -170,8 +214,8 @@ const Quiz = () => {
                     "—"
                   )}
                 </td>
-                <td style={{ border: "1px solid #ccc", padding: 10 }}>
-                  <Box display="flex" alignItems="center" gap={1}>
+                <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>
+                  <Box display="flex" justifyContent="center" alignItems="center" width="100%">
                     <input
                       type="file"
                       accept=".pdf"
@@ -187,13 +231,14 @@ const Quiz = () => {
                         color="secondary"
                         startIcon={<UploadFileIcon />}
                         disabled={uploadingQuizId === quiz._id}
+                        sx={{ whiteSpace: "nowrap" }}
                       >
                         {quiz.posterPathUrl ? "Update Poster" : "Upload PDF"}
                       </Button>
                     </label>
                   </Box>
                 </td>
-                <td style={{ border: "1px solid #ccc", padding: 10 }}>
+                <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>
                   <Tooltip title="Edit">
                     <IconButton size="small" color="secondary" onClick={() => navigate(`/quizz/edit/${quiz._id}`)}>
                       <EditIcon />
