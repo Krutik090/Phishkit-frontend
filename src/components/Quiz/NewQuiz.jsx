@@ -189,7 +189,7 @@ const NewQuiz = () => {
     <Box p={3}>
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
         <Box display="flex" alignItems="center" gap={2}>
-          <IconButton onClick={() => navigate("/quiz")} color="primary">
+          <IconButton onClick={() => navigate("/quizz")} color="primary">
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h5" fontWeight="bold" color="#343a40">

@@ -63,10 +63,7 @@ function AppContent() {
           path="/"
           element={
             <ProtectedRoute>
-              <>
-                <Layout />
-                <SupportChatBot /> {/* ✅ Now chatbot is always inside layout */}
-              </>
+              <Layout />
             </ProtectedRoute>
           }
         >

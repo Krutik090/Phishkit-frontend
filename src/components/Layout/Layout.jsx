@@ -1,12 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Box } from "@mui/material";
 import Sidebar from "./Sidebar";
 import { Outlet } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
+import SupportChatBot from "../chatbot/SupportChatBot";
 
 const Layout = () => {
-  const [collapsed, setCollapsed] = React.useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const { darkMode } = useTheme();
+
+  // Auto-collapse sidebar on small screens
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 600) {
+        setCollapsed(true);
+      } else {
+        setCollapsed(false);
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const sidebarWidth = collapsed ? 70 : 250;
 
   return (
@@ -18,17 +35,19 @@ const Layout = () => {
       }}
     >
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          height: "100vh",  
+          height: "100vh",
           overflowY: "auto",
           overflowX: "hidden",
           ml: `${sidebarWidth}px`,
           transition: "margin-left 0.3s ease",
           p: { xs: 1, sm: 2, md: 3 },
-          backgroundColor: darkMode ? "#2e2e42" : "#fdfbff", // soft pinkish-white in light mode
+          pb: 10,
+          backgroundColor: darkMode ? "#2e2e42" : "#fdfbff",
           color: darkMode ? "#ffffff" : "#1e1e2f",
           borderLeft: `1px solid ${darkMode ? "#ec008c" : "#ec008c33"}`,
           boxShadow: darkMode
@@ -37,8 +56,8 @@ const Layout = () => {
         }}
       >
         <Outlet />
+        <SupportChatBot />
       </Box>
-
     </Box>
   );
 };

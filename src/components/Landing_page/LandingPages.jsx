@@ -32,23 +32,54 @@ const LandingPages = () => {
   const [editingPage, setEditingPage] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, page: null });
   const tableRef = useRef(null);
+  const dataTableRef = useRef(null);
 
   useEffect(() => {
     fetchLandingPages();
   }, []);
 
   useEffect(() => {
-    if (landingPages.length > 0) {
-      const table = $(tableRef.current).DataTable();
-      return () => table.destroy();
+    if (landingPages.length > 0 && !dataTableRef.current) {
+      initializeDataTable();
     }
   }, [landingPages]);
+
+  const initializeDataTable = () => {
+    if (dataTableRef.current) {
+      dataTableRef.current.destroy();
+    }
+    dataTableRef.current = $(tableRef.current).DataTable({
+      destroy: true,
+      responsive: true,
+      pageLength: 10,
+      lengthChange: true,
+      searching: true,
+      ordering: true,
+      info: true,
+      autoWidth: false,
+    });
+  };
+
+  const reloadDataTable = () => {
+    if (dataTableRef.current) {
+      dataTableRef.current.clear();
+      dataTableRef.current.rows.add($(tableRef.current).find('tbody tr'));
+      dataTableRef.current.draw();
+    }
+  };
 
   const fetchLandingPages = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/landing-pages`);
       const data = await res.json();
       setLandingPages(data);
+      
+      // Reload DataTable after fetching new data
+      setTimeout(() => {
+        if (dataTableRef.current) {
+          reloadDataTable();
+        }
+      }, 100);
     } catch (err) {
       console.error("Failed to fetch landing pages:", err);
     }
@@ -97,7 +128,6 @@ const LandingPages = () => {
     }
   };
 
-
   const confirmDelete = async () => {
     try {
       const id = deleteDialog.page.id;
@@ -105,8 +135,18 @@ const LandingPages = () => {
         method: "DELETE",
       });
       if (!res.ok) throw new Error();
+      
+      // Update state and reload DataTable
       setLandingPages((prev) => prev.filter((p) => p.id !== id));
-      toast.success(`🗑️ "${deleteDialog.page.name}" deleted successfully.`);
+      
+      // Reload DataTable after state update
+      setTimeout(() => {
+        if (dataTableRef.current) {
+          reloadDataTable();
+        }
+      }, 100);
+      
+      toast.success(`"${deleteDialog.page.name}" deleted successfully.`);
     } catch (err) {
       console.error(err);
       toast.error("Failed to delete landing page.");
@@ -114,6 +154,15 @@ const LandingPages = () => {
       setDeleteDialog({ open: false, page: null });
     }
   };
+
+  // Cleanup DataTable on component unmount
+  useEffect(() => {
+    return () => {
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+      }
+    };
+  }, []);
 
   return (
     <Box p={3}>

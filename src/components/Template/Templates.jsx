@@ -31,23 +31,54 @@ const Templates = () => {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, template: null });
   const tableRef = useRef(null);
+  const dataTableRef = useRef(null);
 
   useEffect(() => {
     fetchTemplates();
   }, []);
 
   useEffect(() => {
-    if (templates.length > 0) {
-      const table = $(tableRef.current).DataTable();
-      return () => table.destroy();
+    if (templates.length > 0 && !dataTableRef.current) {
+      initializeDataTable();
     }
   }, [templates]);
+
+  const initializeDataTable = () => {
+    if (dataTableRef.current) {
+      dataTableRef.current.destroy();
+    }
+    dataTableRef.current = $(tableRef.current).DataTable({
+      destroy: true,
+      responsive: true,
+      pageLength: 10,
+      lengthChange: true,
+      searching: true,
+      ordering: true,
+      info: true,
+      autoWidth: false,
+    });
+  };
+
+  const reloadDataTable = () => {
+    if (dataTableRef.current) {
+      dataTableRef.current.clear();
+      dataTableRef.current.rows.add($(tableRef.current).find('tbody tr'));
+      dataTableRef.current.draw();
+    }
+  };
 
   const fetchTemplates = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/templates`);
       const data = await res.json();
       setTemplates(data);
+      
+      // Reload DataTable after fetching new data
+      setTimeout(() => {
+        if (dataTableRef.current) {
+          reloadDataTable();
+        }
+      }, 100);
     } catch (err) {
       console.error("Failed to fetch templates:", err);
     }
@@ -64,6 +95,7 @@ const Templates = () => {
   };
 
   const handleSaveSuccess = () => {
+    // Fetch fresh data and reload DataTable
     fetchTemplates();
     setIsModalOpen(false);
     setSelectedTemplate(null);
@@ -74,7 +106,17 @@ const Templates = () => {
       const id = deleteDialog.template.id;
       const res = await fetch(`${API_BASE_URL}/templates/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
+      
+      // Update state and reload DataTable
       setTemplates((prev) => prev.filter((t) => t.id !== id));
+      
+      // Reload DataTable after state update
+      setTimeout(() => {
+        if (dataTableRef.current) {
+          reloadDataTable();
+        }
+      }, 100);
+      
     } catch (err) {
       console.error(err);
       alert("Failed to delete template");
@@ -82,6 +124,15 @@ const Templates = () => {
       setDeleteDialog({ open: false, template: null });
     }
   };
+
+  // Cleanup DataTable on component unmount
+  useEffect(() => {
+    return () => {
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+      }
+    };
+  }, []);
 
   return (
     <Box p={3}>
@@ -150,7 +201,6 @@ const Templates = () => {
         onSave={handleSaveSuccess}
         templateData={selectedTemplate}
       />
-
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, template: null })}>

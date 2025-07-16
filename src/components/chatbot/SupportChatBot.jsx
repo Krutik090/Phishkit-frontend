@@ -26,21 +26,24 @@ const SupportChatBot = () => {
       }}
     >
       {/* Chatbox with advanced animation */}
-      <div
-        style={{
-          transition: "all 0.5s ease",
-          transform: isOpen ? "scale(1) translateY(0px)" : "scale(0.8) translateY(20px)",
-          opacity: isOpen ? 1 : 0,
-          pointerEvents: isOpen ? "auto" : "none",
-          transformOrigin: "bottom right",
-        }}
-      >
-        <Chatbot
-          config={config}
-          messageParser={MessageParser}
-          actionProvider={ActionProvider}
-        />
-      </div>
+      {isOpen && (
+        <div
+          style={{
+            transition: "all 0.5s ease",
+            transform: "scale(1) translateY(0px)",
+            opacity: 1,
+            pointerEvents: "auto",
+            transformOrigin: "bottom right",
+          }}
+        >
+          <Chatbot
+            config={config}
+            messageParser={MessageParser}
+            actionProvider={ActionProvider}
+          />
+        </div>
+      )}
+
 
       {/* Toggle Chat Icon Button */}
       <button
