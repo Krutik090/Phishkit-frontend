@@ -1,11 +1,12 @@
-import React,{useEffect} from "react";
+import React, { useEffect, useContext } from "react";
 import CategoryBar from "./CategoryBar";
 import ShieldBlock from "./ShieldBlock";
 import ScoreCard from './ScoreCard';
 import AnalyticsWebsiteVisits from './AnalyticsWebsiteVisits';
 import AnalyticsUserAction from "./AnalyticsUserAction";
 import StatsRow from "./StateRow";
-import axios from "axios"; // ✅ Import axios
+import axios from "axios";
+import { useTheme } from "../../context/ThemeContext"; // ✅ Context for darkMode
 
 const calculateGrade = (score) => {
   if (score >= 90) return "A+";
@@ -18,18 +19,18 @@ const calculateGrade = (score) => {
 };
 
 export default function Dashboard() {
+
+const { darkMode } = useTheme();
   useEffect(() => {
     const fetchThemeColors = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/auth/theme-color`,{ withCredentials: true });
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/auth/theme-color`, {
+          withCredentials: true,
+        });
         const { primaryColor, secondaryColor } = response.data;
 
-        if (primaryColor) {
-          localStorage.setItem("primaryColor", primaryColor);
-        }
-        if (secondaryColor) {
-          localStorage.setItem("secondaryColor", secondaryColor);
-        }
+        if (primaryColor) localStorage.setItem("primaryColor", primaryColor);
+        if (secondaryColor) localStorage.setItem("secondaryColor", secondaryColor);
       } catch (error) {
         console.error("Error fetching theme colors:", error);
       }
@@ -37,19 +38,22 @@ export default function Dashboard() {
 
     fetchThemeColors();
   }, []);
+
+  const primaryColor = localStorage.getItem('primaryColor') || (darkMode ? "#90caf9" : "#1976d2");
+
   const statsData = [
     { id: 1, value: 2915, description: 'Users Clicked on Phishing Email', icon: '📊' },
     { id: 2, value: 1012, description: 'Submitted Data on Phishing Page', icon: '📈' },
     { id: 3, value: 6684, description: 'Total Phishing email Sent', icon: '📉' },
     { id: 4, value: 940, description: 'Completed all Trainings', icon: '🥧' }
   ];
-  return (
-    <div className="dashboard">
 
-      {/* Row 1: Score Cards */}
+  return (
+    <div className={`dashboard ${darkMode ? "dashboard--dark" : "dashboard--light"}`}>
+      {/* Row 1: Stats */}
       <div className="dashboard__row">
         <div className="dashboard__col--quarter">
-          <StatsRow stats={statsData} />
+          <StatsRow stats={statsData} darkMode={darkMode} />
         </div>
       </div>
 
@@ -58,46 +62,48 @@ export default function Dashboard() {
         <div className="dashboard__col--half">
           <AnalyticsWebsiteVisits
             title="Total Phished User"
-            subheader="Depaetment wise"
+            subheader="Department wise"
             chart={{
-              colors: [localStorage.getItem('primaryColor')],
-              categories: ['Account', 'HR', 'VAPT', 'ASM', 'CIDR', 'IT', 'OT', 'Devlopment', 'Sales'],
+              colors: [primaryColor],
+              categories: ['Account', 'HR', 'VAPT', 'ASM', 'CIDR', 'IT', 'OT', 'Development', 'Sales'],
               series: [
                 { name: 'Team A', data: [43, 33, 22, 37, 67, 68, 37, 24, 55] }
               ],
             }}
+            darkMode={darkMode}
           />
         </div>
         <div className="dashboard__col--half">
-          <AnalyticsUserAction />
+          <AnalyticsUserAction darkMode={darkMode} />
         </div>
       </div>
 
-      {/* Row 3: Organization Score */}
+      {/* Row 3: Score Cards */}
       <div className="dashboard__row">
         <div className="dashboard__col--half">
-          <ScoreCard title="Risky user" score={75} grade={calculateGrade(75)}  final="100"/>
+          <ScoreCard title="Risky user" score={75} grade={calculateGrade(75)} final="100" darkMode={darkMode} />
         </div>
         <div className="dashboard__col--half">
-          <ScoreCard title="Compromized user" score={75} grade={calculateGrade(75)} final="100"/>
+          <ScoreCard title="Compromised user" score={75} grade={calculateGrade(75)} final="100" darkMode={darkMode} />
         </div>
       </div>
+
       {/* Row 4: Organization Score */}
       <div className="dashboard__row">
         <div className="dashboard__col--half">
-          <ScoreCard title="Organization Score" score={75} grade={calculateGrade(75)} final="100" />
+          <ScoreCard title="Organization Score" score={75} grade={calculateGrade(75)} final="100" darkMode={darkMode} />
         </div>
       </div>
-      {/* Row 5: Shield Cards */}
+
+      {/* Optional: Shield Blocks */}
       {/* <div className="dashboard__row">
         <div className="dashboard__col--third">
-          <ShieldBlock title="Web Findings" critical={4} high={9} medium={13} low={23} />
+          <ShieldBlock title="Web Findings" critical={4} high={9} medium={13} low={23} darkMode={darkMode} />
         </div>
         <div className="dashboard__col--third">
-          <ShieldBlock title="Mobile Security" critical={3} high={6} medium={7} low={15} />
+          <ShieldBlock title="Mobile Security" critical={3} high={6} medium={7} low={15} darkMode={darkMode} />
         </div>
       </div> */}
     </div>
-
   );
 }
