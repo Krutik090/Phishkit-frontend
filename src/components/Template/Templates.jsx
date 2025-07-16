@@ -69,18 +69,18 @@ const Templates = () => {
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/templates`);
+      const res = await fetch(`${API_BASE_URL}/templates`, {
+        credentials: "include",
+      });
       const data = await res.json();
       setTemplates(data);
-      
-      // Reload DataTable after fetching new data
+
       setTimeout(() => {
-        if (dataTableRef.current) {
-          reloadDataTable();
-        }
+        initializeDataTable();
       }, 100);
     } catch (err) {
       console.error("Failed to fetch templates:", err);
+      toast.error("Failed to load templates");
     }
   };
 
@@ -100,26 +100,24 @@ const Templates = () => {
     setIsModalOpen(false);
     setSelectedTemplate(null);
   };
-
   const confirmDelete = async () => {
     try {
       const id = deleteDialog.template.id;
-      const res = await fetch(`${API_BASE_URL}/templates/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
-      
-      // Update state and reload DataTable
+
+      const res = await fetch(`${API_BASE_URL}/templates/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete template");
+
       setTemplates((prev) => prev.filter((t) => t.id !== id));
-      
-      // Reload DataTable after state update
-      setTimeout(() => {
-        if (dataTableRef.current) {
-          reloadDataTable();
-        }
-      }, 100);
-      
+      toast.success("Template deleted");
+
+      setTimeout(() => reloadDataTable(), 100);
     } catch (err) {
-      console.error(err);
-      alert("Failed to delete template");
+      console.error("❌ Delete failed:", err);
+      toast.error("Failed to delete template");
     } finally {
       setDeleteDialog({ open: false, template: null });
     }
@@ -175,7 +173,7 @@ const Templates = () => {
         </thead>
         <tbody>
           {templates.map((template) => (
-            <tr key={template.id}>
+            <tr key={template._id}>
               <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{template.name}</td>
               <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
                 <Tooltip title="Edit">

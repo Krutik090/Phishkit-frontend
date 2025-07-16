@@ -32,15 +32,41 @@ const LdapConfigDialog = ({ open, onClose }) => {
     searchFilter: "",
   });
 
+  const [configExists, setConfigExists] = useState(false);
+
+  const resetForm = () => {
+    setConfig({
+      url: "",
+      bindDN: "",
+      bindCredentials: "",
+      searchBase: "",
+      searchFilter: "",
+    });
+    setConfigExists(false);
+  };
+
+  // 🔄 Load existing config on dialog open
   useEffect(() => {
-    if (!open) {
-      setConfig({
-        url: "",
-        bindDN: "",
-        bindCredentials: "",
-        searchBase: "",
-        searchFilter: "",
-      });
+    if (open) {
+      fetch(`${API_BASE_URL}/ldap`, {
+        method: "GET",
+        credentials: "include",
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && !data.error) {
+            setConfig(data);
+            setConfigExists(true);
+          } else {
+            resetForm(); // no config
+          }
+        })
+        .catch((err) => {
+          console.error("❌ Failed to fetch LDAP config:", err);
+          toast.error("Could not load LDAP config.");
+        });
+    } else {
+      resetForm();
     }
   }, [open]);
 
@@ -50,41 +76,37 @@ const LdapConfigDialog = ({ open, onClose }) => {
 
   const handleTestConnection = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/check`, {
+      const res = await fetch(`${API_BASE_URL}/check`, {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
-
-      const data = await response.json();
-
+      const data = await res.json();
       if (data.error) throw new Error(data.error);
-
       toast.success("LDAP connection successful!");
     } catch (err) {
-      toast.error(err.message || "Failed to connect to LDAP");
-      console.error(err);
+      console.error("❌ LDAP Test Error:", err.message);
+      toast.error(err.message || "Failed to test LDAP connection.");
     }
   };
 
   const handleSaveConfiguration = async () => {
     try {
+      const method = configExists ? "PUT" : "POST";
       const response = await fetch(`${API_BASE_URL}/ldap`, {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config),
         credentials: "include",
+        body: JSON.stringify(config),
       });
 
       const data = await response.json();
-
       if (data.error) throw new Error(data.error);
 
       toast.success("LDAP configuration saved!");
-      onClose(); // Close dialog on success
+      onClose();
     } catch (err) {
-      toast.error(err.message || "Failed to save configuration");
-      console.error(err);
+      console.error("❌ Save Config Error:", err.message);
+      toast.error(err.message || "Failed to save LDAP configuration.");
     }
   };
 

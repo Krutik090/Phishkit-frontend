@@ -80,30 +80,34 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
 
   const handleSave = async () => {
     try {
-      const attachmentPromises = files.map((file) => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const base64 = reader.result.split(",")[1];
-            resolve({
-              content: base64,
-              type: file.type,
-              name: file.name,
+      const processed = await Promise.all(
+        attachments.map(async (att) => {
+          if (att.file) {
+            const reader = new FileReader();
+            return new Promise((resolve, reject) => {
+              reader.onload = () => {
+                const base64 = reader.result.split(",")[1];
+                resolve({
+                  name: att.file.name,
+                  type: att.file.type,
+                  content: base64,
+                });
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(att.file);
             });
-          };
-          reader.onerror = (error) => reject(error);
-          reader.readAsDataURL(file);
-        });
-      });
-
-      const processedAttachments = await Promise.all(attachmentPromises);
+          } else {
+            return att; // Already base64 format
+          }
+        })
+      );
 
       const payload = {
         name,
         subject,
-        text: textContent,
         html: htmlContent,
-        attachments: processedAttachments,
+        text: textContent,
+        attachments: processed,
       };
 
       const url = templateData?.id
@@ -112,24 +116,24 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
 
       const method = templateData?.id ? "PUT" : "POST";
 
-      const response = await fetch(url, {
+      const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // 🔐 multi-tenant session support
         body: JSON.stringify(templateData?.id ? { id: templateData.id, ...payload } : payload),
       });
 
-      if (!response.ok) throw new Error("Failed to save template");
+      if (!res.ok) throw new Error("Failed to save template");
 
-      const savedData = await response.json();
-
-      toast.success("Template saved successfully!");
-      setTimeout(() => {
-        onSave(savedData);
-        onClose();
-      }, 1000);
-    } catch (error) {
-      console.error(error);
-      toast.error("Error saving template. Please try again.");
+      const saved = await res.json();
+      toast.success("Template saved!");
+      onSave(saved);
+      onClose();
+    } catch (err) {
+      console.error("Template save error:", err);
+      toast.error("Error saving template");
     }
   };
 
@@ -191,12 +195,12 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           IMPORT EMAIL
         </Button> */}
 
-  
+
         <Typography variant="body2" fontWeight="500" mb={0.5}>
           Subject
         </Typography>
         <TextField
-          fullWidth 
+          fullWidth
           variant="outlined"
           margin="dense"
           sx={pinkTextFieldSx}

@@ -106,7 +106,7 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
         .filter((u) => u.firstName && u.email && isValidEmail(u.email))
         .map((u) => ({
           first_name: u.firstName,
-          last_name: u.lastName || '',  
+          last_name: u.lastName || '',
           email: u.email,
           position: "N/A",
         }));
@@ -119,38 +119,41 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
     }
   };
 
-  const handleSave = async () => {
-    const isEditing = mode === "edit" && groupData?.id;
-    const data = {
-      id: isEditing ? groupData.id : Date.now(),
-      name: groupName,
-      targets: users,
-      modified_date: new Date().toISOString(),
-    };
+const handleSave = async () => {
+  const isEditing = mode === "edit" && groupData?.id;
 
-    try {
-      const url = isEditing
-        ? `${API_BASE_URL}/groups/${groupData.id}`
-        : `${API_BASE_URL}/groups`;
-
-      const method = isEditing ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) throw new Error("Network response was not ok");
-
-      toast.success("Group saved successfully!");
-      onSave(data);
-      handleClose();
-    } catch (err) {
-      toast.error("Failed to save group. Please try again.");
-      console.error(err);
-    }
+  const payload = {
+    name: groupName,
+    targets: users,
   };
+
+  const url = isEditing
+    ? `${API_BASE_URL}/groups/${groupData.id}`
+    : `${API_BASE_URL}/groups`;
+
+  const method = isEditing ? "PUT" : "POST";
+
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) throw new Error("Network response was not ok");
+
+    const responseData = await response.json();
+
+    toast.success("Group saved successfully!");
+    onSave(responseData);
+    handleClose();
+  } catch (err) {
+    toast.error("Failed to save group. Please try again.");
+    console.error(err);
+  }
+};
+
 
   return (
     <>
