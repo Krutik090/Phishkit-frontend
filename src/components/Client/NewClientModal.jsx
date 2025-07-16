@@ -41,14 +41,14 @@ const NewClientModal = ({
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) throw new Error("Failed to create client");
+      if (!response.ok) throw new Error("Failed to create Project");
 
-      toast.success("Client added successfully!");
+      toast.success("Project added successfully!");
       onClose();
       refreshClients();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to add client");
+      toast.error("Failed to add Project");
     }
   };
 
