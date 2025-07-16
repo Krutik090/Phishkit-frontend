@@ -175,7 +175,7 @@ const SendingProfiles = () => {
             setOpenModal(true);
           }}
           sx={{
-            background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+            background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
             color: "#fff",
             fontWeight: "bold",
             borderRadius: "8px",

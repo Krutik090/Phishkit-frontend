@@ -7,10 +7,10 @@ const config = {
   botName: "PhishKit AI",
   customStyles: {
     botMessageBox: {
-      backgroundColor: "#ec008c",
+      backgroundColor: localStorage.getItem('primaryColor'),
     },
     chatButton: {
-      backgroundColor: "#ec008c",
+      backgroundColor: localStorage.getItem('primaryColor'),
     },
   },
 };

@@ -33,7 +33,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Dashboard from "./components/Dashboard/Dashboard";
 import "./components/Dashboard/dashboard.css";
-
+import {ThemeProvider} from "./components/Settings/Settings"
 import SupportChatBot from "./components/chatbot/SupportChatBot"; // ✅ Chatbot
 import User_Client from "./components/User_Clients/User_Client";
 
@@ -45,6 +45,7 @@ function AppContent() {
   const isDark = isLoginPage ? false : darkMode;
 
   return (
+    <ThemeProvider>
     <Box
       className={`min-h-screen ${isDark ? "text-white" : "text-black"}`}
       sx={{
@@ -107,6 +108,7 @@ function AppContent() {
         theme={isDark ? "dark" : "light"}
       />
     </Box>
+    </ThemeProvider>
   );
 }
 

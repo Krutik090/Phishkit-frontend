@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import { useTheme } from "../../context/ThemeContext";
+// import { primaryColorGlobal,secondaryColorGlobal } from "../Settings/Settings";
+import { useThemeColors } from "../Settings/Settings";
 import {
   FaTable,
   FaEnvelope,
@@ -46,7 +48,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
 
   const bgColor = darkMode ? "#1e1e2f" : "#ffffff";
   const textColor = darkMode ? "#ffffffcc" : "#333333";
-  const primaryColor = "#ec008c";
+  const primaryColor = localStorage.getItem('primaryColor'); //kathan
   const activeBg = darkMode ? primaryColor : primaryColor + "33";
   const activeText = darkMode ? "#ffffff" : primaryColor;
 
@@ -86,10 +88,10 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        borderRight: `1px solid ${darkMode ? "#ec008c" : "#ec008c66"}`,
+        borderRight: `1px solid ${darkMode ? localStorage.getItem('primaryColor') : localStorage.getItem('primaryColor')}`, //kathan 
         boxShadow: darkMode
-          ? "0 0 10px rgba(236, 0, 140, 0.3)"
-          : "0 0 10px rgba(236, 0, 140, 0.1)",
+          ? `0 0 10px ${localStorage.getItem('primaryColor')}` //kathan
+          : `0 0 10px ${localStorage.getItem('primaryColor')}`, //kathan
         position: "fixed",
         top: 0,
         left: 0,

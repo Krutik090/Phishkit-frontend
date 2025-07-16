@@ -169,7 +169,7 @@ const UsersGroups = () => {
         <Box display="flex" gap={2}>
           <Button variant="outlined" onClick={() => setLdapDialogOpen(true)}
             sx={{
-              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
               color: "#fff",
               fontWeight: "bold",
               borderRadius: "8px",
@@ -184,7 +184,7 @@ const UsersGroups = () => {
           </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={handleNewGroup}
             sx={{
-              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
               color: "#fff",
               fontWeight: "bold",
               borderRadius: "8px",

@@ -295,7 +295,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
             </Box>
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>Launch Date</Typography>
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
+              {/* <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DateTimePicker
                   value={dayjs(safeFormData.schedule)}
                   onChange={(val) => setFormData((prev) => ({ ...prev, schedule: val }))}
@@ -311,7 +311,26 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
                     },
                   }}
                 />
-              </LocalizationProvider>
+              </LocalizationProvider> */}
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+  <DateTimePicker
+    value={dayjs(safeFormData.schedule)}
+    onChange={(val) =>
+      setFormData((prev) => ({ ...prev, schedule: val }))
+    }
+    timeSteps={{ minutes: 1 }}
+    slotProps={{
+      textField: {
+        fullWidth: true,
+        sx: {
+          "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+            borderColor: pink[500], // pink is an object with shades, like pink[500]
+          },
+        },
+      },
+    }}
+  />
+</LocalizationProvider>
             </Box>
           </Box>
 

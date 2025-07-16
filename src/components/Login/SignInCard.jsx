@@ -94,7 +94,7 @@ export default function SignInCard() {
 
       toast.success("Welcome back!", { autoClose: 2000 });
       setTimeout(() => {
-        navigate('/campaigns');
+        navigate('/dashboard');
       }, 1500);
     } catch (error) {
       const message = error.response?.data?.message;
