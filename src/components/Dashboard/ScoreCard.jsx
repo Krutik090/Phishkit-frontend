@@ -27,7 +27,7 @@ export default function ScoreCard({ title, score, grade, final, darkMode = false
     >
       <div className="gauge-container">
         <div className="gauge-border">
-          <div className="gauge-inner" style={{ transform: `rotate(${(displayedScore / final) * 180 - 90}deg)` }}></div>
+          <div className="gauge-inner" style={{ backgroundColor: localStorage.getItem('primaryColor'), transform: `rotate(${(displayedScore / final) * 180 - 90}deg)` }}></div>
         </div>
         <div style={{ marginTop: '8px', color: darkMode ? '#cccccc' : '#444444' }}>
           {displayedScore} / {final}

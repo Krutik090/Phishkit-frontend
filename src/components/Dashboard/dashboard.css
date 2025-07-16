@@ -67,47 +67,87 @@ body {
   background-color: #f5f7fa;
 }
 
-/* Gauge Styling */
+/* Gauge Container */
 .gauge-container {
+  text-align: center;
+  width: 200px;
+  margin: 20px auto;
+  font-family: sans-serif;
   position: relative;
-  height: 120px;
 }
 
+/* Outer arc with gradient border */
 .gauge-border {
-  width: 100px;
-  height: 50px;
-  border: 6px solid #EC008c;
-  border-bottom: none;
-  border-radius: 100px 100px 0 0;
-  margin: auto;
+  width: 120px;
+  height: 60px;
+  margin: 0 auto;
+  border-radius: 120px 120px 0 0;
+  background: conic-gradient(
+    from 180deg,
+    #32CD32 0%,
+    #FFA500 50%,
+    #FF0000 100%
+  );
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
+/* Clear inner semicircle creating the 'border only' effect */
+.gauge-border::before {
+  content: "";
+  position: absolute;
+  top: 10px;    /* controls thickness of border */
+  left: 10px;
+  width: 100px; /* slightly smaller to create border thickness */
+  height: 50px;
+  background-color: white; /* or background color of container */
+  border-radius: 100px 100px 0 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Needle */
 .gauge-inner {
   width: 4px;
   height: 60px;
-  background-color: #EC008c;
   position: absolute;
   bottom: 0;
   left: 50%;
   transform-origin: bottom center;
   transition: transform 1s ease-out;
+  z-index: 3; /* above border */
+  background-color: #FFA500; /* default needle color, you can customize */
 }
 
-.gauge-label {
+/* Needle colors by severity */
+.gauge-inner.critical {
+  background-color: #FF0000;
+}
+.gauge-inner.high {
+  background-color: #FF4500;
+}
+.gauge-inner.medium {
+  background-color: #FFA500;
+}
+.gauge-inner.low {
+  background-color: #32CD32;
+}
+
+/* Score Text */
+.score {
   margin-top: 10px;
+  font-weight: 500;
+  color: #333;
+}
+
+.grade {
   font-weight: bold;
 }
 
-.gauge-grade {
-  color: #666;
-  font-size: 14px;
-}
-
-/* Responsive Chart Container */
-.analytics-website-visits {
-  width: 100%;
+.label {
+  margin-top: 5px;
+  font-size: 16px;
+  font-weight: bold;
 }
 
 @media (max-width: 768px) {
