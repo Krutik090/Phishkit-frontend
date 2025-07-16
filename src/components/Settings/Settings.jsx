@@ -349,18 +349,18 @@ const SettingsContent = () => {
   const handleApplyTheme = async () => {
     window.location.reload(true);
     setStatus('applying');
-    // try {
-    //   await axios.put(
-    //     `${API_BASE_URL}/auth/theme`,
-    //     { primaryColor, secondaryColor },
-    //     { withCredentials: true }
-    //   );
-    //   setStatus('success');
-    //   window.location.reload();
-    // } catch (err) {
-    //   console.error('Theme update failed:', err);
-    //   setStatus('error');
-    // }
+    try {
+      await axios.put(
+        `${API_BASE_URL}/auth/update-theme`,
+        { primaryColor, secondaryColor},
+        { withCredentials: true }
+      );
+      setStatus('success');
+      window.location.reload();
+    } catch (err) {
+      console.error('Theme update failed:', err);
+      setStatus('error');
+     }
   };
 
   const handleEnableMFA = async (checked) => {

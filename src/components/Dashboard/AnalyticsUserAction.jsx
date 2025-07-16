@@ -52,8 +52,8 @@ export default function AnalyticsUserAction() {
       <LineChart
         height={300}
         series={[
-          { data: pData, label: 'Mails Sent', color: '#ec008c' },
-          { data: uData, label: 'Trainings Done', color: '#ff69b4' },
+          { data: pData, label: 'Mails Sent', color: localStorage.getItem("primaryColor") },
+          { data: uData, label: 'Trainings Done', color: localStorage.getItem("secondaryColor") },
           { data: qData, label: 'Quizzes Completed', color: '#ffc0cb' },
         ]}
         xAxis={[{ scaleType: 'point', data: xLabels }]}
