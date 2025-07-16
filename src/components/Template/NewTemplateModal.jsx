@@ -173,24 +173,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-
-        <Button
-          variant="contained"
-          sx={{
-            backgroundColor: pink,
-            color: "#fff",
-            fontWeight: "bold",
-            borderRadius: 1,
-            px: 2,
-            py: 1,
-            my: 2,
-            textTransform: "none",
-            "&:hover": { backgroundColor: "#d6007a" },
-          }}
-        >
-          IMPORT EMAIL
-        </Button>
-
   
         <Typography variant="body2" fontWeight="500" mb={0.5}>
           Subject
