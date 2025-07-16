@@ -18,6 +18,7 @@ import {
 } from "@mui/icons-material";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useTheme } from "../../context/ThemeContext"; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -38,6 +39,8 @@ const NewQuiz = () => {
   const [questions, setQuestions] = useState([
     { questionText: "", answers: ["", "", "", ""], correctIndex: null },
   ]);
+
+  const { darkMode } = useTheme(); 
 
   const fileInputRef = useRef();
 
@@ -192,7 +195,7 @@ const NewQuiz = () => {
           <IconButton onClick={() => navigate("/quizz")} color="primary">
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h5" fontWeight="bold" color="#343a40">
+          <Typography variant="h5" fontWeight="bold">
             {id ? "✏️ Edit Quiz" : "➕ Create New Quiz"}
           </Typography>
         </Box>
@@ -249,6 +252,7 @@ const NewQuiz = () => {
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
+          backgroundColor: darkMode ? "#FEC5F6" : "#fff",
         }}
       >
         <Box
@@ -278,7 +282,7 @@ const NewQuiz = () => {
           />
 
           {questions.map((q, qIdx) => (
-            <Paper key={qIdx} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+            <Paper key={qIdx} variant="outlined" sx={{ p: 2, borderRadius: 2, backgroundColor: darkMode ? "#FFE1FF" : "#f9f9f9",  }}>
               <Box display="flex" justifyContent="space-between" alignItems="center">
                 <Typography fontWeight="bold">Question {qIdx + 1}</Typography>
                 <Tooltip title="Delete Question">

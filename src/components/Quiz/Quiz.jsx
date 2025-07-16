@@ -10,8 +10,10 @@ import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
   UploadFile as UploadFileIcon
 } from "@mui/icons-material";
+import { Visibility as VisibilityIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import axios from "axios";
 
 const Quiz = () => {
   const navigate = useNavigate();
@@ -58,15 +60,15 @@ const Quiz = () => {
 
   const loadQuizzes = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/quizzes`);
-      const data = await res.json();
+      const res = await axios.get(`${API_BASE_URL}/quizzes`);
+      const data = res.data;
       const updatedData = data.map((q) => ({
         ...q,
         posterPathUrl: q.posterPath ? `${FILE_BASE_URL}/${q.posterPath}` : null,
       }));
       setQuizzes(updatedData);
 
-      // Initialize or reload DataTable after fetching new data
+      // Initialize DataTable after loading quizzes
       setTimeout(() => {
         if (updatedData.length > 0) {
           if (!dataTableRef.current) {
@@ -77,9 +79,11 @@ const Quiz = () => {
         }
       }, 100);
     } catch (err) {
+      console.error(err);
       toast.error("Failed to load quizzes.");
     }
   };
+
 
   const handlePosterUpload = async (e, quizId) => {
     const file = e.target.files[0];
@@ -215,7 +219,7 @@ const Quiz = () => {
                   )}
                 </td>
                 <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>
-                  <Box display="flex" justifyContent="center" alignItems="center" width="100%">
+                  <Box display="flex" justifyContent="center" alignItems="center" gap={1}>
                     <input
                       type="file"
                       accept=".pdf"
@@ -236,8 +240,20 @@ const Quiz = () => {
                         {quiz.posterPathUrl ? "Update Poster" : "Upload PDF"}
                       </Button>
                     </label>
+                    {quiz.posterPathUrl && (
+                      <Tooltip title="View Poster">
+                        <IconButton
+                          color="primary"
+                          size="small"
+                          onClick={() => window.open(`${API_BASE_URL}/quizzes/${quiz._id}/poster`, "_blank")}
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                   </Box>
                 </td>
+
                 <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>
                   <Tooltip title="Edit">
                     <IconButton size="small" color="secondary" onClick={() => navigate(`/quizz/edit/${quiz._id}`)}>

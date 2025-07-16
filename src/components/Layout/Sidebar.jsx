@@ -15,6 +15,7 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaTachometerAlt,
+  FaSignOutAlt
 } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import QuizIcon from "@mui/icons-material/Quiz";
@@ -68,9 +69,9 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   const menuItems =
     isAdmin === true
       ? [
-          ...baseMenuItems,
-          { label: "Clients", icon: <FaUsers />, path: "/clients-user" },
-        ]
+        ...baseMenuItems,
+        { label: "Clients", icon: <FaUsers />, path: "/clients-user" },
+      ]
       : baseMenuItems;
 
   if (isAdmin === null) return null;
@@ -180,6 +181,41 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
             </Tooltip>
           );
         })}
+      </Box>
+
+      <Box
+        onClick={async () => {
+          try {
+            await axios.post(`${import.meta.env.VITE_API_URL}/auth/logout`, {}, { withCredentials: true });
+            navigate("/login");
+          } catch (err) {
+            console.error("Logout failed:", err);
+          }
+        }}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: collapsed ? 0 : 1.5,
+          px: 2,
+          py: 1.5,
+          mb: 1,
+          borderRadius: "10px",
+          cursor: "pointer",
+          background: "linear-gradient(135deg, #ff416c, #ff4b2b)",
+          color: "#fff",
+          justifyContent: collapsed ? "center" : "flex-start",
+          transition: "all 0.3s ease-in-out",
+          boxShadow: "0 2px 8px rgba(255, 65, 108, 0.4)",
+          "&:hover": {
+            background: "linear-gradient(135deg, #ff5e7e, #ff6a45)",
+            boxShadow: "0 4px 12px rgba(255, 65, 108, 0.6)",
+          },
+        }}
+      >
+        <Box sx={{ fontSize: 18 }}>
+          <FaSignOutAlt />
+        </Box>
+        {!collapsed && <Box>Logout</Box>}
       </Box>
 
       <Box
