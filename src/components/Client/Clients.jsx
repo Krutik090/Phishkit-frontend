@@ -110,7 +110,7 @@ const Clients = () => {
             variant="contained"
             onClick={handleOpenModal}
             sx={{
-              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
               color: "#fff",
               fontWeight: "bold",
               borderRadius: "8px",
@@ -166,7 +166,7 @@ const Clients = () => {
                     verticalAlign: "middle",
                   }}
                 >
-                  <Link to={`/clients/${client._id}`} style={{ color: "#ec008c", fontWeight: "bold", textDecoration: "none" }}>
+                  <Link to={`/clients/${client._id}`} style={{ color: localStorage.getItem('primaryColor'), fontWeight: "bold", textDecoration: "none" }}>
                     {client.name}
                   </Link>
                 </td>
