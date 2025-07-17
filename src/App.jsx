@@ -85,6 +85,7 @@ function AppContent() {
           <Route path="quizz/edit/:id" element={<NewQuiz />} />
           <Route path="settings" element={<Settings />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/ai" element={<SupportChatBot></SupportChatBot>}/>
         </Route>
 
       </Routes>
