@@ -68,262 +68,173 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
     toast.success("File(s) added");
   };
 
+  
   const handleFileDelete = (index) => {
     const confirmed = window.confirm("Are you sure you want to delete this file?");
     if (confirmed) {
       setFiles((prev) => prev.filter((_, i) => i !== index));
       toast.success("File deleted");
-    } else {
-      toast.info("Delete cancelled");
     }
   };
 
   const handleSave = async () => {
+    if (!name.trim() || !subject.trim()) {
+      toast.warning("Name and Subject are required.");
+      return;
+    }
+
     try {
-      const processed = await Promise.all(
-        attachments.map(async (att) => {
-          if (att.file) {
-            const reader = new FileReader();
-            return new Promise((resolve, reject) => {
-              reader.onload = () => {
-                const base64 = reader.result.split(",")[1];
-                resolve({
-                  name: att.file.name,
-                  type: att.file.type,
-                  content: base64,
-                });
-              };
-              reader.onerror = reject;
-              reader.readAsDataURL(att.file);
+      const attachmentPromises = files.map((file) => {
+        if (file.content && file.name) return file; // already processed (editing existing)
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = reader.result.split(",")[1];
+            resolve({
+              content: base64,
+              type: file.type,
+              name: file.name,
             });
-          } else {
-            return att; // Already base64 format
-          }
-        })
-      );
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      });
+
+      const processedAttachments = await Promise.all(attachmentPromises);
 
       const payload = {
         name,
         subject,
-        html: htmlContent,
         text: textContent,
-        attachments: processed,
+        html: htmlContent,
+        attachments: processedAttachments,
       };
 
-      const url = templateData?.id
-        ? `${API_BASE_URL}/templates/${templateData.id}`
-        : `${API_BASE_URL}/templates`;
+      const method = templateData?._id ? "PUT" : "POST";
+      const url = `${API_BASE_URL}/templates${templateData?._id ? `/${templateData._id}` : ""}`;
 
-      const method = templateData?.id ? "PUT" : "POST";
-
-      const res = await fetch(url, {
+      const response = await fetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // 🔐 multi-tenant session support
-        body: JSON.stringify(templateData?.id ? { id: templateData.id, ...payload } : payload),
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(templateData?.id ? { id: templateData._id, ...payload } : payload),
       });
 
-      if (!res.ok) throw new Error("Failed to save template");
+      if (!response.ok) throw new Error("Failed to save template");
 
-      const saved = await res.json();
-      toast.success("Template saved!");
-      onSave(saved);
-      onClose();
-    } catch (err) {
-      console.error("Template save error:", err);
-      toast.error("Error saving template");
+      const savedData = await response.json();
+      toast.success("Template saved successfully!");
+      setTimeout(() => {
+        onSave(savedData);
+        onClose();
+      }, 500);
+    } catch (error) {
+      console.error("Save error:", error);
+      toast.error("Error saving template. Please try again.");
     }
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth="lg"
-      PaperProps={{
-        sx: {
-          width: "900px",
-          height: "900px",
-          maxHeight: "90vh",
-          borderRadius: "16px",
-          border: "2px solid #ec008c30",
-          boxShadow: "0 8px 24px rgba(236, 0, 140, 0.2)",
-        },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          fontWeight: "bold",
-          color: "#ec008c",
-          borderBottom: "1px solid #f8c6dd",
-          backgroundColor: "#fff0f7",
-        }}
-      >
-        ✉️ {templateData ? "Edit Email Template" : "New Email Template"}
-      </DialogTitle>
-
-      <DialogContent dividers sx={{ p: 4 }}>
-        <Typography variant="body2" fontWeight="500" mb={0.5}>
-          Name
-        </Typography>
-        <TextField
-          fullWidth
-          variant="outlined"
-          margin="dense"
-          sx={pinkTextFieldSx}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-
-        {/* <Button
-          variant="contained"
-          sx={{
-            backgroundColor: pink,
-            color: "#fff",
-            fontWeight: "bold",
-            borderRadius: 1,
-            px: 2,
-            py: 1,
-            my: 2,
-            textTransform: "none",
-            "&:hover": { backgroundColor: "#d6007a" },
-          }}
-        >
-          IMPORT EMAIL
-        </Button> */}
-
-
-        <Typography variant="body2" fontWeight="500" mb={0.5}>
-          Subject
-        </Typography>
-        <TextField
-          fullWidth
-          variant="outlined"
-          margin="dense"
-          sx={pinkTextFieldSx}
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-        />
-
-        <Tabs
-          value={tab}
-          onChange={(_, val) => setTab(val)}
-          sx={{
-            my: 2,
-            "& .MuiTabs-indicator": {
-              backgroundColor: pink,
-              height: 3,
-            },
-          }}
-          textColor="inherit"
-        >
-          <Tab label="Text" sx={{ color: tab === 0 ? pink : "#000", fontWeight: "bold" }} />
-          <Tab label="HTML" sx={{ color: tab === 1 ? pink : "#000", fontWeight: "bold" }} />
-        </Tabs>
-
-        <Typography variant="body2" fontWeight="500" mb={0.5}>
-          {tab === 0 ? "Text Content" : "HTML Content"}
-        </Typography>
-        <TextField
-          fullWidth
-          multiline
-          minRows={4}
-          placeholder={tab === 0 ? "Plain text content..." : "<html>HTML email...</html>"}
-          variant="outlined"
-          margin="dense"
-          sx={pinkTextFieldSx}
-          value={tab === 0 ? textContent : htmlContent}
-          onChange={(e) =>
-            tab === 0 ? setTextContent(e.target.value) : setHtmlContent(e.target.value)
-          }
-        />
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+      <DialogTitle>{templateData ? "Edit Template" : "New Template"}</DialogTitle>
+      <DialogContent>
+        <Box sx={{ my: 1 }}>
+          <TextField
+            fullWidth
+            label="Template Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            sx={pinkTextFieldSx}
+            margin="normal"
+          />
+          <TextField
+            fullWidth
+            label="Subject"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            sx={pinkTextFieldSx}
+            margin="normal"
+          />
+        </Box>
 
         <FormControlLabel
           control={
             <Switch
-              color="primary"
               checked={tracking}
               onChange={(e) => setTracking(e.target.checked)}
-              sx={{
-                "& .MuiSwitch-switchBase.Mui-checked": { color: pink },
-                "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-                  backgroundColor: pink,
-                },
-              }}
+              color="primary"
             />
           }
-          label="Add Tracking Image"
-          sx={{ mt: 2 }}
+          label="Enable Tracking"
+          sx={{ mb: 2 }}
         />
 
-        <Box mt={3}>
-          <Typography variant="body2" fontWeight="500" mb={1}>
-            Add Files
-          </Typography>
-          <input type="file" multiple onChange={handleFileChange} />
-        </Box>
+        <Tabs value={tab} onChange={(_, newValue) => setTab(newValue)} sx={{ mb: 2 }}>
+          <Tab label="HTML Content" />
+          <Tab label="Plain Text" />
+          <Tab label="Attachments" />
+        </Tabs>
 
-        {files.length > 0 && (
-          <Box mt={2}>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ backgroundColor: "#fde2ec" }}>
-                  <TableCell>File</TableCell>
-                  <TableCell>Size</TableCell>
-                  <TableCell>Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {files.map((file, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{file.name}</TableCell>
-                    <TableCell>{(file.size / 1024).toFixed(1)} KB</TableCell>
-                    <TableCell>
-                      <IconButton color="error" onClick={() => handleFileDelete(index)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
+        {tab === 0 && (
+          <TextField
+            label="HTML Body"
+            multiline
+            rows={10}
+            fullWidth
+            value={htmlContent}
+            onChange={(e) => setHtmlContent(e.target.value)}
+            sx={pinkTextFieldSx}
+          />
+        )}
+        {tab === 1 && (
+          <TextField
+            label="Plain Text Body"
+            multiline
+            rows={10}
+            fullWidth
+            value={textContent}
+            onChange={(e) => setTextContent(e.target.value)}
+            sx={pinkTextFieldSx}
+          />
+        )}
+        {tab === 2 && (
+          <Box>
+            <Button component="label" variant="outlined" sx={{ mb: 2 }}>
+              Upload Files
+              <input type="file" hidden multiple onChange={handleFileChange} />
+            </Button>
+            {files.length > 0 && (
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>File Name</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell align="right">Action</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {files.map((file, index) => (
+                    <TableRow key={file.name + index}>
+                      <TableCell>{file.name}</TableCell>
+                      <TableCell>{file.type || "Unknown"}</TableCell>
+                      <TableCell align="right">
+                        <IconButton onClick={() => handleFileDelete(index)}>
+                          <DeleteIcon color="error" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </Box>
         )}
       </DialogContent>
-
-      <DialogActions sx={{ p: 3 }}>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          sx={{
-            color: "#374151",
-            borderColor: "#d1d5db",
-            fontWeight: "bold",
-            borderRadius: 1,
-            textTransform: "none",
-          }}
-        >
-          CANCEL
-        </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          sx={{
-            background: "linear-gradient(to right, #ec4899, #d946ef)",
-            color: "#fff",
-            fontWeight: "bold",
-            borderRadius: 1,
-            textTransform: "none",
-            boxShadow: 1,
-            "&:hover": {
-              background: "linear-gradient(to right, #db2777, #c026d3)",
-            },
-          }}
-        >
-          SAVE TEMPLATE
+      <DialogActions>
+        <Button onClick={onClose} color="inherit">Cancel</Button>
+        <Button onClick={handleSave} variant="contained" sx={{ backgroundColor: pink }}>
+          Save
         </Button>
       </DialogActions>
     </Dialog>

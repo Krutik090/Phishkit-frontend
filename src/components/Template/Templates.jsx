@@ -20,6 +20,7 @@ import { pink } from "@mui/material/colors";
 import $ from "jquery";
 import "datatables.net";
 import "datatables.net-dt/css/dataTables.dataTables.min.css";
+import { toast } from "react-toastify";
 
 import NewTemplateModal from "./NewTemplateModal";
 
@@ -102,7 +103,7 @@ const Templates = () => {
   };
   const confirmDelete = async () => {
     try {
-      const id = deleteDialog.template.id;
+      const id = deleteDialog.template._id;
 
       const res = await fetch(`${API_BASE_URL}/templates/${id}`, {
         method: "DELETE",
@@ -111,7 +112,7 @@ const Templates = () => {
 
       if (!res.ok) throw new Error("Failed to delete template");
 
-      setTemplates((prev) => prev.filter((t) => t.id !== id));
+      setTemplates((prev) => prev.filter((t) => t._id !== id));
       toast.success("Template deleted");
 
       setTimeout(() => reloadDataTable(), 100);
@@ -123,7 +124,8 @@ const Templates = () => {
     }
   };
 
-  // Cleanup DataTable on component unmount
+ 
+
   useEffect(() => {
     return () => {
       if (dataTableRef.current) {
