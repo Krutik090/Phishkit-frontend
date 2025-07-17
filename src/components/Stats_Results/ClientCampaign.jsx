@@ -14,7 +14,7 @@ import "datatables.net-dt/css/dataTables.dataTables.min.css";
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const ClientCampaign = () => {
-  const { clientId } = useParams();
+  const { projectId } = useParams();
   const navigate = useNavigate();
   const tableRef = useRef(null);
 
@@ -24,7 +24,7 @@ const ClientCampaign = () => {
 
   useEffect(() => {
     fetchClientAndCampaigns();
-  }, [clientId]);
+  }, [projectId]);
 
   useEffect(() => {
     if (campaigns.length > 0 && tableRef.current) {
@@ -41,7 +41,7 @@ const ClientCampaign = () => {
   const fetchClientAndCampaigns = async () => {
     try {
       setLoading(true);
-      const clientRes = await fetch(`${API_BASE_URL}/clients/${clientId}`);
+      const clientRes = await fetch(`${API_BASE_URL}/projects/${projectId}`,{credentials : "include"});
       const text = await clientRes.text();
 
       let clientData;
@@ -85,7 +85,7 @@ const ClientCampaign = () => {
   const handleInsightsClick = () => {
     const campaignIds = campaigns.map((c) => c.id || c._id).filter(Boolean);
     const campaignNames = campaigns.map((c) => c.name || "Unnamed Campaign");
-    navigate(`/client/${clientId}/insights`, { state: { campaignIds, campaignNames } });
+    navigate(`/projects/${projectId}/insights`, { state: { campaignIds, campaignNames } });
   };
 
   const handleCampaignClick = (campaignId) => {

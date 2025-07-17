@@ -22,21 +22,22 @@ const style = {
   p: 4,
 };
 
-const NewClientModal = ({
+const NewProjectModal = ({
   open,
   onClose,
   formData,
   setFormData,
-  refreshClients,
+  refreshProjects,
 }) => {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSaveClient = async () => {
+  const handleSaveProject = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/clients`, {
+      const response = await fetch(`${API_BASE_URL}/projects`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
@@ -45,7 +46,7 @@ const NewClientModal = ({
 
       toast.success("Project added successfully!");
       onClose();
-      refreshClients();
+      refreshProjects();
     } catch (err) {
       console.error(err);
       toast.error("Failed to add Project");
@@ -73,7 +74,7 @@ const NewClientModal = ({
           <Button
             variant="contained"
             sx={{ backgroundColor: "#ec008c", color: "#fff" }}
-            onClick={handleSaveClient}
+            onClick={handleSaveProject}
           >
             Save
           </Button>
@@ -83,4 +84,4 @@ const NewClientModal = ({
   );
 };
 
-export default NewClientModal;
+export default NewProjectModal;
