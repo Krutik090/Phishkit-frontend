@@ -21,8 +21,8 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-const pink = "#ec008c";
-const GRADIENT = `linear-gradient(to right, ${pink}, #d946ef)`;
+const pink = localStorage.getItem("primaryColor");
+const GRADIENT = `linear-gradient(to right, ${pink}, ${localStorage.getItem("secondaryColor")})`;
 
 const inputStyle = {
   width: "100%",
@@ -196,7 +196,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
 
   const handleSelectFocus = (e) => {
     e.target.style.borderColor = pink;
-    e.target.style.boxShadow = "0 0 0 0.15rem rgba(236, 0, 140, 0.25)";
+    e.target.style.boxShadow = `0 0 0 0.15rem ${localStorage.getItem("secondaryColor")}`;
   };
 
   const handleSelectBlur = (e) => {
@@ -212,11 +212,11 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
           height: "740px",
           maxHeight: "90vh",
           borderRadius: "16px",
-          border: "2px solid #ec008c30",
-          boxShadow: "0 8px 24px rgba(236, 0, 140, 0.2)",
+          border: `2px solid ${localStorage.getItem("secondaryColor")}`,
+          boxShadow: "0 8px 24px rgba(2, 2, 2, 0.2)",
         },
       }}>
-      <DialogTitle sx={{ fontWeight: "bold", color: pink, borderBottom: "1px solid #f8c6dd", backgroundColor: "#fff0f7" }}>
+      <DialogTitle sx={{ fontWeight: "bold", color: pink, borderBottom: `1px solid #f8c6dd ${localStorage.getItem("secondaryColor")}`, backgroundColor: `#e9f1f2 `}}>
         🎯 Add New Campaign
       </DialogTitle>
 
@@ -413,4 +413,3 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
 };
 
 export default NewCampaignModal;
-

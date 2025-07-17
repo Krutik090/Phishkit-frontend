@@ -183,7 +183,7 @@ const SendingProfiles = () => {
             py: 1,
             boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
             "&:hover": {
-              background: "linear-gradient(135deg, #d6007a, #ff478a)",
+              background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
             },
           }}
         >

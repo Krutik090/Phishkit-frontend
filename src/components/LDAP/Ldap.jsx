@@ -11,7 +11,7 @@ import {
 import { toast } from "react-toastify";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-const pink = "#ec008c";
+const pink = localStorage.getItem("primaryColor");
 
 const pinkTextFieldSx = {
   "& label.Mui-focused": { color: pink },
@@ -98,8 +98,8 @@ const LdapConfigDialog = ({ open, onClose }) => {
         sx: {
           width: "700px",
           borderRadius: "16px",
-          border: "2px solid #ec008c30",
-          boxShadow: "0 8px 24px rgba(236, 0, 140, 0.2)",
+          border: `2px solid ${localStorage.getItem("primaryColor")}`,
+          boxShadow: `0 8px 24px ${localStorage.getItem("primaryColor")}`,
         },
       }}
     >
@@ -107,8 +107,8 @@ const LdapConfigDialog = ({ open, onClose }) => {
         sx={{
           fontWeight: "bold",
           color: pink,
-          borderBottom: "1px solid #f8c6dd",
-          backgroundColor: "#fff0f7",
+          borderBottom: `1px solid ${localStorage.getItem("primaryColor")}`,
+          backgroundColor: "#f5f5f5",
         }}
       >
         🛠️ LDAP Configuration
@@ -158,14 +158,14 @@ const LdapConfigDialog = ({ open, onClose }) => {
           onClick={handleTestConnection}
           variant="contained"
           sx={{
-            background: "linear-gradient(to right, #3b82f6, #6366f1)",
+            background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
             color: "#fff",
             fontWeight: "bold",
             borderRadius: 1,
             textTransform: "none",
             boxShadow: 1,
             "&:hover": {
-              background: "linear-gradient(to right, #2563eb, #4f46e5)",
+              background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
             },
           }}
         >
@@ -176,14 +176,14 @@ const LdapConfigDialog = ({ open, onClose }) => {
           onClick={handleSaveConfiguration}
           variant="contained"
           sx={{
-            background: "linear-gradient(to right, #ec4899, #d946ef)",
+            background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
             color: "#fff",
             fontWeight: "bold",
             borderRadius: 1,
             textTransform: "none",
             boxShadow: 1,
             "&:hover": {
-              background: "linear-gradient(to right, #db2777, #c026d3)",
+              background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
             },
           }}
         >

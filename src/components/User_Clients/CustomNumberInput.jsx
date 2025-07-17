@@ -6,7 +6,7 @@ import { styled } from '@mui/system';
 import RemoveIcon from '@mui/icons-material/Remove';
 import AddIcon from '@mui/icons-material/Add';
 
-const pink = '#ec008c';
+const pink = localStorage.getItem("primaryColor");
 
 const CustomNumberInput = React.forwardRef((props, ref) => {
     return (
@@ -69,7 +69,7 @@ const StyledInput = styled('input')`
 const StyledButton = styled('button')`
   width: 32px;
   height: 32px;
-  background: #fff0f7;
+  background: #f5f5f5;
   border: 1px solid ${pink}40;
   color: ${pink};
   border-radius: 999px;
