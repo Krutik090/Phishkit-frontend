@@ -34,7 +34,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Dashboard from "./components/Dashboard/Dashboard";
 import "./components/Dashboard/dashboard.css";
-import UserManagement from "./components/User_Management/UserManagement";
+import {ThemeProvider} from "./components/Settings/Settings"import UserManagement from "./components/User_Management/UserManagement";
 import SuperAdminRoutes from "./Super_Admin/SuperAdminRoutes";
 import Database_Collection from "./components/Database/Database";
 
@@ -63,6 +63,7 @@ function AppContent() {
   }
 
   return (
+    <ThemeProvider>
     <Box
       className={`min-h-screen ${isDark ? "text-white" : "text-black"}`}
       sx={{
@@ -145,6 +146,7 @@ function AppContent() {
         theme={isDark ? "dark" : "light"}
       />
     </Box>
+    </ThemeProvider>
   );
 }
 

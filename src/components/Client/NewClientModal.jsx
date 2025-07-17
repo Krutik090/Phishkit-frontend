@@ -72,7 +72,7 @@ const NewClientModal = ({
           <Button onClick={onClose}>Cancel</Button>
           <Button
             variant="contained"
-            sx={{ backgroundColor: "#ec008c", color: "#fff" }}
+            sx={{ backgroundColor: localStorage.getItem("primaryColor"), color: "#fff" }}
             onClick={handleSaveClient}
           >
             Save

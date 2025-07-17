@@ -1,4 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, {
+  useEffect,
+  useState,
+  createContext,
+  useContext,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -13,19 +18,81 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 
+// API & Style Constants
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-const GRADIENT = `linear-gradient(to right, #ec008c, #ff6a9f)`;
+const RED_GRADIENT = `linear-gradient(to right, #dc2626, #ef4444)`;
 
-export default function Settings() {
+// ✅ Theme Context (local only)
+export const ThemeContext = createContext();
+export const useThemeColors = () => useContext(ThemeContext);
+
+// ✅ Theme Provider wrapper
+
+export const ThemeProvider = ({ children }) => {
+  const [primaryColor, setPrimaryColor] = useState(() => {
+    return localStorage.getItem('primaryColor') || '#ec008c';
+  });
+
+  const [secondaryColor, setSecondaryColor] = useState(() => {
+    return localStorage.getItem('secondaryColor') || '#ff6a9f';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('primaryColor', primaryColor);
+  }, [primaryColor]);
+
+  useEffect(() => {
+    localStorage.setItem('secondaryColor', secondaryColor);
+  }, [secondaryColor]);
+
+  return (
+    <ThemeContext.Provider
+      value={{ primaryColor, secondaryColor, setPrimaryColor, setSecondaryColor }}
+    >
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+// export const ThemeProvider = ({ children }) => {
+//   const [primaryColor, setPrimaryColor] = useState('#ec008c');
+//   const [secondaryColor, setSecondaryColor] = useState('#ff6a9f');
+
+//   useEffect(() => {
+//     // axios
+//     //   .get(`${API_BASE_URL}/auth/theme`, { withCredentials: true })
+//     //   .then((res) => {
+//     //     setPrimaryColor(res.data.primaryColor || '#ec008c');
+//     //     setSecondaryColor(res.data.secondaryColor || '#ff6a9f');
+//     //   })
+//     //   .catch((err) => {
+//     //     console.error('Failed to fetch theme', err);
+//     //   });
+//   }, []);
+
+//   return (
+//     <ThemeContext.Provider
+//       value={{ primaryColor, secondaryColor, setPrimaryColor, setSecondaryColor }}
+//     >
+//       {children}
+//     </ThemeContext.Provider>
+//   );
+// };
+
+// ✅ Settings Component
+const SettingsContent = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { primaryColor, secondaryColor, setPrimaryColor, setSecondaryColor } =
+    useThemeColors();
 
+  const [user, setUser] = useState(null);
   const [enableMFA, setEnableMFA] = useState(false);
   const [qrCode, setQrCode] = useState(null);
   const [mfaCode, setMfaCode] = useState('');
   const [mfaSuccess, setMfaSuccess] = useState('');
   const [mfaError, setMfaError] = useState('');
   const [loadingQR, setLoadingQR] = useState(false);
+  const [status, setStatus] = useState(null);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -37,10 +104,10 @@ export default function Settings() {
     '& input::placeholder': { color: '#9ca3af', opacity: 1 },
     '& .MuiOutlinedInput-root': {
       '& fieldset': { borderColor: '#9ca3af' },
-      '&:hover fieldset': { borderColor: '#ec4899' },
+      '&:hover fieldset': { borderColor: primaryColor },
       '&.Mui-focused fieldset': {
-        borderColor: '#ec4899',
-        boxShadow: '0 0 0 2px rgba(236, 72, 153, 0.3)',
+        borderColor: primaryColor,
+        boxShadow: `0 0 0 2px ${primaryColor}44`,
       },
       mb: 2,
     },
@@ -52,6 +119,32 @@ export default function Settings() {
       .then((res) => setUser(res.data.user))
       .catch(() => navigate('/login'));
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API_BASE_URL}/auth/logout`, {}, { withCredentials: true });
+      navigate('/login');
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
+
+  const handleApplyTheme = async () => {
+    window.location.reload(true);
+    setStatus('applying');
+    try {
+      await axios.put(
+        `${API_BASE_URL}/auth/update-theme`,
+        { primaryColor, secondaryColor},
+        { withCredentials: true }
+      );
+      setStatus('success');
+      window.location.reload();
+    } catch (err) {
+      console.error('Theme update failed:', err);
+      setStatus('error');
+     }
+  };
 
   const handleEnableMFA = async (checked) => {
     setEnableMFA(checked);
@@ -66,6 +159,7 @@ export default function Settings() {
         const res = await axios.post(`${API_BASE_URL}/auth/mfa/setup`, {}, { withCredentials: true });
         setQrCode(res.data.qr);
       } catch (err) {
+        console.error('QR generation error:', err);
         setMfaError('Failed to generate QR code.');
       } finally {
         setLoadingQR(false);
@@ -77,15 +171,15 @@ export default function Settings() {
     e.preventDefault();
     setMfaSuccess('');
     setMfaError('');
-
     try {
       await axios.post(
         `${API_BASE_URL}/auth/mfa/verify`,
         { token: mfaCode.trim() },
         { withCredentials: true }
       );
-      setMfaSuccess('✅ MFA verified successfully!');
-    } catch {
+      setMfaSuccess('MFA verified successfully!');
+    } catch (err) {
+      console.error('MFA verification failed:', err);
       setMfaError('❌ Invalid MFA code. Please try again.');
     }
   };
@@ -111,22 +205,71 @@ export default function Settings() {
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      setPwdError(err.response?.data?.message || '❌ Failed to update password.');
+      setPwdError(err.response?.data?.message || 'Failed to update password.');
     }
   };
 
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>⚙️ Settings</Typography>
-      <Divider sx={{ my: 3 }} />
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4">⚙️ Settings</Typography>
+        <Button
+          onClick={handleLogout}
+          variant="contained"
+          sx={{
+            background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
+            color: 'white',
+            fontWeight: 500,
+            '&:hover': { background: RED_GRADIENT, opacity: 0.9 },
+          }}
+        >
+          Logout
+        </Button>
+      </Box>
 
-      {/* 🔒 Password Update */}
-      <Typography variant="h5" fontWeight="medium" gutterBottom>🔒 Change Password</Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        Choose a strong password you haven’t used before.
-      </Typography>
+      <Divider sx={{ my: 4 }} />
 
-      <Box component="form" onSubmit={handlePasswordUpdate} sx={{ maxWidth: 400 }}>
+      {/* Theme */}
+      <Typography variant="h5" gutterBottom>🎨 Theme Colors</Typography>
+      <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
+        <Box>
+          <Typography>Primary Color</Typography>
+          <input
+            type="color"
+            value={primaryColor}
+            onChange={(e) => setPrimaryColor(e.target.value)}
+            style={{ width: 60, height: 40, border: 'none', cursor: 'pointer' }}
+          />
+        </Box>
+        <Box>
+          <Typography>Secondary Color</Typography>
+          <input
+            type="color"
+            value={secondaryColor}
+            onChange={(e) => setSecondaryColor(e.target.value)}
+            style={{ width: 60, height: 40, border: 'none', cursor: 'pointer' }}
+          />
+        </Box>
+        <Button
+          variant="contained"
+          onClick={handleApplyTheme}
+          sx={{
+            background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
+            color: 'white',
+            fontWeight: 500,
+            mt: 2,
+          }}
+        >
+          Apply
+        </Button>
+        {status === 'success' && <Alert severity="success">Theme updated! Refreshing...</Alert>}
+        {status === 'error' && <Alert severity="error">Failed to update theme. Try again.</Alert>}
+      </Box>
+<Divider sx={{ my: 4 }} />
+      {/* Password */}
+      <Typography variant="h5" gutterBottom>🔒 Change Password</Typography>
+      <Box component="form" onSubmit={handlePasswordUpdate} sx={{ mt: 2, maxWidth: 400 }}>
         <TextField
           type="password"
           placeholder="Current Password"
@@ -158,29 +301,26 @@ export default function Settings() {
           type="submit"
           variant="contained"
           sx={{
-            background: GRADIENT,
+            background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
             color: 'white',
             fontWeight: 500,
-            '&:hover': { background: GRADIENT, opacity: 0.9 },
+            '&:hover': { opacity: 0.9 },
           }}
         >
           Update Password
         </Button>
-
         {pwdSuccess && <Alert severity="success" sx={{ mt: 2 }}>{pwdSuccess}</Alert>}
         {pwdError && <Alert severity="error" sx={{ mt: 2 }}>{pwdError}</Alert>}
       </Box>
 
       <Divider sx={{ my: 4 }} />
 
-      {/* 🔐 MFA */}
-      <Typography variant="h5" fontWeight="medium" gutterBottom>🔐 Multi-Factor Authentication</Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
+      {/* MFA */}
+      <Typography variant="h5" gutterBottom>🔐 Multi-Factor Authentication</Typography>
+      <Typography variant="body1" sx={{ mb: 2 }}>
         Add an extra layer of security using an authenticator app.
       </Typography>
-
       <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {/* Left */}
         <Box sx={{ flex: 1, minWidth: 300 }}>
           <FormControlLabel
             control={
@@ -191,7 +331,6 @@ export default function Settings() {
             }
             label="Enable Multi-Factor Authentication"
           />
-
           {enableMFA && (
             <Box component="form" onSubmit={handleVerifyMFA} sx={{ mt: 2 }}>
               <TextField
@@ -206,23 +345,19 @@ export default function Settings() {
                 type="submit"
                 variant="contained"
                 sx={{
-                  background: GRADIENT,
+                  mt: 2,
+                  background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
                   color: 'white',
                   fontWeight: 500,
-                  mt: 1,
-                  '&:hover': { background: GRADIENT, opacity: 0.9 },
                 }}
               >
                 Verify MFA
               </Button>
-
               {mfaSuccess && <Alert severity="success" sx={{ mt: 2 }}>{mfaSuccess}</Alert>}
               {mfaError && <Alert severity="error" sx={{ mt: 2 }}>{mfaError}</Alert>}
             </Box>
           )}
         </Box>
-
-        {/* Right: QR Code */}
         {enableMFA && (
           <Box
             sx={{
@@ -252,5 +387,14 @@ export default function Settings() {
         )}
       </Box>
     </Box>
+  );
+};
+
+// ✅ Final Export: self-contained with ThemeProvider
+export default function Settings() {
+  return (
+    <ThemeProvider>
+      <SettingsContent />
+    </ThemeProvider>
   );
 }

@@ -17,14 +17,14 @@ import {
 import { toast } from "react-toastify";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-const pink = "#ec008c";
+const pink = localStorage.getItem("primaryColor");
 
 const pinkTextFieldSx = {
   "& label.Mui-focused": { color: pink },
   "& .MuiOutlinedInput-root": {
     "&.Mui-focused fieldset": {
       borderColor: pink,
-      boxShadow: "0 0 0 0.15rem rgba(236, 0, 140, 0.25)",
+      boxShadow: `0 0 0 0.15rem localStorage.getItem("primaryColor")`,
     },
   },
 };
@@ -134,7 +134,7 @@ const NewUserModel = ({ open, onClose, user, onSave }) => {
         sx: {
           width: "600px",
           borderRadius: "16px",
-          border: "2px solid #ec008c30",
+          border: `2px solid ${localStorage.getItem("primaryColor")}`,
           boxShadow: "0 8px 24px rgba(236, 0, 140, 0.2)",
         },
       }}
@@ -142,9 +142,9 @@ const NewUserModel = ({ open, onClose, user, onSave }) => {
       <DialogTitle
         sx={{
           fontWeight: "bold",
-          color: "#ec008c",
-          borderBottom: "1px solid #f8c6dd",
-          backgroundColor: "#fff0f7",
+          color: localStorage.getItem("primaryColor"),
+          borderBottom: `1px solid ${localStorage.getItem("primaryColor")}`,
+          backgroundColor: "#f5f5f5",
         }}
       >
         👤 {user ? "Edit User" : "Add User"}
@@ -265,14 +265,14 @@ const NewUserModel = ({ open, onClose, user, onSave }) => {
           onClick={handleSave}
           variant="contained"
           sx={{
-            background: "linear-gradient(to right, #ec4899, #d946ef)",
+            background: `linear-gradient(to right,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
             color: "#fff",
             fontWeight: "bold",
             borderRadius: 1,
             textTransform: "none",
             boxShadow: 1,
             "&:hover": {
-              background: "linear-gradient(to right, #db2777, #c026d3)",
+              background: `linear-gradient(to right,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`
             },
           }}
         >

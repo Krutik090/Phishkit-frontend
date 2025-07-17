@@ -146,7 +146,7 @@ const Campaigns = () => {
               setOpenModal(true);
             }}
             sx={{
-              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
               color: "#fff",
               fontWeight: "bold",
               borderRadius: "8px",
@@ -182,7 +182,7 @@ const Campaigns = () => {
             {data.map((row) => (
               <tr key={row.id}>
                 <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>
-                  <Link to={`/campaign-results/${row.id}`} style={{ color: "#ec008c", fontWeight: "bold", textDecoration: "none" }}>
+                  <Link to={`/campaign-results/${row.id}`} style={{ color: `${localStorage.getItem('primaryColor')}`, fontWeight: "bold", textDecoration: "none" }}>
                     {row.name}
                   </Link>
                 </td>

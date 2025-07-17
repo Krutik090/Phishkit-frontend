@@ -49,7 +49,7 @@ const SupportChatBot = () => {
       <button
         onClick={toggleChat}
         style={{
-          backgroundColor: "#ec008c",
+          backgroundColor: `${localStorage.getItem('primaryColor')}`,
           border: "none",
           borderRadius: "50%",
           width: 60,

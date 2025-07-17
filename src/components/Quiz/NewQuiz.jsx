@@ -213,7 +213,7 @@ const NewQuiz = () => {
             startIcon={<UploadFileIcon />}
             onClick={() => fileInputRef.current.click()}
             sx={{
-              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              background: `linear-gradient(135deg,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
               color: "#fff",
               fontWeight: "bold",
               borderRadius: "8px",
@@ -228,7 +228,7 @@ const NewQuiz = () => {
             startIcon={<DownloadIcon />}
             onClick={handleSampleDownload}
             sx={{
-              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              background: `linear-gradient(135deg,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
               color: "#fff",
               fontWeight: "bold",
               borderRadius: "8px",
@@ -324,7 +324,7 @@ const NewQuiz = () => {
               startIcon={<AddIcon />}
               onClick={handleAddQuestion}
               sx={{
-                background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+                background: `linear-gradient(135deg,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
                 color: "#fff",
                 fontWeight: "bold",
                 borderRadius: "8px",
@@ -332,7 +332,7 @@ const NewQuiz = () => {
                 py: 1,
                 textTransform: "uppercase",
                 "&:hover": {
-                  background: "linear-gradient(135deg, #d6007a, #ff478a)",
+                  background: `linear-gradient(135deg,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
                 },
               }}
             >
@@ -346,7 +346,7 @@ const NewQuiz = () => {
           sx={{
             mt: 3,
             alignSelf: "center",
-            background: "linear-gradient(135deg, #28a745, #6fdc8c)",
+            background: `linear-gradient(135deg, ${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
             color: "#fff",
             fontWeight: "bold",
             borderRadius: "8px",

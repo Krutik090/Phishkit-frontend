@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import { useTheme } from "../../context/ThemeContext";
+// import { primaryColorGlobal,secondaryColorGlobal } from "../Settings/Settings";
+import { useThemeColors } from "../Settings/Settings";
 import { useAuth } from "../../context/AuthContext";
 import {
   FaTable,
@@ -62,7 +64,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
 
   const bgColor = darkMode ? "#1e1e2f" : "#ffffff";
   const textColor = darkMode ? "#ffffffcc" : "#333333";
-  const primaryColor = "#ec008c";
+  const primaryColor = localStorage.getItem('primaryColor'); //kathan
   const activeBg = darkMode ? primaryColor : primaryColor + "33";
   const activeText = darkMode ? "#ffffff" : primaryColor;
 
@@ -72,59 +74,113 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       : location.pathname === item.path;
 
 
-    return (
-      <Tooltip title={collapsed ? item.label : ""} placement="right" arrow key={item.label}>
-        <Box
-          onClick={() => {
-            if (item.newTab) {
-              window.open(item.path, "_blank", "noopener,noreferrer");
-            } else {
-              navigate(item.path);
-            }
-          }}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: collapsed ? 0 : 1.5,
-            px: 2,
-            py: 1.5,
-            my: 1,
-            borderRadius: "10px",
-            cursor: "pointer",
-            backgroundColor: isActive ? activeBg : "transparent",
-            color: isActive ? activeText : textColor,
-            fontWeight: isActive ? "bold" : "normal",
-            position: "relative",
-            overflow: "hidden",
-            transition: "all 0.2s ease-in-out",
-            justifyContent: collapsed ? "center" : "flex-start",
-            "&::before": {
-              content: '""',
-              position: "absolute",
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: "4px",
-              backgroundColor: primaryColor,
-              transform: isActive ? "scaleY(1)" : "scaleY(0)",
-              transition: "transform 0.3s ease-in-out",
-              transformOrigin: "top",
-              borderRadius: "4px",
-            },
-            "&:hover::before": {
-              transform: "scaleY(1)",
-            },
-          }}
+  return (
+    <Box
+      sx={{
+        width: collapsed ? 70 : { xs: 70, sm: 250 },
+        minWidth: collapsed ? 70 : { xs: 70, sm: 250 },
+        height: "100vh",
+        backgroundColor: bgColor,
+        color: textColor,
+        p: 2,
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        borderRight: `1px solid ${darkMode ? localStorage.getItem('primaryColor') : localStorage.getItem('primaryColor')}`, //kathan 
+        boxShadow: darkMode
+          ? `0 0 10px ${localStorage.getItem('primaryColor')}` //kathan
+          : `0 0 10px ${localStorage.getItem('primaryColor')}`, //kathan
+        position: "fixed",
+        top: 0,
+        left: 0,
+        zIndex: 1000,
+        transition: "all 0.3s ease-in-out",
+      }}
+    >
+      <Box
+        sx={{
+          mb: 3,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: collapsed ? "center" : "space-between",
+        }}
+      >
+        {!collapsed && (
+          <Box sx={{ fontSize: "22px", marginLeft: "25px", fontWeight: "bold", pl: 1 }}>
+            Tribastion
+          </Box>
+        )}
+        <IconButton
+          onClick={() => setCollapsed(!collapsed)}
+          size="small"
+          sx={{ color: textColor }}
         >
-          <Box sx={{ fontSize: 18 }}>{item.icon}</Box>
-          {!collapsed && <Box sx={{ fontSize: '14px' }}>{item.label}</Box>}
-        </Box>
-      </Tooltip>
-    );
-  };
+          {collapsed ? <FaChevronRight /> : <FaChevronLeft />}
+        </IconButton>
+      </Box>
 
-  const renderDropdown = (label, icon, open, setOpen, children) => (
-    <Box>
+      <Box sx={{ flexGrow: 1 }}>
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.path;
+
+          return (
+            <Tooltip
+              title={collapsed ? item.label : ""}
+              placement="right"
+              arrow
+              key={item.label}
+            >
+              <Box
+                onClick={() => {
+                  if (item.newTab) {
+                    window.open(item.path, "_blank", "noopener,noreferrer");
+                  } else {
+                    navigate(item.path);
+                  }
+                }}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: collapsed ? 0 : 1.5,
+                  px: 2,
+                  py: 1.5,
+                  my: 1,
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  backgroundColor: isActive ? activeBg : "transparent",
+                  color: isActive ? activeText : textColor,
+                  fontWeight: isActive ? "bold" : "normal",
+                  position: "relative",
+                  overflow: "hidden",
+                  transition: "all 0.2s ease-in-out",
+                  justifyContent: collapsed ? "center" : "flex-start",
+                  "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: "4px",
+                    backgroundColor: primaryColor,
+                    transform: isActive ? "scaleY(1)" : "scaleY(0)",
+                    transition: "transform 0.3s ease-in-out",
+                    transformOrigin: "top",
+                    borderRadius: "4px",
+                  },
+                  "&:hover::before": {
+                    transform: "scaleY(1)",
+                  },
+                }}
+              >
+                <Box sx={{ fontSize: 18 }}>{item.icon}</Box>
+                {!collapsed && <Box>{item.label}</Box>}
+              </Box>
+            </Tooltip>
+          );
+        })}
+      </Box>
+
       <Box
         onClick={() => setOpen(!open)}
         sx={{

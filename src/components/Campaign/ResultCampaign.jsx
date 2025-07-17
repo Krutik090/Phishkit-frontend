@@ -16,13 +16,13 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-const pink = "#ec008c";
+const pink = localStorage.getItem("secondaryColor");
 
 const ResultCampaign = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [campaign, setCampaign] = useState(null);
-
+  
   useEffect(() => {
     fetch(`${API_BASE_URL}/campaigns/${id}`)
       .then((res) => res.json())
@@ -32,6 +32,55 @@ const ResultCampaign = () => {
         alert("Failed to load campaign results.");
       });
   }, [id]);
+  const exportToCSV = () => {
+    if (!campaign?.results || campaign.results.length === 0) {
+      alert("No data to export.");
+      return;
+    }
+
+    const headers = ["First Name", "Last Name", "Email", "Position", "Status", "Reported"];
+    const rows = campaign.results.map((r) => [
+      r.first_name,
+      r.last_name,
+      r.email,
+      r.position || "",
+      r.status,
+      r.reported ? "Yes" : "No",
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `${campaign.name.replace(/\s+/g, "_")}_results.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  const handleDelete = async () => {
+  if (!confirm("Are you sure you want to delete this campaign?")) return;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/campaigns/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to delete campaign.");
+    }
+
+    alert("Campaign deleted successfully.");
+    navigate("/"); // Or wherever you want to redirect after deletion
+  } catch (error) {
+    console.error("Delete error:", error);
+    alert("Error deleting campaign.");
+  }
+};
 
   const countByStatus = (status) =>
     campaign?.results?.filter((r) => r.status === status)?.length || 0;
@@ -54,24 +103,24 @@ const ResultCampaign = () => {
       {/* Action Buttons */}
       <Box display="flex" gap={2} flexWrap="wrap" mb={4}>
         <Button variant="outlined" onClick={() => navigate(-1)}>🔙 Back</Button>
-        <Button variant="contained" color="success">Export CSV</Button>
+        <Button variant="contained" color="success" onClick={exportToCSV}>Export CSV</Button>
         <Button variant="contained" color="info">Mark Complete</Button>
-        <Button variant="contained" color="error">Delete</Button>
-        <Button variant="outlined" color="primary">🔄 Refresh</Button>
+        <Button variant="contained" color="error" onClick={handleDelete}>Delete</Button>
+        <Button variant="outlined" color="primary" onClick={() => window.location.reload()}>🔄 Refresh</Button>
       </Box>
 
       {/* Stats Summary */}
-      <Grid container spacing={3} justifyContent="center" mb={5}>
+      <Grid container spacing={3} justifyContent="center" mb={5}x color={localStorage.getItem("primaryColor")}>
         {[
-          { label: "Email Sent", value: campaign.results?.length },
+          { label: "Email Sent", value: campaign.results?.length},
           { label: "Email Opened", value: countByStatus("Email Opened") },
           { label: "Clicked Link", value: countByStatus("Clicked Link") },
           { label: "Submitted Data", value: countByStatus("Submitted Data") },
           { label: "Email Reported", value: countByStatus("Email Reported") },
         ].map((stat, i) => (
-          <Grid item xs={6} sm={4} md={2.4} key={i}>
+          <Grid item xs={6} sm={4} md={2.4} key={i} color={localStorage.getItem("primaryColor")}>
             <Box
-              bgcolor="#fff0f7"
+              bgcolor="#f5f5f5"
               border={`2px solid ${pink}`}
               borderRadius="12px"
               textAlign="center"
@@ -82,7 +131,7 @@ const ResultCampaign = () => {
               <Typography variant="h5" fontWeight="bold" color={pink}>
                 {stat.value}
               </Typography>
-              <Typography fontSize="14px" color="text.secondary">
+              <Typography fontSize="14px" color={localStorage.getItem("primaryColor")}>
                 {stat.label}
               </Typography>
             </Box>
@@ -97,7 +146,7 @@ const ResultCampaign = () => {
 
       <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: 3 }}>
         <Table size="small">
-          <TableHead sx={{ backgroundColor: "#fdf0f6" }}>
+          <TableHead sx={{ backgroundColor: localStorage.getItem("secondaryColor") }}>
             <TableRow>
               <TableCell><strong>First Name</strong></TableCell>
               <TableCell><strong>Last Name</strong></TableCell>
@@ -124,10 +173,10 @@ const ResultCampaign = () => {
                           r.status === "Submitted Data"
                             ? "#dc3545"
                             : r.status === "Clicked Link"
-                            ? "#fd7e14"
-                            : r.status === "Email Opened"
-                            ? "#ffc107"
-                            : "#6c757d",
+                              ? "#fd7e14"
+                              : r.status === "Email Opened"
+                                ? "#ffc107"
+                                : "#6c757d",
                         color: "#fff",
                         fontWeight: "bold",
                         px: 1.5,

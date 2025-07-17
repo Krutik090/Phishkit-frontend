@@ -169,30 +169,30 @@ const UsersGroups = () => {
         <Box display="flex" gap={2}>
           <Button variant="outlined" onClick={() => setLdapDialogOpen(true)}
             sx={{
-              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
               color: "#fff",
               fontWeight: "bold",
               borderRadius: "8px",
               px: 3,
               py: 1,
-              boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
+              boxShadow: `0 4px 10px ${localStorage.getItem("primaryColor")}`,
               "&:hover": {
-                background: "linear-gradient(135deg, #d6007a, #ff478a)",
+                background: `linear-gradient(135deg, ${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
               },
             }}>
             Upload LDAP Config
           </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={handleNewGroup}
             sx={{
-              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
               color: "#fff",
               fontWeight: "bold",
               borderRadius: "8px",
               px: 3,
               py: 1,
-              boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
+              boxShadow: `0 4px 10px ${localStorage.getItem("primaryColor")}`,
               "&:hover": {
-                background: "linear-gradient(135deg, #d6007a, #ff478a)",
+                background: `linear-gradient(135deg,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
               },
             }}
           >

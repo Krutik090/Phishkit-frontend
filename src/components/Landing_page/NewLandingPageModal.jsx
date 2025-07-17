@@ -15,8 +15,8 @@ import { Editor } from "@tinymce/tinymce-react";
 import { toast } from "react-toastify";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 
-const PINK = "#ec008c";
-const GRADIENT = `linear-gradient(to right, ${PINK}, #d946ef)`;
+const PINK = localStorage.getItem('primaryColor');
+const GRADIENT = `linear-gradient(to right, ${PINK}, ${localStorage.getItem('secondaryColor')})`;
 
 const inputStyle = {
   transition: "all 0.3s ease",
@@ -104,7 +104,7 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ fontWeight: "bold", color: PINK, backgroundColor: "#fff0f7" }}>
+      <DialogTitle sx={{ fontWeight: "bold", color: PINK, backgroundColor: "#f5f5f5" }}>
         {pageToEdit ? "✏️ Edit Landing Page" : "🌐 New Landing Page"}
       </DialogTitle>
 
