@@ -82,9 +82,9 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
     }
   }, [name, html, captureData, redirectUrl, onSave, onClose, pageToEdit]);
 
-  const handleImportSite = () => {
-    toast.info("🚧 Import Site functionality is under development.");
-  };
+  // const handleImportSite = () => {
+  //   toast.info("🚧 Import Site functionality is under development.");
+  // };
 
   const handleOpenFullscreenEditor = () => {
     localStorage.setItem("landingPageHtml", html);
@@ -125,13 +125,13 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
             />
           </Box>
 
-          <Button
+          {/* <Button
             variant="contained"
             onClick={handleImportSite}
             sx={{ backgroundColor: PINK }}
           >
             IMPORT SITE
-          </Button>
+          </Button> */}
 
           <Box>
             <Typography variant="body2" fontWeight={500} mb={1}>

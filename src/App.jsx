@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { Box } from "@mui/material";
 import { useTheme } from "./context/ThemeContext";
+import { useAuth } from "./context/AuthContext";
 import QuizTemplate from "./components/Quiz_Template/QuizTemplate";
 import Campaigns from "./components/Campaign/Campaigns";
 import ResultCampaign from "./components/Campaign/ResultCampaign";
@@ -27,22 +28,39 @@ import CampaignDetails from "./components/Stats_Results/CampaignDetails";
 import GraphView from "./components/Stats_Results/GraphView";
 import Login from "./components/Login/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
-import AdminRoute from "./components/AdminRoute";
+import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import Layout from "./components/Layout/Layout";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Dashboard from "./components/Dashboard/Dashboard";
 import "./components/Dashboard/dashboard.css";
-
-import SupportChatBot from "./components/chatbot/SupportChatBot"; // ✅ Chatbot
-import User_Client from "./components/User_Clients/User_Client";
+import UserManagement from "./components/User_Management/UserManagement";
+import SuperAdminRoutes from "./Super_Admin/SuperAdminRoutes";
+import Database_Collection from "./components/Database/Database";
 
 function AppContent() {
   const location = useLocation();
   const { darkMode } = useTheme();
-
+  const { loading } = useAuth(); // Add loading from auth context
   const isLoginPage = location.pathname === "/login";
   const isDark = isLoginPage ? false : darkMode;
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          backgroundColor: isDark ? "#1e1e2f" : "#ffffff",
+        }}
+      >
+        <div>Loading...</div>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -53,12 +71,17 @@ function AppContent() {
       }}
     >
       <Routes>
+        {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/quiz/:publicUrl" element={<QuizTemplate />} />
         <Route path="/training" element={<Training />} />
+
+        {/* Protected Standalone Routes */}
         <Route path="/fullscreen-editor" element={<ProtectedRoute><FullScreenEditor /></ProtectedRoute>} />
         <Route path="/client/:clientId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
         <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
+
+        {/* Authenticated Layout Routes */}
         <Route
           path="/"
           element={
@@ -75,7 +98,6 @@ function AppContent() {
           <Route path="sending-profiles" element={<SendingProfiles />} />
           <Route path="users-groups" element={<UsersGroups />} />
           <Route path="clients" element={<ClientsPage />} />
-          <Route path="clients-user" element={<AdminRoute><User_Client /></AdminRoute>} />
           <Route path="clients/:clientId" element={<ClientCampaign />} />
           <Route path="campaign/:campaignId/details" element={<CampaignDetails />} />
           <Route path="client/:clientId/insights" element={<ClientInsights />} />
@@ -83,13 +105,29 @@ function AppContent() {
           <Route path="quizz/new" element={<NewQuiz />} />
           <Route path="quizz/edit/:id" element={<NewQuiz />} />
           <Route path="settings" element={<Settings />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-        </Route>
+          <Route path="dashboard" element={<Dashboard />} />
 
+          <Route
+            path="user-management"
+            element={
+              <RoleProtectedRoute allowRoles={["admin", "superadmin"]} fallbackPath="/dashboard">
+                <UserManagement />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="database"
+            element={
+              <RoleProtectedRoute allowRoles={["admin", "superadmin"]} fallbackPath="/dashboard">
+                <Database_Collection />
+              </RoleProtectedRoute>
+            }
+          />
+        </Route>
       </Routes>
 
-      {/* ✅ Global Chatbot - available on all screens */}
-      {/* <SupportChatBot /> */}
+      {/* SuperAdmin specific */}
+      <SuperAdminRoutes />
 
       <ToastContainer
         position="top-right"

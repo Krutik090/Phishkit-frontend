@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -8,9 +9,12 @@ import {
   TextField,
   Button,
   Box,
+  FormControl,
+  Select,
+  MenuItem,
+  InputLabel,
 } from "@mui/material";
 import { toast } from "react-toastify";
-import CustomNumberInput from "./CustomNumberInput"; // adjust path as needed
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 const pink = "#ec008c";
@@ -25,41 +29,50 @@ const pinkTextFieldSx = {
   },
 };
 
-const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
+const NewUserModel = ({ open, onClose, user, onSave }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [emailLimit, setEmailLimit] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("User");
+  const [permission, setPermission] = useState("Read Only");
 
   useEffect(() => {
-    if (userData) {
-      setName(userData.name || "");
-      setEmail(userData.email || "");
-      setEmailLimit(userData.emailLimit || "");
-      setPassword(""); // Clear password on edit for security
+    if (user) {
+      setName(user.name || "");
+      setEmail(user.email || "");
+      setPassword("");
+      setRole(user.role || "User");
+      setPermission(user.permission || "Read Only");
     } else {
       setName("");
       setEmail("");
-      setEmailLimit("");
       setPassword("");
+      setRole("User");
+      setPermission("Read Only");
     }
-  }, [userData, open]);
+  }, [user, open]);
 
   const handleSave = async () => {
+    if (!name.trim() || !email.trim() || (!user && !password.trim())) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
     try {
       const payload = {
-        name,
-        email,
-        emailLimit,
-        ...(password && { password }), // Include password only if not empty
+        name: name.trim(),
+        email: email.trim(),
+        role,
+        permission,
+        ...(password && { password }),
       };
 
-      const isEditing = !!userData;
+      const isEditing = !!user;
       const endpoint = isEditing
-        ? `${API_BASE_URL}/auth/users/${userData.id}`
+        ? `${API_BASE_URL}/auth/users/${user.id}`
         : `${API_BASE_URL}/auth/register`;
 
-      const method = isEditing ? "PATCH" : "POST";
+      const method = isEditing ? "PUT" : "POST";
 
       const res = await fetch(endpoint, {
         method,
@@ -80,6 +93,35 @@ const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
       console.error(error);
       toast.error(`Error: ${error.message}`);
     }
+  };
+
+  const dropdownStyles = {
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: "#d1d5db",
+    },
+    "&:hover .MuiOutlinedInput-notchedOutline": {
+      borderColor: pink,
+    },
+    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+      borderColor: pink,
+    },
+    "& .MuiSelect-icon": {
+      color: pink,
+    },
+  };
+
+  const menuItemStyles = {
+    "& .MuiMenuItem-root": {
+      backgroundColor: "transparent",
+      "&.Mui-selected": {
+        backgroundColor: "#fce4f6 !important",
+        color: pink,
+        fontWeight: "bold",
+      },
+      "&:hover": {
+        backgroundColor: "transparent",
+      },
+    },
   };
 
   return (
@@ -105,13 +147,14 @@ const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
           backgroundColor: "#fff0f7",
         }}
       >
-        👤 {userData ? "Edit User Client" : "New User Client"}
+        👤 {user ? "Edit User" : "Add User"}
       </DialogTitle>
 
       <DialogContent dividers sx={{ p: 4 }}>
+        {/* Name Field */}
         <Box mb={2}>
           <Typography variant="body2" fontWeight="500" mb={0.5}>
-            Name
+            Name <span style={{ color: "#ef4444" }}>*</span>
           </Typography>
           <TextField
             fullWidth
@@ -120,12 +163,14 @@ const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
             sx={pinkTextFieldSx}
             value={name}
             onChange={(e) => setName(e.target.value)}
+            placeholder="Enter full name"
           />
         </Box>
 
+        {/* Email Field */}
         <Box mb={2}>
           <Typography variant="body2" fontWeight="500" mb={0.5}>
-            Email
+            Email <span style={{ color: "#ef4444" }}>*</span>
           </Typography>
           <TextField
             fullWidth
@@ -135,25 +180,14 @@ const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
             sx={pinkTextFieldSx}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter email address"
           />
         </Box>
 
+        {/* Password Field */}
         <Box mb={2}>
           <Typography variant="body2" fontWeight="500" mb={0.5}>
-            Email Limit
-          </Typography>
-          <CustomNumberInput
-            aria-label="Email Limit Input"
-            min={1}
-            max={100000}
-            value={emailLimit}
-            onChange={(e, val) => setEmailLimit(val)}
-          />
-        </Box>
-
-        <Box mb={2}>
-          <Typography variant="body2" fontWeight="500" mb={0.5}>
-            Password {userData && <i>(leave blank to keep unchanged)</i>}
+            Password {user ? <i>(leave blank to keep unchanged)</i> : <span style={{ color: "#ef4444" }}>*</span>}
           </Typography>
           <TextField
             fullWidth
@@ -163,7 +197,53 @@ const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
             sx={pinkTextFieldSx}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            placeholder={user ? "Enter new password (optional)" : "Enter password"}
           />
+        </Box>
+
+        {/* Role Selection */}
+        <Box mb={2}>
+          <Typography variant="body2" fontWeight="500" mb={0.5}>
+            Role {user ? <i>(leave blank to keep unchanged)</i> : <span style={{ color: "#ef4444" }}>*</span>}
+          </Typography>
+
+          <FormControl fullWidth margin="dense">
+            <Select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              sx={dropdownStyles}
+              MenuProps={{
+                PaperProps: {
+                  sx: menuItemStyles,
+                },
+              }}
+            >
+              <MenuItem value="User">User</MenuItem>
+              <MenuItem value="Maintenance User">Maintenance User</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+
+        {/* Permission Selection */}
+        <Box mb={2}>
+          <Typography variant="body2" fontWeight="500" mb={0.5}>
+            Permission {user ? <i>(leave blank to keep unchanged)</i> : <span style={{ color: "#ef4444" }}>*</span>}
+          </Typography>
+          <FormControl fullWidth margin="dense">
+            <Select
+              value={permission}
+              onChange={(e) => setPermission(e.target.value)}
+              sx={dropdownStyles}
+              MenuProps={{
+                PaperProps: {
+                  sx: menuItemStyles,
+                },
+              }}
+            >
+              <MenuItem value="Launch">Launch</MenuItem>
+              <MenuItem value="Read Only">Read Only</MenuItem>
+            </Select>
+          </FormControl>
         </Box>
       </DialogContent>
 
@@ -196,11 +276,11 @@ const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
             },
           }}
         >
-          {userData ? "UPDATE USER" : "SAVE USER"}
+          {user ? "UPDATE USER" : "SAVE USER"}
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default NewUserClientModal;
+export default NewUserModel;

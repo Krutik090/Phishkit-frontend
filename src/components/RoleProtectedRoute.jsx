@@ -2,7 +2,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Box, CircularProgress } from "@mui/material";
 
-export default function ProtectedRoute({ children }) {
+export default function RoleProtectedRoute({ children, allowRoles = [], fallbackPath = "/login" }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -22,9 +22,9 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  // Redirect to login if user is not authenticated
-  if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  // Redirect if user is not authenticated or doesn't have required role
+  if (!user || !allowRoles.includes(user.role)) {
+    return <Navigate to={fallbackPath} state={{ from: location }} replace />;
   }
 
   return children;

@@ -16,24 +16,29 @@ import {
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { encryptWithPublicKey } from '../../utils/helper'; // ✅ Import your helper
+import { encryptWithPublicKey } from '../../utils/helper';
+import { useAuth } from '../../context/AuthContext'; // ✅ Use AuthContext
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function SignInCard() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [mfaDialogOpen, setMfaDialogOpen] = useState(false);
-  const [mfaToken, setMfaToken] = useState('');
-  const [userInfo, setUserInfo] = useState(null);
-  const [loginErrorDialogOpen, setLoginErrorDialogOpen] = useState(false);
-  const [mfaError, setMfaError] = useState('');
-  const [captchaSvg, setCaptchaSvg] = useState('');
   const [captchaInput, setCaptchaInput] = useState('');
+  const [captchaSvg, setCaptchaSvg] = useState('');
   const [publicKey, setPublicKey] = useState('');
 
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [mfaToken, setMfaToken] = useState('');
+  const [mfaError, setMfaError] = useState('');
+  const [userInfo, setUserInfo] = useState(null);
+
+  const [mfaDialogOpen, setMfaDialogOpen] = useState(false);
+  const [loginErrorDialogOpen, setLoginErrorDialogOpen] = useState(false);
+  const [forgotDialogOpen, setForgotDialogOpen] = useState(false); // ✅ Added missing state
+
+  const { setUser } = useAuth();
   const navigate = useNavigate();
 
   const validate = () => {
@@ -86,16 +91,22 @@ export default function SignInCard() {
       const encryptedEmail = await encryptWithPublicKey(publicKey, email);
       const encryptedPassword = await encryptWithPublicKey(publicKey, password);
 
-      const response = await axios.post(
-        `${API_BASE_URL}/auth/prelogin`,
-        {  encryptedEmail, encryptedPassword, captcha: captchaInput },
-        { withCredentials: true }
-      );
+      await axios.post(`${API_BASE_URL}/auth/prelogin`, {
+        encryptedEmail,
+        encryptedPassword,
+        captcha: captchaInput,
+      }, { withCredentials: true });
 
       toast.success("Welcome back!", { autoClose: 2000 });
-      setTimeout(() => {
-        navigate('/campaigns');
-      }, 1500);
+
+      // ✅ Fetch user 
+      const res = await axios.get(`${API_BASE_URL}/protected`, {
+        withCredentials: true,
+      });
+
+      setUser(res.data.user);
+      navigate(res.data.user.role === 'superadmin' ? '/super-admin' : '/dashboard');
+
     } catch (error) {
       const message = error.response?.data?.message;
 
@@ -113,39 +124,32 @@ export default function SignInCard() {
   };
 
   const handleMfaSubmit = async () => {
-  try {
-    const response = await axios.post(
-      `${API_BASE_URL}/auth/login`,
-      {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/auth/login`, {
         encryptedEmail: userInfo.email,
         encryptedPassword: userInfo.password,
-        token: mfaToken
-      },
-      { withCredentials: true }
-    );
+        token: mfaToken,
+      }, { withCredentials: true });
 
-    toast.success("Welcome back!", { autoClose: 2000 });
-    setTimeout(() => {
-      navigate('/campaigns');
-    }, 1500);
-  } catch (err) {
-    console.error("MFA Error:", err.response?.data?.message || err.message);
-    setMfaError("Invalid MFA token. Please try again.");
-    setMfaToken("");
-  }
-};
+      const role = res.data?.role;
+      setUser({ role });
 
+      toast.success("Welcome back!", { autoClose: 2000 });
+      navigate(role === 'superadmin' ? '/super-admin' : '/campaigns');
+    } catch (err) {
+      console.error("MFA Error:", err.response?.data?.message || err.message);
+      setMfaError("Invalid MFA token. Please try again.");
+      setMfaToken("");
+    }
+  };
 
   return (
     <Card variant="outlined" sx={{ p: 4, maxWidth: 450, width: '100%' }}>
       <Typography component="h1" variant="h4" gutterBottom>
         Sign in
       </Typography>
-      <Box
-        component="form"
-        onSubmit={handleLogin}
-        sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-      >
+
+      <Box component="form" onSubmit={handleLogin} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <FormControl>
           <FormLabel>Email</FormLabel>
           <TextField
@@ -175,7 +179,7 @@ export default function SignInCard() {
         </FormControl>
 
         <Box sx={{ textAlign: 'right' }}>
-          <Button onClick={() => setDialogOpen(true)} variant="text" size="small">
+          <Button onClick={() => setForgotDialogOpen(true)} variant="text" size="small">
             Forgot password?
           </Button>
         </Box>
@@ -237,6 +241,19 @@ export default function SignInCard() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setLoginErrorDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Forgot Password Dialog (optional, for UX completeness) */}
+      <Dialog open={forgotDialogOpen} onClose={() => setForgotDialogOpen(false)}>
+        <DialogTitle>Forgot Password?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Please contact your administrator or support team to reset your password.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setForgotDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Card>
