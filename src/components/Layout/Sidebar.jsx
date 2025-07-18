@@ -20,6 +20,7 @@ import {
   FaKey,
   FaSignOutAlt,
 } from "react-icons/fa";
+import axios from 'axios';
 import { useNavigate, useLocation } from "react-router-dom";
 import QuizIcon from "@mui/icons-material/Quiz";
 
@@ -242,7 +243,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
             adminOpen,
             setAdminOpen,
             <>
-              {renderMenuItem({ label: "Projects", icon: <FaUsers />, path: "/clients" })}
+              {renderMenuItem({ label: "Projects", icon: <FaUsers />, path: "/projects" })}
               {renderMenuItem({ label: "User Management", icon: <FaUsers />, path: "/user-management" })}
               {renderMenuItem({ label: "Database", icon: <FaDatabase />, path: "/database" })}
               {renderMenuItem({ label: "Access Logs", icon: <FaKey />, path: "/access-logs" })}

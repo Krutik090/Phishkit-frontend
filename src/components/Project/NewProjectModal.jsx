@@ -74,7 +74,7 @@ const NewProjectModal = ({
           <Button
             variant="contained"
             sx={{ backgroundColor: localStorage.getItem("primaryColor"), color: "#fff" }}
-            onClick={handleSaveClient}
+            onClick={handleSaveProject}
 
           > Save
           </Button>
