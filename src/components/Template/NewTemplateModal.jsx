@@ -205,51 +205,6 @@ const NewTemplateModal = ({ open, onClose, templateData, onSave }) => {
           onChange={(e) => setSubject(e.target.value)}
         />
 
-        <Tabs
-          value={tab}
-          onChange={(_, val) => setTab(val)}
-          sx={{
-            my: 2,
-            "& .MuiTabs-indicator": {
-              backgroundColor: pink,
-              height: 3,
-            },
-          }}
-          textColor="inherit"
-        >
-          <Tab label="Text" sx={{ color: tab === 0 ? pink : "#000", fontWeight: "bold" }} />
-          <Tab label="HTML" sx={{ color: tab === 1 ? pink : "#000", fontWeight: "bold" }} />
-        </Tabs>
-
-        <Typography variant="body2" fontWeight="500" mb={0.5}>
-          {tab === 0 ? "Text Content" : "HTML Content"}
-        </Typography>
-        <TextField
-          fullWidth
-          multiline
-          minRows={4}
-          placeholder={tab === 0 ? "Plain text content..." : "<html>HTML email...</html>"}
-          variant="outlined"
-          margin="dense"
-          sx={pinkTextFieldSx}
-          value={tab === 0 ? textContent : htmlContent}
-          onChange={(e) =>
-            tab === 0 ? setTextContent(e.target.value) : setHtmlContent(e.target.value)
-          }
-        />
-
-        <FormControlLabel
-          control={
-            <Switch
-              checked={tracking}
-              onChange={(e) => setTracking(e.target.checked)}
-              color="primary"
-            />
-          }
-          label="Enable Tracking"
-          sx={{ mb: 2 }}
-        />
-
         <Tabs value={tab} onChange={(_, newValue) => setTab(newValue)} sx={{ mb: 2 }}>
           <Tab label="HTML Content" />
           <Tab label="Plain Text" />
