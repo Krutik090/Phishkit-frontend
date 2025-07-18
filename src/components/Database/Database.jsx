@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+import SecureIconWithTooltip from './SecureIconWithTooltip';
+import {
+  ChevronDown, ChevronRight, RefreshCw, Search, Grid, List, MoreHorizontal, Database, AlertCircle, ShieldCheck
+
 import {
   ChevronDown, ChevronRight, RefreshCw, Search, Grid, List, MoreHorizontal, Database, AlertCircle
 } from 'lucide-react';
@@ -15,14 +20,15 @@ const Database_Collection = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('Collection Name');
 
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
+
   const fetchCollections = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/db/full-db', {credentials: "include"});
-      if (!response.ok) {
-        throw new Error('Failed to fetch collections');
-      }
+      const response = await fetch(`${API_BASE_URL}/db/full-db`, {
+        credentials: 'include',
+      });
       const result = await response.json();
-      
+
       if (result.success && result.data) {
         const collectionsData = Object.entries(result.data).map(([name, data]) => ({
           name: name,
@@ -55,7 +61,6 @@ const Database_Collection = () => {
       toggleCollection(collectionName);
       return;
     }
-    
     // Navigate to the database detail page
     navigate(`/database/${encodeURIComponent(collectionName)}`);
   };
@@ -82,7 +87,6 @@ const Database_Collection = () => {
   const containerStyle = {
     minHeight: '100vh',
     padding: '24px',
-    backgroundColor: '#f8fafc'
   };
 
   const headerStyle = {
@@ -437,6 +441,10 @@ const Database_Collection = () => {
             <RefreshCw style={{ width: '16px', height: '16px' }} className={isRefreshing ? 'animate-spin' : ''} />
             Refresh
           </button>
+
+        <SecureIconWithTooltip />
+
+
         </div>
 
         <div style={controlsStyle}>
@@ -516,8 +524,8 @@ const Database_Collection = () => {
               <div className="card-header" style={cardHeaderStyle}>
                 <div style={cardHeaderContentStyle}>
                   <div style={cardTitleContainerStyle}>
-                    <div 
-                      className="chevron-area" 
+                    <div
+                      className="chevron-area"
                       style={chevronAreaStyle}
                       onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
                       onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}

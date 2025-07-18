@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
-  Typography,
   Button,
   IconButton,
+  Typography,
   Tooltip,
   Dialog,
   DialogTitle,
@@ -11,12 +11,7 @@ import {
   DialogContentText,
   DialogActions,
 } from "@mui/material";
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-} from "@mui/icons-material";
-import { pink } from "@mui/material/colors";
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from "@mui/icons-material";
 import $ from "jquery";
 import "datatables.net";
 import "datatables.net-dt/css/dataTables.dataTables.min.css";
@@ -31,6 +26,7 @@ const Templates = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, template: null });
+
   const tableRef = useRef(null);
   const dataTableRef = useRef(null);
 
@@ -39,34 +35,26 @@ const Templates = () => {
   }, []);
 
   useEffect(() => {
-    if (templates.length > 0 && !dataTableRef.current) {
-      initializeDataTable();
+    if (templates.length > 0) {
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+        dataTableRef.current = null;
+      }
+
+      setTimeout(() => {
+        dataTableRef.current = $(tableRef.current).DataTable({
+          destroy: true,
+          responsive: true,
+          pageLength: 10,
+          lengthChange: true,
+          searching: true,
+          ordering: true,
+          info: true,
+          autoWidth: false,
+        });
+      }, 100);
     }
   }, [templates]);
-
-  const initializeDataTable = () => {
-    if (dataTableRef.current) {
-      dataTableRef.current.destroy();
-    }
-    dataTableRef.current = $(tableRef.current).DataTable({
-      destroy: true,
-      responsive: true,
-      pageLength: 10,
-      lengthChange: true,
-      searching: true,
-      ordering: true,
-      info: true,
-      autoWidth: false,
-    });
-  };
-
-  const reloadDataTable = () => {
-    if (dataTableRef.current) {
-      dataTableRef.current.clear();
-      dataTableRef.current.rows.add($(tableRef.current).find('tbody tr'));
-      dataTableRef.current.draw();
-    }
-  };
 
   const fetchTemplates = async () => {
     try {
@@ -75,10 +63,6 @@ const Templates = () => {
       });
       const data = await res.json();
       setTemplates(data);
-
-      setTimeout(() => {
-        initializeDataTable();
-      }, 100);
     } catch (err) {
       console.error("Failed to fetch templates:", err);
       toast.error("Failed to load templates");
@@ -95,13 +79,18 @@ const Templates = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveSuccess = () => {
-    // Fetch fresh data and reload DataTable
-    fetchTemplates();
+  const handleSaveSuccess = async () => {
+    if (dataTableRef.current) {
+      dataTableRef.current.destroy();
+      dataTableRef.current = null;
+    }
+    await fetchTemplates(); // update state, triggers useEffect
     setIsModalOpen(false);
     setSelectedTemplate(null);
   };
-  const confirmDelete = async () => {
+
+
+  const handleDeleteConfirm = async () => {
     try {
       const id = deleteDialog.template._id;
 
@@ -110,21 +99,23 @@ const Templates = () => {
         credentials: "include",
       });
 
-      if (!res.ok) throw new Error("Failed to delete template");
+      if (!res.ok) throw new Error("Delete failed");
 
-      setTemplates((prev) => prev.filter((t) => t._id !== id));
-      toast.success("Template deleted");
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+        dataTableRef.current = null;
+      }
 
-      setTimeout(() => reloadDataTable(), 100);
+      await fetchTemplates(); // re-fetch state after delete
+      toast.success("Template deleted successfully");
     } catch (err) {
-      console.error("❌ Delete failed:", err);
+      console.error("Delete error:", err);
       toast.error("Failed to delete template");
     } finally {
       setDeleteDialog({ open: false, template: null });
     }
   };
 
- 
 
   useEffect(() => {
     return () => {
@@ -143,6 +134,7 @@ const Templates = () => {
         <Button
           variant="contained"
           onClick={handleOpenModal}
+          startIcon={<AddIcon />}
           sx={{
             background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
             color: "#fff",
@@ -169,15 +161,15 @@ const Templates = () => {
       >
         <thead>
           <tr>
-            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Template Name</th>
-            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Actions</th>
+            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Template Name</th>
+            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {templates.map((template) => (
             <tr key={template._id}>
-              <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{template.name}</td>
-              <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
+              <td style={{ padding: 10, border: "1px solid #ddd" }}>{template.name}</td>
+              <td style={{ padding: 10, border: "1px solid #ddd" }}>
                 <Tooltip title="Edit">
                   <IconButton color="primary" onClick={() => handleEditTemplate(template)}>
                     <EditIcon />
@@ -194,7 +186,7 @@ const Templates = () => {
         </tbody>
       </table>
 
-      {/* New/Edit Modal */}
+      {/* Add/Edit Template Modal */}
       <NewTemplateModal
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -212,7 +204,9 @@ const Templates = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialog({ open: false, template: null })}>Cancel</Button>
-          <Button onClick={confirmDelete} color="error">Delete</Button>
+          <Button onClick={handleDeleteConfirm} color="error">
+            Delete
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

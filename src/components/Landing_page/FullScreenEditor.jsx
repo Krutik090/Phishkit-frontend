@@ -1,13 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Editor } from "@tinymce/tinymce-react";
-import { Box, Button, Typography } from "@mui/material";
+import React, { useState, useEffect } from "react";
+import { Box, Button, Typography, TextField } from "@mui/material";
 import { toast } from "react-toastify";
 
 const pink = "#ec008c";
 
 const FullScreenEditor = () => {
   const [content, setContent] = useState("");
-  const editorRef = useRef(null);
 
   useEffect(() => {
     const savedContent = localStorage.getItem("landingPageHtml");
@@ -15,8 +13,7 @@ const FullScreenEditor = () => {
   }, []);
 
   const handleSaveAndClose = () => {
-    const updatedHtml = editorRef.current?.getContent() || content;
-    localStorage.setItem("landingPageHtml", updatedHtml);
+    localStorage.setItem("landingPageHtml", content);
     toast.success("✅ Content saved successfully!");
     window.close();
   };
@@ -39,42 +36,24 @@ const FullScreenEditor = () => {
         📝 Full Screen Landing Page Editor
       </Typography>
 
-      <Box sx={{ flexGrow: 1 }}>
-        <Editor
-          onInit={(evt, editor) => (editorRef.current = editor)}
-          apiKey="o8z0kqre5x0f3nnn3x68nryugconi6gdd9ql2sc12r0wj5ok"
-          value={content}
-          onEditorChange={(newValue) => setContent(newValue)}
-          init={{
+      <TextField
+        fullWidth
+        multiline
+        minRows={20}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="Paste or edit your HTML here"
+        variant="outlined"
+        sx={{
+          flexGrow: 1,
+          fontFamily: "monospace",
+          backgroundColor: "#fff",
+          borderRadius: 1,
+          "& .MuiOutlinedInput-root": {
             height: "100%",
-            menubar: false,
-            plugins: [
-              "anchor",
-              "autolink",
-              "charmap",
-              "codesample",
-              "emoticons",
-              "image",
-              "link",
-              "lists",
-              "media",
-              "searchreplace",
-              "table",
-              "visualblocks",
-              "wordcount",
-            ],
-            toolbar:
-              "undo redo | blocks fontfamily fontsize | " +
-              "bold italic underline strikethrough | " +
-              "link image media table mergetags | " +
-              "addcomment showcomments | " +
-              "spellcheckdialog a11ycheck typography | " +
-              "align lineheight | checklist numlist bullist indent outdent | " +
-              "emoticons charmap | removeformat",
-            branding: false,
-          }}
-        />
-      </Box>
+          },
+        }}
+      />
 
       <Box mt={2} textAlign="center">
         <Button
