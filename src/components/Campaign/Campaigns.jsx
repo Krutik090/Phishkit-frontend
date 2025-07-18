@@ -75,7 +75,7 @@ const Campaigns = () => {
 
   const fetchCampaigns = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/campaigns`, {credentials : "include"});
+      const res = await fetch(`${API_BASE_URL}/campaigns`, { credentials: "include" });
       const json = await res.json();
       setData(json);
 
@@ -117,11 +117,31 @@ const Campaigns = () => {
     }
   };
 
-  const handleSaveSuccess = () => {
-    fetchCampaigns();
-    setOpenModal(false);
-    setFormData(initialFormState());
+  const handleSaveSuccess = async () => {
+    try {
+      // 🔁 Destroy old DataTable if it exists
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+        dataTableRef.current = null;
+      }
+
+      // 🆕 Fetch updated data
+      const res = await fetch(`${API_BASE_URL}/campaigns`, { credentials: "include" });
+      const json = await res.json();
+      setData(json);
+
+      // 🕒 Reinitialize DataTable after short delay
+      setTimeout(() => {
+        initializeDataTable();
+      }, 100);
+    } catch (err) {
+      console.error("Failed to refresh campaigns after save:", err);
+    } finally {
+      setOpenModal(false);
+      setFormData(initialFormState());
+    }
   };
+
 
   // Cleanup DataTable on component unmount
   useEffect(() => {

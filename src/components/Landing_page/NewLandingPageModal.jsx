@@ -82,10 +82,6 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
     }
   }, [name, html, captureData, redirectUrl, onSave, onClose, pageToEdit]);
 
-  // const handleImportSite = () => {
-  //   toast.info("🚧 Import Site functionality is under development.");
-  // };
-
   const handleOpenFullscreenEditor = () => {
     localStorage.setItem("landingPageHtml", html);
 
@@ -150,27 +146,19 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
               </Button>
             </Box>
 
-            <Editor
-              onInit={(evt, editor) => (editorRef.current = editor)}
-              apiKey="o8z0kqre5x0f3nnn3x68nryugconi6gdd9ql2sc12r0wj5ok"
+            <TextField
+              fullWidth
+              multiline
+              minRows={10}
+              placeholder="Paste or type your HTML here"
+              variant="outlined"
               value={html}
-              onEditorChange={(newValue) => setHtml(newValue)}
-              init={{
-                height: 300,
-                menubar: false,
-                plugins: [
-                  "anchor", "autolink", "charmap", "codesample", "emoticons",
-                  "image", "link", "lists", "media", "searchreplace",
-                  "table", "visualblocks", "wordcount",
-                ],
-                toolbar:
-                  "undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | " +
-                  "link image media table mergetags | addcomment showcomments | " +
-                  "spellcheckdialog a11ycheck typography | align lineheight | " +
-                  "checklist numlist bullist indent outdent | emoticons charmap | removeformat",
-                branding: false,
-              }}
+              onChange={(e) => setHtml(e.target.value)}
+              sx={inputStyle}
+              aria-label="HTML Content"
             />
+
+
           </Box>
 
           <FormControlLabel

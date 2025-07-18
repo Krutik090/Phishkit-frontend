@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import SecureIconWithTooltip from './SecureIconWithTooltip';
 import {
-  ChevronDown, ChevronRight, RefreshCw, Search, Grid, List, MoreHorizontal, Database, AlertCircle
+  ChevronDown, ChevronRight, RefreshCw, Search, Grid, List, MoreHorizontal, Database, AlertCircle, ShieldCheck
 } from 'lucide-react';
 
 const Database_Collection = () => {
@@ -440,6 +441,10 @@ const Database_Collection = () => {
             <RefreshCw style={{ width: '16px', height: '16px' }} className={isRefreshing ? 'animate-spin' : ''} />
             Refresh
           </button>
+
+        <SecureIconWithTooltip />
+
+
         </div>
 
         <div style={controlsStyle}>
