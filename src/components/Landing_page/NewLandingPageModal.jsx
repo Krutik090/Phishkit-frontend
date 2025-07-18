@@ -68,8 +68,8 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
     };
 
     try {
-      if (pageToEdit?.id) {
-        onSave({ ...pageData, id: pageToEdit.id }, "edit");
+      if (pageToEdit?._id) {
+        onSave(pageData, "edit", pageToEdit._id);
         toast.success("Landing page updated successfully!");
       } else {
         onSave(pageData, "create");

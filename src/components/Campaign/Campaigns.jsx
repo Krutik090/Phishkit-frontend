@@ -75,10 +75,10 @@ const Campaigns = () => {
 
   const fetchCampaigns = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/campaigns`);
+      const res = await fetch(`${API_BASE_URL}/campaigns`, {credentials : "include"});
       const json = await res.json();
       setData(json);
-      
+
       // Reload DataTable after fetching new data
       setTimeout(() => {
         if (dataTableRef.current) {
@@ -96,19 +96,19 @@ const Campaigns = () => {
   const confirmDelete = async () => {
     try {
       const id = deleteDialog.campaign.id;
-      const res = await fetch(`${API_BASE_URL}/campaigns/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE_URL}/campaigns/${id}`, { method: "DELETE", credentials: "include" });
       if (!res.ok) throw new Error();
-      
+
       // Update state and reload DataTable
       setData(prev => prev.filter(c => c.id !== id));
-      
+
       // Reload DataTable after state update
       setTimeout(() => {
         if (dataTableRef.current) {
           reloadDataTable();
         }
       }, 100);
-      
+
     } catch (err) {
       console.error(err);
       alert("Delete failed");
@@ -172,7 +172,7 @@ const Campaigns = () => {
           <thead>
             <tr>
               {["Campaign Name", "Client", "Status", "Launch Date", "Sent", "Actions"].map((h, i) => (
-                <th key={i} style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>
+                <th key={i} style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>
                   {h}
                 </th>
               ))}
@@ -181,16 +181,16 @@ const Campaigns = () => {
           <tbody>
             {data.map((row) => (
               <tr key={row.id}>
-                <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>
+                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
                   <Link to={`/campaign-results/${row.id}`} style={{ color: `${localStorage.getItem('primaryColor')}`, fontWeight: "bold", textDecoration: "none" }}>
                     {row.name}
                   </Link>
                 </td>
-                <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>{row.client || "—"}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>{row.status || "—"}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>{row.launch_date ? new Date(row.launch_date).toLocaleString() : "—"}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>{Array.isArray(row.results) ? row.results.length : 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8 , textAlign: "center", verticalAlign: "middle"}}>
+                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{row.client || "—"}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{row.status || "—"}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{row.launch_date ? new Date(row.launch_date).toLocaleString() : "—"}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{Array.isArray(row.results) ? row.results.length : 0}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
                   <Tooltip title="View">
                     <IconButton size="small" color="primary" component={Link} to={`/campaign-results/${row.id}`}>
                       <VisibilityIcon />

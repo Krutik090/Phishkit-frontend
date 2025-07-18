@@ -21,7 +21,7 @@ import Quiz from "./components/Quiz/Quiz";
 import NewQuiz from "./components/Quiz/NewQuiz";
 import Training from "./components/Training/Training";
 import Settings from "./components/Settings/Settings";
-import ClientsPage from "./components/Client/Clients";
+import ProjectPage from "./components/Project/Projects"
 import ClientCampaign from "./components/Stats_Results/ClientCampaign";
 import ClientInsights from "./components/Stats_Results/ClientInsights";
 import CampaignDetails from "./components/Stats_Results/CampaignDetails";
@@ -99,10 +99,11 @@ function AppContent() {
           <Route path="landing-pages" element={<LandingPages />} />
           <Route path="sending-profiles" element={<SendingProfiles />} />
           <Route path="users-groups" element={<UsersGroups />} />
-          <Route path="clients" element={<ClientsPage />} />
-          <Route path="clients/:clientId" element={<ClientCampaign />} />
+          <Route path="projects" element={<ProjectPage />} />
+          <Route path="clients-user" element={<AdminRoute><User_Client /></AdminRoute>} />
+          <Route path="projects/:projecId" element={<ClientCampaign />} />
           <Route path="campaign/:campaignId/details" element={<CampaignDetails />} />
-          <Route path="client/:clientId/insights" element={<ClientInsights />} />
+          <Route path="projects/:projectId/insights" element={<ClientInsights />} />
           <Route path="quizz" element={<Quiz />} />
           <Route path="quizz/new" element={<NewQuiz />} />
           <Route path="quizz/edit/:id" element={<NewQuiz />} />

@@ -24,7 +24,7 @@ const ResultCampaign = () => {
   const [campaign, setCampaign] = useState(null);
   
   useEffect(() => {
-    fetch(`${API_BASE_URL}/campaigns/${id}`)
+    fetch(`${API_BASE_URL}/campaigns/${id}`, {credentials : "include"})
       .then((res) => res.json())
       .then((data) => setCampaign(data))
       .catch((err) => {
@@ -67,6 +67,7 @@ const ResultCampaign = () => {
 
   try {
     const response = await fetch(`${API_BASE_URL}/campaigns/${id}`, {
+      credentials : "include",
       method: "DELETE",
     });
 

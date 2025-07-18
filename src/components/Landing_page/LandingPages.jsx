@@ -70,10 +70,12 @@ const LandingPages = () => {
 
   const fetchLandingPages = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/landing-pages`);
+      const res = await fetch(`${API_BASE_URL}/landing-pages`, {
+        credentials: "include",
+      });
       const data = await res.json();
       setLandingPages(data);
-      
+
       // Reload DataTable after fetching new data
       setTimeout(() => {
         if (dataTableRef.current) {
@@ -95,29 +97,25 @@ const LandingPages = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveSuccess = async (data, mode) => {
+  const handleSaveSuccess = async (data, mode, id = null) => {
     try {
       const url = mode === "edit"
-        ? `${API_BASE_URL}/landing-pages/${data.id}`
+        ? `${API_BASE_URL}/landing-pages/${id}`
         : `${API_BASE_URL}/landing-pages`;
 
       const method = mode === "edit" ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify(data),
       });
 
       if (!res.ok) throw new Error("API call failed");
-
-      // toast.success(
-      //   mode === "edit"
-      //     ? `✅ "${data.name}" updated successfully.`
-      //     : `🎉 "${data.name}" created successfully.`
-      // );
 
       fetchLandingPages();
       setIsModalOpen(false);
@@ -127,25 +125,31 @@ const LandingPages = () => {
       toast.error("❌ Failed to save landing page.");
     }
   };
-
   const confirmDelete = async () => {
     try {
-      const id = deleteDialog.page.id;
+      const id = deleteDialog.page._id;
+
       const res = await fetch(`${API_BASE_URL}/landing-pages/${id}`, {
         method: "DELETE",
+        credentials: "include",
       });
+
       if (!res.ok) throw new Error();
-      
-      // Update state and reload DataTable
-      setLandingPages((prev) => prev.filter((p) => p.id !== id));
-      
-      // Reload DataTable after state update
+
+      // ✅ Corrected: Use _id, not id
+      setLandingPages((prev) => prev.filter((p) => p._id !== id));
+
+      // ✅ Use updated landingPages list for DataTable refresh
       setTimeout(() => {
         if (dataTableRef.current) {
-          reloadDataTable();
+          dataTableRef.current.clear();
+          dataTableRef.current.rows.add(
+            $(tableRef.current).find("tbody tr")
+          );
+          dataTableRef.current.draw();
         }
       }, 100);
-      
+
       toast.success(`"${deleteDialog.page.name}" deleted successfully.`);
     } catch (err) {
       console.error(err);
@@ -155,14 +159,31 @@ const LandingPages = () => {
     }
   };
 
-  // Cleanup DataTable on component unmount
   useEffect(() => {
-    return () => {
+    // Wait until DOM is updated
+    const timeout = setTimeout(() => {
       if (dataTableRef.current) {
         dataTableRef.current.destroy();
+        dataTableRef.current = null;
       }
-    };
-  }, []);
+
+      if (tableRef.current && landingPages.length > 0) {
+        dataTableRef.current = $(tableRef.current).DataTable({
+          destroy: true,
+          responsive: true,
+          pageLength: 10,
+          lengthChange: true,
+          searching: true,
+          ordering: true,
+          info: true,
+          autoWidth: false,
+        });
+      }
+    }, 100); // Delay ensures rows are rendered
+
+    return () => clearTimeout(timeout);
+  }, [landingPages]);
+
 
   return (
     <Box p={3}>
@@ -208,7 +229,7 @@ const LandingPages = () => {
         </thead>
         <tbody>
           {landingPages.map((page) => (
-            <tr key={page.id}>
+            <tr key={page._id}>
               <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{page.name}</td>
               <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
                 {page.capture_credentials ? "Yes" : "No"}
