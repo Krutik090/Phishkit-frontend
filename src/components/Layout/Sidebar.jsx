@@ -242,7 +242,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
             adminOpen,
             setAdminOpen,
             <>
-              {renderMenuItem({ label: "Projects", icon: <FaUsers />, path: "/clients" })}
+              {renderMenuItem({ label: "Projects", icon: <FaUsers />, path: "/projects" })}
               {renderMenuItem({ label: "User Management", icon: <FaUsers />, path: "/user-management" })}
               {renderMenuItem({ label: "Database", icon: <FaDatabase />, path: "/database" })}
               {renderMenuItem({ label: "Access Logs", icon: <FaKey />, path: "/access-logs" })}
