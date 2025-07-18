@@ -14,7 +14,8 @@ import "datatables.net-dt/css/dataTables.dataTables.min.css";
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const ClientCampaign = () => {
-  const { projectId } = useParams();
+const { id: projectId } = useParams();  console.log(projectId);
+
   const navigate = useNavigate();
   const tableRef = useRef(null);
 
@@ -41,7 +42,8 @@ const ClientCampaign = () => {
   const fetchClientAndCampaigns = async () => {
     try {
       setLoading(true);
-      const clientRes = await fetch(`${API_BASE_URL}/projects/${projectId}`,{credentials : "include"});
+      console.log(projectId);
+      const clientRes = await fetch(`${API_BASE_URL}/projects/${projectId}`, { credentials: "include" });
       const text = await clientRes.text();
 
       let clientData;
@@ -60,7 +62,7 @@ const ClientCampaign = () => {
       }
 
       const campaignPromises = clientData.campaigns.map((id) =>
-        fetch(`${API_BASE_URL}/campaigns/${id}`)
+        fetch(`${API_BASE_URL}/campaigns/gophish/${id}`, {credentials : "include"})
           .then((res) => {
             if (!res.ok) throw new Error(`❌ Fetch failed for campaign ID: ${id}`);
             return res.json();

@@ -18,7 +18,7 @@ import NewCampaignModal from "./NewCampaignModal";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-const initialFormState = () => ({
+const emptyFormData = {
   id: null,
   name: "",
   template: "",
@@ -29,12 +29,12 @@ const initialFormState = () => ({
   groups: [],
   quiz: "",
   client: "",
-});
+};
 
 const Campaigns = () => {
   const [data, setData] = useState([]);
   const [openModal, setOpenModal] = useState(false);
-  const [formData, setFormData] = useState(initialFormState());
+  const [formData, setFormData] = useState(emptyFormData);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, campaign: null });
   const tableRef = useRef(null);
   const dataTableRef = useRef(null);
@@ -44,15 +44,16 @@ const Campaigns = () => {
   }, []);
 
   useEffect(() => {
-    if (data.length > 0 && !dataTableRef.current) {
+    if (data.length > 0) {
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+        dataTableRef.current = null;
+      }
       initializeDataTable();
     }
   }, [data]);
 
   const initializeDataTable = () => {
-    if (dataTableRef.current) {
-      dataTableRef.current.destroy();
-    }
     dataTableRef.current = $(tableRef.current).DataTable({
       destroy: true,
       responsive: true,
@@ -65,52 +66,35 @@ const Campaigns = () => {
     });
   };
 
-  const reloadDataTable = () => {
-    if (dataTableRef.current) {
-      dataTableRef.current.clear();
-      dataTableRef.current.rows.add($(tableRef.current).find('tbody tr'));
-      dataTableRef.current.draw();
-    }
-  };
-
   const fetchCampaigns = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/campaigns`, { credentials: "include" });
       const json = await res.json();
-      setData(json);
 
-      // Reload DataTable after fetching new data
-      setTimeout(() => {
-        if (dataTableRef.current) {
-          reloadDataTable();
-        }
-      }, 100);
+      // Normalize _id to id (optional)
+      const normalized = json.map(item => ({
+        ...item,
+        id: item._id,
+      }));
+
+      setData(normalized);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch campaigns:", err);
     }
   };
 
-  const handleDeleteConfirm = (c) => setDeleteDialog({ open: true, campaign: c });
+  const handleDeleteConfirm = (campaign) => setDeleteDialog({ open: true, campaign });
   const cancelDelete = () => setDeleteDialog({ open: false, campaign: null });
 
   const confirmDelete = async () => {
     try {
-      const id = deleteDialog.campaign.id;
+      const id = deleteDialog.campaign._id;
       const res = await fetch(`${API_BASE_URL}/campaigns/${id}`, { method: "DELETE", credentials: "include" });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error("Delete failed");
 
-      // Update state and reload DataTable
-      setData(prev => prev.filter(c => c.id !== id));
-
-      // Reload DataTable after state update
-      setTimeout(() => {
-        if (dataTableRef.current) {
-          reloadDataTable();
-        }
-      }, 100);
-
+      setData(prev => prev.filter(c => c._id !== id));
     } catch (err) {
-      console.error(err);
+      console.error("Delete failed:", err);
       alert("Delete failed");
     } finally {
       cancelDelete();
@@ -143,11 +127,11 @@ const Campaigns = () => {
   };
 
 
-  // Cleanup DataTable on component unmount
   useEffect(() => {
     return () => {
       if (dataTableRef.current) {
         dataTableRef.current.destroy();
+        dataTableRef.current = null;
       }
     };
   }, []);
@@ -162,7 +146,7 @@ const Campaigns = () => {
           <Button
             variant="contained"
             onClick={() => {
-              setFormData(initialFormState());
+              setFormData(emptyFormData);
               setOpenModal(true);
             }}
             sx={{
@@ -192,7 +176,7 @@ const Campaigns = () => {
           <thead>
             <tr>
               {["Campaign Name", "Client", "Status", "Launch Date", "Sent", "Actions"].map((h, i) => (
-                <th key={i} style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>
+                <th key={i} style={{ border: "1px solid #ccc", padding: 10 }}>
                   {h}
                 </th>
               ))}
@@ -200,19 +184,23 @@ const Campaigns = () => {
           </thead>
           <tbody>
             {data.map((row) => (
-              <tr key={row.id}>
-                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
-                  <Link to={`/campaign-results/${row.id}`} style={{ color: `${localStorage.getItem('primaryColor')}`, fontWeight: "bold", textDecoration: "none" }}>
+              <tr key={row._id}>
+                <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                  <Link to={`/campaign-results/${row._id}`} style={{ color: localStorage.getItem('primaryColor'), fontWeight: "bold", textDecoration: "none" }}>
                     {row.name}
                   </Link>
                 </td>
-                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{row.client || "—"}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{row.status || "—"}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{row.launch_date ? new Date(row.launch_date).toLocaleString() : "—"}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{Array.isArray(row.results) ? row.results.length : 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
+                <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.client || "—"}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.status || "—"}</td>
+                <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                  {row.launchDate ? new Date(row.launchDate).toLocaleString() : "—"}
+                </td>
+                <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                  {Array.isArray(row.results) ? row.results.length : 0}
+                </td>
+                <td style={{ border: "1px solid #ddd", padding: 8 }}>
                   <Tooltip title="View">
-                    <IconButton size="small" color="primary" component={Link} to={`/campaign-results/${row.id}`}>
+                    <IconButton size="small" color="primary" component={Link} to={`/campaign-results/${row._id}`}>
                       <VisibilityIcon />
                     </IconButton>
                   </Tooltip>
