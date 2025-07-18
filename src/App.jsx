@@ -38,7 +38,7 @@ import {ThemeProvider} from "./components/Settings/Settings";
 import UserManagement from "./components/User_Management/UserManagement";
 import SuperAdminRoutes from "./Super_Admin/SuperAdminRoutes";
 import Database_Collection from "./components/Database/Database";
-
+import AdminRoute from "./components/RoleProtectedRoute";
 function AppContent() {
   const location = useLocation();
   const { darkMode } = useTheme();
@@ -100,7 +100,7 @@ function AppContent() {
           <Route path="sending-profiles" element={<SendingProfiles />} />
           <Route path="users-groups" element={<UsersGroups />} />
           <Route path="projects" element={<ProjectPage />} />
-          <Route path="clients-user" element={<AdminRoute><User_Client /></AdminRoute>} />
+          <Route path="clients-user" element={<AdminRoute><UserManagement /></AdminRoute>} />
           <Route path="projects/:projecId" element={<ClientCampaign />} />
           <Route path="campaign/:campaignId/details" element={<CampaignDetails />} />
           <Route path="projects/:projectId/insights" element={<ClientInsights />} />
