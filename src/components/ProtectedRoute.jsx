@@ -1,30 +1,31 @@
-import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import { useAuth } from "../context/AuthContext";
+import { Box, CircularProgress } from "@mui/material";
 
-const ProtectedRoute = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
+export default function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
   const location = useLocation();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL}/protected`, {
-          withCredentials: true, // ✅ Send cookies
-        });
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh' 
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-        setIsAuthenticated(res.status === 200);
-      } catch {
-        setIsAuthenticated(false);
-      }
-    };
+  // Redirect to login if user is not authenticated
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
-    checkAuth();
-  }, [location.pathname]);
-
-  if (isAuthenticated === null) return null; // or show a loader/spinner
-
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
-};
-
-export default ProtectedRoute;
+  return children;
+}

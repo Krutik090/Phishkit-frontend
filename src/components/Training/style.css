@@ -3,6 +3,7 @@
   --accent:  #A3238E;
   --active:  #f24eb1;
   --text:    #ffffff;
+  font-weight: bold;
 }
 
 /* ---------- Layout ---------- */
@@ -10,7 +11,7 @@
 .main-area        {flex-grow:1; display:flex; align-items:center; justify-content:center;}
 
 /* ---------- Sidebar ---------- */
-.sidebar          {width:30rem; background:var(--primary); color:var(--text);
+.sidebar          {width:20rem; background:var(--primary); color:var(--text);
                    height:100vh; display:flex; flex-direction:column; overflow:hidden;}
 .sidebar-divider  {height:1px; width:100%; background:var(--accent);}
 .sidebar-nav      {flex:1; overflow-y:auto; padding:0.5rem 1rem;}
@@ -79,7 +80,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: #ec008c4d; /* Red (unselected) */
+  background-color: var(--primary); /* Red (unselected) */
   cursor: pointer;
   transform: translate(-50%, -50%);
 }
@@ -116,4 +117,17 @@
 
 .error-wrapper:empty {
   opacity: 0;
+}
+
+
+
+/* -----------Theme mode----------- */
+.dark-mode {
+  background-color: #1e1e1e;
+  color: #ffffff;
+}
+
+.light-mode {
+  background-color: #ffffff;
+  color: #000000;
 }

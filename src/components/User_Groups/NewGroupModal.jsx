@@ -106,7 +106,7 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
         .filter((u) => u.firstName && u.email && isValidEmail(u.email))
         .map((u) => ({
           first_name: u.firstName,
-          last_name: u.lastName || '',  
+          last_name: u.lastName || '',
           email: u.email,
           position: "N/A",
         }));
@@ -119,38 +119,41 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
     }
   };
 
-  const handleSave = async () => {
-    const isEditing = mode === "edit" && groupData?.id;
-    const data = {
-      id: isEditing ? groupData.id : Date.now(),
-      name: groupName,
-      targets: users,
-      modified_date: new Date().toISOString(),
-    };
+const handleSave = async () => {
+  const isEditing = mode === "edit" && groupData?.id;
 
-    try {
-      const url = isEditing
-        ? `${API_BASE_URL}/groups/${groupData.id}`
-        : `${API_BASE_URL}/groups`;
-
-      const method = isEditing ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) throw new Error("Network response was not ok");
-
-      toast.success("Group saved successfully!");
-      onSave(data);
-      handleClose();
-    } catch (err) {
-      toast.error("Failed to save group. Please try again.");
-      console.error(err);
-    }
+  const payload = {
+    name: groupName,
+    targets: users,
   };
+
+  const url = isEditing
+    ? `${API_BASE_URL}/groups/${groupData.id}`
+    : `${API_BASE_URL}/groups`;
+
+  const method = isEditing ? "PUT" : "POST";
+
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) throw new Error("Network response was not ok");
+
+    const responseData = await response.json();
+
+    toast.success("Group saved successfully!");
+    onSave(responseData);
+    handleClose();
+  } catch (err) {
+    toast.error("Failed to save group. Please try again.");
+    console.error(err);
+  }
+};
+
 
   return (
     <>
@@ -165,7 +168,7 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
             height: "900px",
             maxHeight: "90vh",
             borderRadius: "16px",
-            border: "2px solid #ec008c30",
+            border: `2px solid ${localStorage.getItem("primaryColor")}`,
             boxShadow: "0 8px 24px rgba(236, 0, 140, 0.2)",
           },
         }}
@@ -173,9 +176,9 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
         <DialogTitle
           sx={{
             fontWeight: "bold",
-            color: "#ec008c",
-            borderBottom: "1px solid #f8c6dd",
-            backgroundColor: "#fff0f7",
+            color: localStorage.getItem('primaryColor'),
+            borderBottom: `1px solid ${localStorage.getItem("primaryColor")}`,
+            backgroundColor: "#f5f5f5",
           }}
         >
           {mode === "edit" ? "✏️ Edit Group" : "👥 New Group"}
@@ -263,7 +266,7 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: "#fde2f3" }}>
+                  <TableRow sx={{ backgroundColor: localStorage.getItem("primaryColor") }}>
                     <TableCell>First Name</TableCell>
                     <TableCell>Last Name</TableCell>
                     <TableCell>Email</TableCell>
@@ -317,14 +320,14 @@ const NewGroupModal = ({ open, handleClose, mode, groupData, onSave }) => {
             onClick={handleSave}
             variant="contained"
             sx={{
-              background: "linear-gradient(to right, #ec4899, #d946ef)",
+              background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
               color: "#fff",
               fontWeight: "bold",
               borderRadius: 1,
               textTransform: "none",
               boxShadow: 1,
               "&:hover": {
-                background: "linear-gradient(to right, #db2777, #c026d3)",
+                background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
               },
             }}
             disabled={!groupName || users.length === 0}

@@ -21,24 +21,6 @@ const calculateGrade = (score) => {
 export default function Dashboard() {
 
 const { darkMode } = useTheme();
-  useEffect(() => {
-    const fetchThemeColors = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/auth/theme-color`, {
-          withCredentials: true,
-        });
-        const { primaryColor, secondaryColor } = response.data;
-
-        if (primaryColor) localStorage.setItem("primaryColor", primaryColor);
-        if (secondaryColor) localStorage.setItem("secondaryColor", secondaryColor);
-      } catch (error) {
-        console.error("Error fetching theme colors:", error);
-      }
-    };
-
-    fetchThemeColors();
-  }, []);
-
   const primaryColor = localStorage.getItem('primaryColor') || (darkMode ? "#90caf9" : "#1976d2");
 
   const statsData = [

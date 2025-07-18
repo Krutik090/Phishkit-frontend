@@ -15,8 +15,8 @@ import { Editor } from "@tinymce/tinymce-react";
 import { toast } from "react-toastify";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 
-const PINK = "#ec008c";
-const GRADIENT = `linear-gradient(to right, ${PINK}, #d946ef)`;
+const PINK = localStorage.getItem('primaryColor');
+const GRADIENT = `linear-gradient(to right, ${PINK}, ${localStorage.getItem('secondaryColor')})`;
 
 const inputStyle = {
   transition: "all 0.3s ease",
@@ -68,8 +68,8 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
     };
 
     try {
-      if (pageToEdit?.id) {
-        onSave({ ...pageData, id: pageToEdit.id }, "edit");
+      if (pageToEdit?._id) {
+        onSave(pageData, "edit", pageToEdit._id);
         toast.success("Landing page updated successfully!");
       } else {
         onSave(pageData, "create");
@@ -82,9 +82,9 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
     }
   }, [name, html, captureData, redirectUrl, onSave, onClose, pageToEdit]);
 
-  const handleImportSite = () => {
-    toast.info("🚧 Import Site functionality is under development.");
-  };
+  // const handleImportSite = () => {
+  //   toast.info("🚧 Import Site functionality is under development.");
+  // };
 
   const handleOpenFullscreenEditor = () => {
     localStorage.setItem("landingPageHtml", html);
@@ -104,7 +104,7 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ fontWeight: "bold", color: PINK, backgroundColor: "#fff0f7" }}>
+      <DialogTitle sx={{ fontWeight: "bold", color: PINK, backgroundColor: "#f5f5f5" }}>
         {pageToEdit ? "✏️ Edit Landing Page" : "🌐 New Landing Page"}
       </DialogTitle>
 
@@ -125,13 +125,13 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
             />
           </Box>
 
-          <Button
+          {/* <Button
             variant="contained"
             onClick={handleImportSite}
             sx={{ backgroundColor: PINK }}
           >
             IMPORT SITE
-          </Button>
+          </Button> */}
 
           <Box>
             <Typography variant="body2" fontWeight={500} mb={1}>

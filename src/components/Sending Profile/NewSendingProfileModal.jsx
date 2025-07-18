@@ -8,7 +8,7 @@ import { Add as AddIcon, Close as CloseIcon } from "@mui/icons-material";
 import { toast } from "react-toastify";
 
 
-const pink = "#ec008c";
+const pink = localStorage.getItem("primaryColor");
 
 const pinkTextFieldSx = {
   "& .MuiOutlinedInput-root": {
@@ -151,7 +151,7 @@ const NewSendingProfileModal = ({ open, handleClose, onSave, initialData }) => {
           height: "900px",
           maxHeight: "90vh",
           borderRadius: "16px",
-          border: "2px solid #ec008c30",
+          border: "2px solid #f5f5f5",
           boxShadow: "0 8px 24px rgba(236, 0, 140, 0.2)",
         },
       }}
@@ -160,8 +160,8 @@ const NewSendingProfileModal = ({ open, handleClose, onSave, initialData }) => {
         sx={{
           fontWeight: "bold",
           color: pink,
-          borderBottom: "1px solid #f8c6dd",
-          backgroundColor: "#fff0f7",
+          borderBottom: "1px solid #f5f5f5",
+          backgroundColor: "#f5f5f5",
         }}
       >
         📧 {initialData ? "Edit Sending Profile" : "New Sending Profile"}
@@ -288,8 +288,8 @@ const NewSendingProfileModal = ({ open, handleClose, onSave, initialData }) => {
               fontWeight: 500,
               borderRadius: 2,
               mt: 1,
-              borderColor: "#ec4899",
-              color: "#ec4899",
+              borderColor: localStorage.getItem("primaryColor"),
+              color: localStorage.getItem("primaryColor"),
               "&:hover": {
                 borderColor: "#db2777",
                 backgroundColor: "rgba(236, 72, 153, 0.04)",
@@ -320,14 +320,14 @@ const NewSendingProfileModal = ({ open, handleClose, onSave, initialData }) => {
           variant="contained"
           onClick={handleSubmit}
           sx={{
-            background: "linear-gradient(to right, #ec4899, #d946ef)",
+            background: `linear-gradient(to right,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
             color: "white",
             fontWeight: "bold",
             borderRadius: "8px",
             textTransform: "none",
             boxShadow: 1,
             "&:hover": {
-              background: "linear-gradient(to right, #db2777, #c026d3)",
+              background: `linear-gradient(to right,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
             },
           }}
         >

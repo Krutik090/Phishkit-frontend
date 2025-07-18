@@ -60,7 +60,7 @@ const Quiz = () => {
 
   const loadQuizzes = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/quizzes`);
+      const res = await axios.get(`${API_BASE_URL}/quizzes`, { withCredentials: true });
       const data = res.data;
       const updatedData = data.map((q) => ({
         ...q,
@@ -85,39 +85,40 @@ const Quiz = () => {
   };
 
 
-  const handlePosterUpload = async (e, quizId) => {
-    const file = e.target.files[0];
-    if (!file || !quizId) return;
+  // const handlePosterUpload = async (e, quizId) => {
+  //   const file = e.target.files[0];
+  //   if (!file || !quizId) return;
 
-    setUploadingQuizId(quizId);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("quizId", quizId);
+  //   setUploadingQuizId(quizId);
+  //   const formData = new FormData();
+  //   formData.append("file", file);
+  //   formData.append("quizId", quizId);
 
-    try {
-      const uploadRes = await fetch(`${API_BASE_URL}/quizzes/poster`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await uploadRes.json();
+  //   try {
+  //     const uploadRes = await fetch(`${API_BASE_URL}/quizzes/poster`, {
+  //       credentials: "include",
+  //       method: "POST",
+  //       body: formData,
+  //     });
+  //     const data = await uploadRes.json();
 
-      if (uploadRes.ok && data?.posterPath) {
-        toast.success("Poster uploaded successfully!");
-        await loadQuizzes();
-      } else {
-        toast.error(data?.error || "Poster upload failed.");
-      }
-    } catch (err) {
-      toast.error("Upload error occurred.");
-    } finally {
-      setUploadingQuizId(null);
-    }
-  };
+  //     if (uploadRes.ok && data?.posterPath) {
+  //       toast.success("Poster uploaded successfully!");
+  //       await loadQuizzes();
+  //     } else {
+  //       toast.error(data?.error || "Poster upload failed.");
+  //     }
+  //   } catch (err) {
+  //     toast.error("Upload error occurred.");
+  //   } finally {
+  //     setUploadingQuizId(null);
+  //   }
+  // };
 
-  const handlePreview = (path) => {
-    setPreviewUrl(`${FILE_BASE_URL}/${path}`);
-    setPreviewDialogOpen(true);
-  };
+  // const handlePreview = (path) => {
+  //   setPreviewUrl(`${FILE_BASE_URL}/${path}`);
+  //   setPreviewDialogOpen(true);
+  // };
 
   const handleOpenDeleteDialog = (quiz) => {
     setQuizToDelete(quiz);
@@ -128,6 +129,7 @@ const Quiz = () => {
     if (!quizToDelete) return;
     try {
       const res = await fetch(`${API_BASE_URL}/quizzes/${quizToDelete._id}`, {
+        credentials: "include",
         method: "DELETE",
       });
       const data = await res.json();

@@ -16,7 +16,7 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-const pink = "#ec008c";
+const pink = localStorage.getItem("secondaryColor");
 
 const ResultCampaign = () => {
   const { id } = useParams();
@@ -24,7 +24,7 @@ const ResultCampaign = () => {
   const [campaign, setCampaign] = useState(null);
   
   useEffect(() => {
-    fetch(`${API_BASE_URL}/campaigns/${id}`)
+    fetch(`${API_BASE_URL}/campaigns/${id}/results`, {credentials : "include"})
       .then((res) => res.json())
       .then((data) => setCampaign(data))
       .catch((err) => {
@@ -67,6 +67,7 @@ const ResultCampaign = () => {
 
   try {
     const response = await fetch(`${API_BASE_URL}/campaigns/${id}`, {
+      credentials : "include",
       method: "DELETE",
     });
 
@@ -110,17 +111,17 @@ const ResultCampaign = () => {
       </Box>
 
       {/* Stats Summary */}
-      <Grid container spacing={3} justifyContent="center" mb={5}>
+      <Grid container spacing={3} justifyContent="center" mb={5}x color={localStorage.getItem("primaryColor")}>
         {[
-          { label: "Email Sent", value: campaign.results?.length },
+          { label: "Email Sent", value: campaign.results?.length},
           { label: "Email Opened", value: countByStatus("Email Opened") },
           { label: "Clicked Link", value: countByStatus("Clicked Link") },
           { label: "Submitted Data", value: countByStatus("Submitted Data") },
           { label: "Email Reported", value: countByStatus("Email Reported") },
         ].map((stat, i) => (
-          <Grid item xs={6} sm={4} md={2.4} key={i}>
+          <Grid item xs={6} sm={4} md={2.4} key={i} color={localStorage.getItem("primaryColor")}>
             <Box
-              bgcolor="#fff0f7"
+              bgcolor="#f5f5f5"
               border={`2px solid ${pink}`}
               borderRadius="12px"
               textAlign="center"
@@ -131,7 +132,7 @@ const ResultCampaign = () => {
               <Typography variant="h5" fontWeight="bold" color={pink}>
                 {stat.value}
               </Typography>
-              <Typography fontSize="14px" color="text.secondary">
+              <Typography fontSize="14px" color={localStorage.getItem("primaryColor")}>
                 {stat.label}
               </Typography>
             </Box>
@@ -146,7 +147,7 @@ const ResultCampaign = () => {
 
       <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: 3 }}>
         <Table size="small">
-          <TableHead sx={{ backgroundColor: "#fdf0f6" }}>
+          <TableHead sx={{ backgroundColor: localStorage.getItem("secondaryColor") }}>
             <TableRow>
               <TableCell><strong>First Name</strong></TableCell>
               <TableCell><strong>Last Name</strong></TableCell>

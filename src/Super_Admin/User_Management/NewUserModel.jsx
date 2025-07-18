@@ -8,9 +8,10 @@ import {
   TextField,
   Button,
   Box,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import { toast } from "react-toastify";
-import CustomNumberInput from "./CustomNumberInput"; // adjust path as needed
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 const pink = "#ec008c";
@@ -25,23 +26,23 @@ const pinkTextFieldSx = {
   },
 };
 
-const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
+const NewUserModel = ({ open, onClose, userData, onSave }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [emailLimit, setEmailLimit] = useState("");
   const [password, setPassword] = useState("");
+  const [readOnly, setReadOnly] = useState(false); // 🆕 checkbox state
 
   useEffect(() => {
     if (userData) {
       setName(userData.name || "");
       setEmail(userData.email || "");
-      setEmailLimit(userData.emailLimit || "");
-      setPassword(""); // Clear password on edit for security
+      setPassword("");
+      setReadOnly(userData.readOnly || false); // Load readOnly from userData if editing
     } else {
       setName("");
       setEmail("");
-      setEmailLimit("");
       setPassword("");
+      setReadOnly(false);
     }
   }, [userData, open]);
 
@@ -50,8 +51,8 @@ const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
       const payload = {
         name,
         email,
-        emailLimit,
-        ...(password && { password }), // Include password only if not empty
+        readOnly, // 🆕 send this in the request
+        ...(password && { password }),
       };
 
       const isEditing = !!userData;
@@ -109,6 +110,7 @@ const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
       </DialogTitle>
 
       <DialogContent dividers sx={{ p: 4 }}>
+        {/* Name Field */}
         <Box mb={2}>
           <Typography variant="body2" fontWeight="500" mb={0.5}>
             Name
@@ -123,6 +125,7 @@ const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
           />
         </Box>
 
+        {/* Email Field */}
         <Box mb={2}>
           <Typography variant="body2" fontWeight="500" mb={0.5}>
             Email
@@ -138,19 +141,7 @@ const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
           />
         </Box>
 
-        <Box mb={2}>
-          <Typography variant="body2" fontWeight="500" mb={0.5}>
-            Email Limit
-          </Typography>
-          <CustomNumberInput
-            aria-label="Email Limit Input"
-            min={1}
-            max={100000}
-            value={emailLimit}
-            onChange={(e, val) => setEmailLimit(val)}
-          />
-        </Box>
-
+        {/* Password Field */}
         <Box mb={2}>
           <Typography variant="body2" fontWeight="500" mb={0.5}>
             Password {userData && <i>(leave blank to keep unchanged)</i>}
@@ -163,6 +154,23 @@ const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
             sx={pinkTextFieldSx}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+          />
+        </Box>
+
+        {/* Read Only Checkbox */}
+        <Box mb={2}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={readOnly}
+                onChange={(e) => setReadOnly(e.target.checked)}
+                sx={{
+                  color: pink,
+                  "&.Mui-checked": { color: pink },
+                }}
+              />
+            }
+            label="Prevent this user from saving changes?"
           />
         </Box>
       </DialogContent>
@@ -203,4 +211,4 @@ const NewUserClientModal = ({ open, onClose, userData, onSave }) => {
   );
 };
 
-export default NewUserClientModal;
+export default NewUserModel;

@@ -18,7 +18,7 @@ import {
 } from "@mui/icons-material";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { useTheme } from "../../context/ThemeContext"; 
+import { useTheme } from "../../context/ThemeContext";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -40,13 +40,13 @@ const NewQuiz = () => {
     { questionText: "", answers: ["", "", "", ""], correctIndex: null },
   ]);
 
-  const { darkMode } = useTheme(); 
+  const { darkMode } = useTheme();
 
   const fileInputRef = useRef();
 
   useEffect(() => {
     if (id) {
-      fetch(`${API_BASE_URL}/quizzes/${id}`)
+      fetch(`${API_BASE_URL}/quizzes/${id}`, { credentials: "include" })
         .then((res) => res.json())
         .then((data) => {
           setTitle(data.title || "");
@@ -98,6 +98,7 @@ const NewQuiz = () => {
   const handleSampleDownload = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/quizzes/template`, {
+        credentials: "include",
         method: "GET",
       });
 
@@ -125,6 +126,7 @@ const NewQuiz = () => {
 
     try {
       const response = await fetch(`${API_BASE_URL}/quizzes/import`, {
+        credentials : "include",
         method: "POST",
         body: formData,
       });
@@ -172,6 +174,7 @@ const NewQuiz = () => {
 
     try {
       const response = await fetch(`${API_BASE_URL}/quizzes/${id || ""}`, {
+        credentials : "include",
         method: id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(quizData),
@@ -213,7 +216,7 @@ const NewQuiz = () => {
             startIcon={<UploadFileIcon />}
             onClick={() => fileInputRef.current.click()}
             sx={{
-              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              background: `linear-gradient(135deg,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
               color: "#fff",
               fontWeight: "bold",
               borderRadius: "8px",
@@ -228,7 +231,7 @@ const NewQuiz = () => {
             startIcon={<DownloadIcon />}
             onClick={handleSampleDownload}
             sx={{
-              background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+              background: `linear-gradient(135deg,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
               color: "#fff",
               fontWeight: "bold",
               borderRadius: "8px",
@@ -282,7 +285,7 @@ const NewQuiz = () => {
           />
 
           {questions.map((q, qIdx) => (
-            <Paper key={qIdx} variant="outlined" sx={{ p: 2, borderRadius: 2, backgroundColor: darkMode ? "#FFE1FF" : "#f9f9f9",  }}>
+            <Paper key={qIdx} variant="outlined" sx={{ p: 2, borderRadius: 2, backgroundColor: darkMode ? "#FFE1FF" : "#f9f9f9", }}>
               <Box display="flex" justifyContent="space-between" alignItems="center">
                 <Typography fontWeight="bold">Question {qIdx + 1}</Typography>
                 <Tooltip title="Delete Question">
@@ -324,7 +327,7 @@ const NewQuiz = () => {
               startIcon={<AddIcon />}
               onClick={handleAddQuestion}
               sx={{
-                background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+                background: `linear-gradient(135deg,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
                 color: "#fff",
                 fontWeight: "bold",
                 borderRadius: "8px",
@@ -332,7 +335,7 @@ const NewQuiz = () => {
                 py: 1,
                 textTransform: "uppercase",
                 "&:hover": {
-                  background: "linear-gradient(135deg, #d6007a, #ff478a)",
+                  background: `linear-gradient(135deg,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
                 },
               }}
             >
@@ -346,7 +349,7 @@ const NewQuiz = () => {
           sx={{
             mt: 3,
             alignSelf: "center",
-            background: "linear-gradient(135deg, #28a745, #6fdc8c)",
+            background: `linear-gradient(135deg, ${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
             color: "#fff",
             fontWeight: "bold",
             borderRadius: "8px",

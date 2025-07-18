@@ -11,7 +11,7 @@ import {
 import { toast } from "react-toastify";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-const pink = "#ec008c";
+const pink = localStorage.getItem("primaryColor");
 
 const pinkTextFieldSx = {
   "& label.Mui-focused": { color: pink },
@@ -32,15 +32,41 @@ const LdapConfigDialog = ({ open, onClose }) => {
     searchFilter: "",
   });
 
+  const [configExists, setConfigExists] = useState(false);
+
+  const resetForm = () => {
+    setConfig({
+      url: "",
+      bindDN: "",
+      bindCredentials: "",
+      searchBase: "",
+      searchFilter: "",
+    });
+    setConfigExists(false);
+  };
+
+  // 🔄 Load existing config on dialog open
   useEffect(() => {
-    if (!open) {
-      setConfig({
-        url: "",
-        bindDN: "",
-        bindCredentials: "",
-        searchBase: "",
-        searchFilter: "",
-      });
+    if (open) {
+      fetch(`${API_BASE_URL}/ldap`, {
+        method: "GET",
+        credentials: "include",
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && !data.error) {
+            setConfig(data);
+            setConfigExists(true);
+          } else {
+            resetForm(); // no config
+          }
+        })
+        .catch((err) => {
+          console.error("❌ Failed to fetch LDAP config:", err);
+          toast.error("Could not load LDAP config.");
+        });
+    } else {
+      resetForm();
     }
   }, [open]);
 
@@ -50,41 +76,37 @@ const LdapConfigDialog = ({ open, onClose }) => {
 
   const handleTestConnection = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/check`, {
+      const res = await fetch(`${API_BASE_URL}/check`, {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
-
-      const data = await response.json();
-
+      const data = await res.json();
       if (data.error) throw new Error(data.error);
-
       toast.success("LDAP connection successful!");
     } catch (err) {
-      toast.error(err.message || "Failed to connect to LDAP");
-      console.error(err);
+      console.error("❌ LDAP Test Error:", err.message);
+      toast.error(err.message || "Failed to test LDAP connection.");
     }
   };
 
   const handleSaveConfiguration = async () => {
     try {
+      const method = configExists ? "PUT" : "POST";
       const response = await fetch(`${API_BASE_URL}/ldap`, {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config),
         credentials: "include",
+        body: JSON.stringify(config),
       });
 
       const data = await response.json();
-
       if (data.error) throw new Error(data.error);
 
       toast.success("LDAP configuration saved!");
-      onClose(); // Close dialog on success
+      onClose();
     } catch (err) {
-      toast.error(err.message || "Failed to save configuration");
-      console.error(err);
+      console.error("❌ Save Config Error:", err.message);
+      toast.error(err.message || "Failed to save LDAP configuration.");
     }
   };
 
@@ -98,8 +120,8 @@ const LdapConfigDialog = ({ open, onClose }) => {
         sx: {
           width: "700px",
           borderRadius: "16px",
-          border: "2px solid #ec008c30",
-          boxShadow: "0 8px 24px rgba(236, 0, 140, 0.2)",
+          border: `2px solid ${localStorage.getItem("primaryColor")}`,
+          boxShadow: `0 8px 24px ${localStorage.getItem("primaryColor")}`,
         },
       }}
     >
@@ -107,8 +129,8 @@ const LdapConfigDialog = ({ open, onClose }) => {
         sx={{
           fontWeight: "bold",
           color: pink,
-          borderBottom: "1px solid #f8c6dd",
-          backgroundColor: "#fff0f7",
+          borderBottom: `1px solid ${localStorage.getItem("primaryColor")}`,
+          backgroundColor: "#f5f5f5",
         }}
       >
         🛠️ LDAP Configuration
@@ -158,14 +180,14 @@ const LdapConfigDialog = ({ open, onClose }) => {
           onClick={handleTestConnection}
           variant="contained"
           sx={{
-            background: "linear-gradient(to right, #3b82f6, #6366f1)",
+            background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
             color: "#fff",
             fontWeight: "bold",
             borderRadius: 1,
             textTransform: "none",
             boxShadow: 1,
             "&:hover": {
-              background: "linear-gradient(to right, #2563eb, #4f46e5)",
+              background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
             },
           }}
         >
@@ -176,14 +198,14 @@ const LdapConfigDialog = ({ open, onClose }) => {
           onClick={handleSaveConfiguration}
           variant="contained"
           sx={{
-            background: "linear-gradient(to right, #ec4899, #d946ef)",
+            background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
             color: "#fff",
             fontWeight: "bold",
             borderRadius: 1,
             textTransform: "none",
             boxShadow: 1,
             "&:hover": {
-              background: "linear-gradient(to right, #db2777, #c026d3)",
+              background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
             },
           }}
         >

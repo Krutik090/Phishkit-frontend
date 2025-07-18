@@ -5,7 +5,7 @@ import {
   CheckCircle, Circle, ArrowRight, ArrowLeft,
 } from "lucide-react";
 import "./style.css";
-
+import { useTheme } from "../../context/ThemeContext"; // ✅ Context for darkMode
 /* ---------- Progress Context ---------- */
 const ProgressContext = createContext();
 export const useProgress = () => useContext(ProgressContext);
@@ -491,7 +491,7 @@ function Layout() {
     <Module3Lesson onNext={() => setStepIndex(6)} onBack={() => setStepIndex(4)} />,
     <Module3Game onNext={() => setStepIndex(7)} onBack={() => setStepIndex(5)} />,
     <CompletionPage
-      onBack={() => setStepIndex(6)}
+      onBack={() => window.close()}
       onRestart={() => setStepIndex(0)}
     />,
   ];
@@ -505,6 +505,30 @@ function Layout() {
 
 /* ---------- App Root ---------- */
 export default function Training() {
+
+  /* ---------- Color changes ---------- */
+const [colors, setColors] = useState({
+    primary: '#ec008c',
+    accent: '#0055cc',
+    active: '#66b2ff',
+    text: '#ffffff',
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const primary = localStorage.getItem('primaryColor') || colors.primary;
+    const accent =  localStorage.getItem('') || colors.accent;
+    const active = colors.active;
+    const text = colors.text;
+
+    root.style.setProperty('--primary', primary);
+    root.style.setProperty('--accent', accent);
+    root.style.setProperty('--active', active);
+    root.style.setProperty('--text', text);
+
+    setColors({ primary, accent, active, text });
+  }, []);
+
   useEffect(() => {
     document.body.style.margin = "0";
   }, []);

@@ -21,8 +21,8 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-const pink = "#ec008c";
-const GRADIENT = `linear-gradient(to right, ${pink}, #d946ef)`;
+const pink = localStorage.getItem("primaryColor");
+const GRADIENT = `linear-gradient(to right, ${pink}, ${localStorage.getItem("secondaryColor")})`;
 
 const inputStyle = {
   width: "100%",
@@ -41,7 +41,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
   const [sendingProfiles, setSendingProfiles] = useState([]);
   const [groups, setGroups] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
-  const [clients, setClients] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [existingCampaigns, setExistingCampaigns] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
@@ -52,7 +52,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
     sendingProfiles: [{ id: 1, name: "Mock SMTP" }],
     groups: [{ id: 1, name: "Mock Group" }],
     quizzes: [{ id: 1, name: "Mock Quiz", publicUrl: "sample-url" }],
-    clients: [{ _id: "1", name: "Mock Client" }],
+    projects: [{ _id: "1", name: "Mock Project" }],
   };
 
   useEffect(() => {
@@ -65,7 +65,13 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
       try {
         const fetchWithFallback = async (url, fallbackData) => {
           try {
-            const res = await fetch(url);
+            const res = await fetch(url, {
+              method: "GET",
+              credentials: "include",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
             if (res.ok) {
               const data = await res.json();
               return Array.isArray(data) && data.length ? data : fallbackData;
@@ -82,7 +88,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
           sendingProfilesData,
           groupsData,
           quizzesData,
-          clientsData,
+          projectData,
           campaignsData,
         ] = await Promise.all([
           fetchWithFallback(`${API_BASE_URL}/templates`, mockData.templates),
@@ -90,7 +96,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
           fetchWithFallback(`${API_BASE_URL}/sending-profiles`, mockData.sendingProfiles),
           fetchWithFallback(`${API_BASE_URL}/groups`, mockData.groups),
           fetchWithFallback(`${API_BASE_URL}/quizzes`, mockData.quizzes),
-          fetchWithFallback(`${API_BASE_URL}/clients`, mockData.clients),
+          fetchWithFallback(`${API_BASE_URL}/projects`, mockData.projects),
           fetchWithFallback(`${API_BASE_URL}/campaigns`, []),
         ]);
 
@@ -99,7 +105,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
         setSendingProfiles(sendingProfilesData);
         setGroups(groupsData);
         setQuizzes(quizzesData);
-        setClients(clientsData);
+        setProjects(projectData);
         setExistingCampaigns(campaignsData);
       } catch (err) {
         toast.error("Error loading campaign data.");
@@ -151,15 +157,15 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
       groups: Array.isArray(formData.group)
         ? formData.group.map((groupName) => ({ name: groupName }))
         : [],
-      clientId: formData.client,
+      projectId: formData.project,
       publicUrl: formData.quiz?.publicUrl || null,
     };
 
     try {
       const res = await fetch(`${API_BASE_URL}/campaigns`, {
+        credentials: "include",
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify(payload),
       });
 
@@ -183,7 +189,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
 
   const safeFormData = {
     name: "",
-    client: "",
+    project: "",
     template: "",
     landingPage: "",
     url: "",
@@ -196,14 +202,13 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
 
   const handleSelectFocus = (e) => {
     e.target.style.borderColor = pink;
-    e.target.style.boxShadow = "0 0 0 0.15rem rgba(236, 0, 140, 0.25)";
+    e.target.style.boxShadow = `0 0 0 0.15rem ${localStorage.getItem("secondaryColor")}`;
   };
 
   const handleSelectBlur = (e) => {
     e.target.style.borderColor = "#d1d5db";
     e.target.style.boxShadow = "none";
   };
-
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg"
       PaperProps={{
@@ -212,11 +217,11 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
           height: "740px",
           maxHeight: "90vh",
           borderRadius: "16px",
-          border: "2px solid #ec008c30",
-          boxShadow: "0 8px 24px rgba(236, 0, 140, 0.2)",
+          border: `2px solid ${localStorage.getItem("secondaryColor")}`,
+          boxShadow: "0 8px 24px rgba(2, 2, 2, 0.2)",
         },
       }}>
-      <DialogTitle sx={{ fontWeight: "bold", color: pink, borderBottom: "1px solid #f8c6dd", backgroundColor: "#fff0f7" }}>
+      <DialogTitle sx={{ fontWeight: "bold", color: pink, borderBottom: `1px solid #f8c6dd ${localStorage.getItem("secondaryColor")}`, backgroundColor: `#e9f1f2 `}}>
         🎯 Add New Campaign
       </DialogTitle>
 
@@ -226,16 +231,36 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
           <Box display="flex" gap={2}>
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>Campaign Name *</Typography>
-              <TextField name="name" value={safeFormData.name} onChange={handleChange}
-                fullWidth placeholder="Enter campaign name"
-                sx={{ "& .MuiOutlinedInput-root.Mui-focused fieldset": { borderColor: pink } }} />
+              <TextField
+                name="name"
+                value={safeFormData.name}
+                onChange={handleChange}
+                fullWidth
+                placeholder="Enter campaign name"
+                sx={{
+                  "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+                    borderColor: pink,
+                  },
+                }}
+              />
             </Box>
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>Project</Typography>
-              <select name="client" value={safeFormData.client} onChange={handleChange}
-                onFocus={handleSelectFocus} onBlur={handleSelectBlur} style={inputStyle} disabled={loading}>
+              <select
+                name="project"
+                value={safeFormData.project}
+                onChange={handleChange}
+                onFocus={handleSelectFocus}
+                onBlur={handleSelectBlur}
+                style={inputStyle}
+                disabled={loading}
+              >
                 <option value="">Select Project</option>
-                {clients.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                {projects.map((c) => (
+                  <option key={c._id || c.id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
               </select>
             </Box>
           </Box>
@@ -244,18 +269,40 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
           <Box display="flex" gap={2}>
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>Template</Typography>
-              <select name="template" value={safeFormData.template} onChange={handleChange}
-                onFocus={handleSelectFocus} onBlur={handleSelectBlur} style={inputStyle} disabled={loading}>
+              <select
+                name="template"
+                value={safeFormData.template}
+                onChange={handleChange}
+                onFocus={handleSelectFocus}
+                onBlur={handleSelectBlur}
+                style={inputStyle}
+                disabled={loading}
+              >
                 <option value="">Select Template</option>
-                {templates.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
+                {templates.map((t) => (
+                  <option key={t._id || t.id} value={t.name}>
+                    {t.name}
+                  </option>
+                ))}
               </select>
             </Box>
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>Landing Page</Typography>
-              <select name="landingPage" value={safeFormData.landingPage} onChange={handleChange}
-                onFocus={handleSelectFocus} onBlur={handleSelectBlur} style={inputStyle} disabled={loading}>
+              <select
+                name="landingPage"
+                value={safeFormData.landingPage}
+                onChange={handleChange}
+                onFocus={handleSelectFocus}
+                onBlur={handleSelectBlur}
+                style={inputStyle}
+                disabled={loading}
+              >
                 <option value="">Select Landing Page</option>
-                {landingPages.map((lp) => <option key={lp.id} value={lp.name}>{lp.name}</option>)}
+                {landingPages.map((lp) => (
+                  <option key={lp._id || lp.id} value={lp.name}>
+                    {lp.name}
+                  </option>
+                ))}
               </select>
             </Box>
           </Box>
@@ -264,17 +311,35 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
           <Box display="flex" gap={2}>
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>Sending Profile</Typography>
-              <select name="sendingProfile" value={safeFormData.sendingProfile} onChange={handleChange}
-                onFocus={handleSelectFocus} onBlur={handleSelectBlur} style={inputStyle} disabled={loading}>
+              <select
+                name="sendingProfile"
+                value={safeFormData.sendingProfile}
+                onChange={handleChange}
+                onFocus={handleSelectFocus}
+                onBlur={handleSelectBlur}
+                style={inputStyle}
+                disabled={loading}
+              >
                 <option value="">Select SMTP</option>
-                {sendingProfiles.map((sp) => <option key={sp.id} value={sp.name}>{sp.name}</option>)}
+                {sendingProfiles.map((sp) => (
+                  <option key={sp._id || sp.id} value={sp.name}>
+                    {sp.name}
+                  </option>
+                ))}
               </select>
             </Box>
 
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>Quiz</Typography>
-              <select name="quiz" value={safeFormData.quiz?._id || ""} onChange={handleChange}
-                onFocus={handleSelectFocus} onBlur={handleSelectBlur} style={inputStyle} disabled={loading}>
+              <select
+                name="quiz"
+                value={safeFormData.quiz?._id || ""}
+                onChange={handleChange}
+                onFocus={handleSelectFocus}
+                onBlur={handleSelectBlur}
+                style={inputStyle}
+                disabled={loading}
+              >
                 <option value="">Select Quiz</option>
                 {quizzes.map((q) => (
                   <option key={q._id || q.id} value={q._id || q.id}>
@@ -289,48 +354,40 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
           <Box display="flex" gap={2}>
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>URL</Typography>
-              <TextField name="url" value={safeFormData.url} onChange={handleChange}
-                fullWidth placeholder="Enter campaign URL"
-                sx={{ "& .MuiOutlinedInput-root.Mui-focused fieldset": { borderColor: pink } }} />
+              <TextField
+                name="url"
+                value={safeFormData.url}
+                onChange={handleChange}
+                fullWidth
+                placeholder="Enter campaign URL"
+                sx={{
+                  "& .MuiOutlinedInput-root.Mui-focused fieldset": {
+                    borderColor: pink,
+                  },
+                }}
+              />
             </Box>
             <Box flex={1}>
               <Typography fontWeight="bold" mb={0.5}>Launch Date</Typography>
-              {/* <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DateTimePicker
                   value={dayjs(safeFormData.schedule)}
-                  onChange={(val) => setFormData((prev) => ({ ...prev, schedule: val }))}
+                  onChange={(val) =>
+                    setFormData((prev) => ({ ...prev, schedule: val }))
+                  }
                   timeSteps={{ minutes: 1 }}
                   slotProps={{
                     textField: {
                       fullWidth: true,
                       sx: {
                         "& .MuiOutlinedInput-root.Mui-focused fieldset": {
-                          borderColor: pink,
+                          borderColor: pink[500],
                         },
                       },
                     },
                   }}
                 />
-              </LocalizationProvider> */}
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-  <DateTimePicker
-    value={dayjs(safeFormData.schedule)}
-    onChange={(val) =>
-      setFormData((prev) => ({ ...prev, schedule: val }))
-    }
-    timeSteps={{ minutes: 1 }}
-    slotProps={{
-      textField: {
-        fullWidth: true,
-        sx: {
-          "& .MuiOutlinedInput-root.Mui-focused fieldset": {
-            borderColor: pink[500], // pink is an object with shades, like pink[500]
-          },
-        },
-      },
-    }}
-  />
-</LocalizationProvider>
+              </LocalizationProvider>
             </Box>
           </Box>
 
@@ -365,7 +422,11 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
                           group: prev.group.filter((item) => item !== value),
                         }));
                       }}
-                      deleteIcon={<CancelIcon sx={{ borderRadius: "50%", fontSize: "18px", p: "2px" }} />}
+                      deleteIcon={
+                        <CancelIcon
+                          sx={{ borderRadius: "50%", fontSize: "18px", p: "2px" }}
+                        />
+                      }
                       sx={{
                         backgroundColor: "white",
                         color: "black",
@@ -386,7 +447,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
               }}
             >
               {groups.map((g) => (
-                <MenuItem key={g.id} value={g.name}>
+                <MenuItem key={g._id || g.id} value={g.name}>
                   {g.name}
                 </MenuItem>
               ))}
@@ -410,7 +471,7 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
       </DialogContent>
     </Dialog>
   );
+
 };
 
 export default NewCampaignModal;
-

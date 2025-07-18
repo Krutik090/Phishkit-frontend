@@ -190,7 +190,7 @@ const SettingsContent = () => {
     setPwdError('');
 
     if (newPassword !== confirmPassword) {
-      setPwdError('New password and confirm password do not match.');
+      setPwdError('❌ Passwords do not match.');
       return;
     }
 
@@ -200,7 +200,7 @@ const SettingsContent = () => {
         { currentPassword, newPassword, confirmPassword },
         { withCredentials: true }
       );
-      setPwdSuccess('Password updated successfully!');
+      setPwdSuccess('✅ Password updated successfully!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -366,13 +366,14 @@ const SettingsContent = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              textAlign: 'center',
             }}
           >
             {loadingQR ? (
               <CircularProgress />
             ) : qrCode ? (
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="body1" sx={{ mb: 1 }}>
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1 }}>
                   Scan with your Authenticator App
                 </Typography>
                 <img src={qrCode} alt="MFA QR Code" width="200" />

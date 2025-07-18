@@ -39,7 +39,7 @@ const UsersGroups = () => {
     if (dataTable.current) {
       dataTable.current.destroy();
     }
-    
+
     if (groups.length > 0) {
       dataTable.current = $(tableRef.current).DataTable({
         destroy: true,
@@ -64,10 +64,12 @@ const UsersGroups = () => {
 
   const fetchGroups = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/groups`);
+      const res = await fetch(`${API_BASE_URL}/groups`, {
+        credentials: "include",
+      });
       const data = await res.json();
       setGroups(data);
-      
+
       // Reload DataTable after fetching new data
       setTimeout(() => {
         if (dataTable.current) {
@@ -89,31 +91,41 @@ const UsersGroups = () => {
     }
   }, [groups]);
 
-  const handleDeleteGroup = async () => {
-    if (!groupToDelete) return;
-    try {
-      await fetch(`${API_BASE_URL}/groups/${groupToDelete.id}`, {
-        method: "DELETE",
-      });
-      toast.success("Group deleted successfully!");
-      
-      // Update state and reload DataTable
-      setGroups((prev) => prev.filter((g) => g.id !== groupToDelete.id));
-      
-      // Reload DataTable after state update
-      setTimeout(() => {
-        if (dataTable.current) {
-          reloadDataTable();
-        }
-      }, 100);
-      
-      setDeleteDialogOpen(false);
-      setGroupToDelete(null);
-    } catch (err) {
-      console.error("Failed to delete group:", err);
-      toast.error("Failed to delete group. Please try again.");
+const handleDeleteGroup = async () => {
+  if (!groupToDelete) return;
+
+  try {
+    console.log("Deleting group:", groupToDelete._id || groupToDelete.id);
+
+    const res = await fetch(`${API_BASE_URL}/groups/${groupToDelete._id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.message || "Failed to delete group");
     }
-  };
+
+    toast.success("Group deleted successfully!");
+
+    setGroups((prev) =>
+      prev.filter((g) => g._id !== groupToDelete._id)
+    );
+
+    setTimeout(() => {
+      if (dataTable.current) {
+        reloadDataTable();
+      }
+    }, 100);
+
+    setDeleteDialogOpen(false);
+    setGroupToDelete(null);
+  } catch (err) {
+    console.error("Failed to delete group:", err);
+    toast.error(err.message || "Failed to delete group. Please try again.");
+  }
+};
 
   const handleNewGroup = () => {
     setSelectedGroup(null);
@@ -122,7 +134,11 @@ const UsersGroups = () => {
   };
 
   const handleEditGroup = (group) => {
-    setSelectedGroup(group);
+    const normalizedGroup = {
+      ...group,
+      id: group.id || group._id, // 👈 ensures id is present
+    };
+    setSelectedGroup(normalizedGroup);
     setModalMode("edit");
     setOpenModal(true);
   };
@@ -175,9 +191,9 @@ const UsersGroups = () => {
               borderRadius: "8px",
               px: 3,
               py: 1,
-              boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
+              boxShadow: `0 4px 10px ${localStorage.getItem("primaryColor")}`,
               "&:hover": {
-                background: "linear-gradient(135deg, #d6007a, #ff478a)",
+                background: `linear-gradient(135deg, ${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
               },
             }}>
             Upload LDAP Config
@@ -190,9 +206,9 @@ const UsersGroups = () => {
               borderRadius: "8px",
               px: 3,
               py: 1,
-              boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
+              boxShadow: `0 4px 10px ${localStorage.getItem("primaryColor")}`,
               "&:hover": {
-                background: "linear-gradient(135deg, #d6007a, #ff478a)",
+                background: `linear-gradient(135deg,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
               },
             }}
           >
