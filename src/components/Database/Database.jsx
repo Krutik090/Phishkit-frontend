@@ -1,65 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  ChevronDown, ChevronRight, RefreshCw, Search, Grid, List, MoreHorizontal, Database
+  ChevronDown, ChevronRight, RefreshCw, Search, Grid, List, MoreHorizontal, Database, AlertCircle
 } from 'lucide-react';
 
-const dummyCollections = [
-  {
-    name: "Users",
-    documentCount: 1245,
-    storageSize: "2.3MB",
-    avgDocumentSize: "1.8KB",
-    indexes: 3,
-    totalIndexSize: "456KB"
-  },
-  {
-    name: "Orders",
-    documentCount: 892,
-    storageSize: "1.2MB",
-    avgDocumentSize: "1.3KB",
-    indexes: 2,
-    totalIndexSize: "312KB"
-  },
-  {
-    name: "Products",
-    documentCount: 304,
-    storageSize: "948KB",
-    avgDocumentSize: "3.1KB",
-    indexes: 4,
-    totalIndexSize: "289KB"
-  },
-  {
-    name: "Reviews",
-    documentCount: 1845,
-    storageSize: "3.5MB",
-    avgDocumentSize: "1.9KB",
-    indexes: 2,
-    totalIndexSize: "1.2MB"
-  },
-  {
-    name: "Inventory",
-    documentCount: 673,
-    storageSize: "1.6MB",
-    avgDocumentSize: "2.4KB",
-    indexes: 3,
-    totalIndexSize: "390KB"
-  },
-  {
-    name: "Sessions",
-    documentCount: 2145,
-    storageSize: "4.8MB",
-    avgDocumentSize: "2.2KB",
-    indexes: 1,
-    totalIndexSize: "780KB"
-  }
-];
-
 const Database_Collection = () => {
+  const navigate = useNavigate();
+  const [collections, setCollections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [openCollection, setOpenCollection] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('Collection Name');
+
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+  const fetchCollections = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/db/full-db`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch collections');
+      }
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const collectionsData = Object.entries(result.data).map(([name, data]) => ({
+          name: name,
+          documentCount: data.metadata.count,
+          storageSize: data.metadata.storageSize,
+          avgDocumentSize: data.metadata.avgObjSize,
+          indexes: data.metadata.nIndexes,
+          totalIndexSize: data.metadata.totalIndexSize,
+          documents: data.documents || []
+        }));
+        setCollections(collectionsData);
+      } else {
+        throw new Error('Invalid data format received');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCollections();
+  }, []);
+
+  const handleCardClick = (collectionName, event) => {
+    // Prevent navigation if clicking on the expand/collapse chevron area
+    if (event.target.closest('.chevron-area')) {
+      event.stopPropagation();
+      toggleCollection(collectionName);
+      return;
+    }
+
+    // Navigate to the database detail page
+    navigate(`/database/${encodeURIComponent(collectionName)}`);
+  };
 
   const toggleCollection = (name) => {
     setOpenCollection(prev => (prev === name ? null : name));
@@ -67,11 +71,11 @@ const Database_Collection = () => {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await fetchCollections();
     setIsRefreshing(false);
   };
 
-  const filteredCollections = dummyCollections.filter(col =>
+  const filteredCollections = collections.filter(col =>
     col.name.toLowerCase().includes(searchTerm.toLowerCase())
   ).sort((a, b) => {
     if (sortBy === 'Collection Name') return a.name.localeCompare(b.name);
@@ -82,7 +86,7 @@ const Database_Collection = () => {
 
   const containerStyle = {
     minHeight: '100vh',
-    padding: '24px'
+    padding: '24px',
   };
 
   const headerStyle = {
@@ -221,12 +225,18 @@ const Database_Collection = () => {
   const cardTitleStyle = {
     fontSize: '18px',
     fontWeight: '600',
-    color: '#1e293b',
+    color: '#ffffff',
     margin: 0
   };
 
+  const chevronAreaStyle = {
+    padding: '4px',
+    borderRadius: '4px',
+    transition: 'background-color 0.2s'
+  };
+
   const cardContentStyle = {
-    padding: viewMode === 'list' ? '8px' : '16px'
+    padding: '16px'
   };
 
   const statsGridStyle = {
@@ -346,13 +356,74 @@ const Database_Collection = () => {
     color: '#64748b'
   };
 
+  const loadingStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '400px',
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0'
+  };
+
+  const errorStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    height: '400px',
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0',
+    gap: '16px'
+  };
+
+  if (loading) {
+    return (
+      <div style={containerStyle}>
+        <div style={loadingStyle}>
+          <RefreshCw className="animate-spin" style={{ width: '48px', height: '48px', color: '#3b82f6' }} />
+          <p style={{ marginTop: '16px', color: '#64748b' }}>Loading collections...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={containerStyle}>
+        <div style={errorStyle}>
+          <AlertCircle style={{ width: '48px', height: '48px', color: '#ef4444' }} />
+          <div style={{ textAlign: 'center' }}>
+            <h3 style={{ color: '#1e293b', marginBottom: '8px' }}>Error Loading Collections</h3>
+            <p style={{ color: '#64748b', marginBottom: '16px' }}>{error}</p>
+            <button
+              onClick={handleRefresh}
+              style={{
+                ...refreshButtonStyle,
+                backgroundColor: '#3b82f6',
+                color: '#ffffff',
+                border: 'none'
+              }}
+            >
+              <RefreshCw style={{ width: '16px', height: '16px' }} />
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={containerStyle}>
       {/* Header */}
       <div style={headerStyle}>
         <div style={titleContainerStyle}>
           <div style={titleStyle}>
-            <Database style={{ width: '24px', height: '24px' }} />
+            <Database style={{ width: '24px', height: '24px', color: '#3b82f6' }} />
             <h1 style={h1Style}>Database Collections</h1>
           </div>
           <button
@@ -426,7 +497,7 @@ const Database_Collection = () => {
             <div
               key={col.name}
               style={cardStyle}
-              onClick={() => toggleCollection(col.name)}
+              onClick={(e) => handleCardClick(col.name, e)}
               onMouseEnter={(e) => {
                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
                 e.currentTarget.style.transform = 'translateY(-2px)';
@@ -448,14 +519,21 @@ const Database_Collection = () => {
               <div className="card-header" style={cardHeaderStyle}>
                 <div style={cardHeaderContentStyle}>
                   <div style={cardTitleContainerStyle}>
-                    {openCollection === col.name ? (
-                      <ChevronDown style={{ width: '20px', height: '20px', color: '#2563eb' }} />
-                    ) : (
-                      <ChevronRight style={{ width: '20px', height: '20px', color: '#94a3b8' }} />
-                    )}
+                    <div
+                      className="chevron-area"
+                      style={chevronAreaStyle}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    >
+                      {openCollection === col.name ? (
+                        <ChevronDown style={{ width: '20px', height: '20px', color: '#ffffff' }} />
+                      ) : (
+                        <ChevronRight style={{ width: '20px', height: '20px', color: '#ffffff' }} />
+                      )}
+                    </div>
                     <h3 style={cardTitleStyle}>{col.name}</h3>
                   </div>
-                  <MoreHorizontal style={{ width: '20px', height: '20px', color: '#94a3b8' }} />
+                  <MoreHorizontal style={{ width: '20px', height: '20px', color: '#ffffff' }} />
                 </div>
               </div>
 
@@ -507,12 +585,24 @@ const Database_Collection = () => {
                   <h4 style={expandedTitleStyle}>Collection Details</h4>
                   <div style={expandedContentStyle}>
                     <div style={expandedRowStyle}>
-                      <span style={expandedLabelStyle}>Created:</span>
-                      <span style={expandedValueStyle}>2024-01-15</span>
+                      <span style={expandedLabelStyle}>Total Documents:</span>
+                      <span style={expandedValueStyle}>{col.documentCount}</span>
                     </div>
                     <div style={expandedRowStyle}>
-                      <span style={expandedLabelStyle}>Last Modified:</span>
-                      <span style={expandedValueStyle}>2024-07-18</span>
+                      <span style={expandedLabelStyle}>Storage Size:</span>
+                      <span style={expandedValueStyle}>{col.storageSize}</span>
+                    </div>
+                    <div style={expandedRowStyle}>
+                      <span style={expandedLabelStyle}>Average Document Size:</span>
+                      <span style={expandedValueStyle}>{col.avgDocumentSize}</span>
+                    </div>
+                    <div style={expandedRowStyle}>
+                      <span style={expandedLabelStyle}>Number of Indexes:</span>
+                      <span style={expandedValueStyle}>{col.indexes}</span>
+                    </div>
+                    <div style={expandedRowStyle}>
+                      <span style={expandedLabelStyle}>Total Index Size:</span>
+                      <span style={expandedValueStyle}>{col.totalIndexSize}</span>
                     </div>
                     <div style={expandedRowStyle}>
                       <span style={expandedLabelStyle}>Status:</span>

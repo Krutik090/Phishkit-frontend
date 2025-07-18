@@ -34,11 +34,13 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Dashboard from "./components/Dashboard/Dashboard";
 import "./components/Dashboard/dashboard.css";
-import {ThemeProvider} from "./components/Settings/Settings";
+import { ThemeProvider } from "./components/Settings/Settings";
 import UserManagement from "./components/User_Management/UserManagement";
 import SuperAdminRoutes from "./Super_Admin/SuperAdminRoutes";
 import Database_Collection from "./components/Database/Database";
 import AdminRoute from "./components/RoleProtectedRoute";
+import Database_Docs from "./components/Database/Database_Docs";
+
 function AppContent() {
   const location = useLocation();
   const { darkMode } = useTheme();
@@ -66,89 +68,98 @@ function AppContent() {
 
   return (
     <ThemeProvider>
-    <Box
-      className={`min-h-screen ${isDark ? "text-white" : "text-black"}`}
-      sx={{
-        backgroundColor: isDark ? "#1e1e2f" : "#ffffff",
-        transition: "background-color 0.3s ease",
-      }}
-    >
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/quiz/:publicUrl" element={<QuizTemplate />} />
-        <Route path="/training" element={<Training />} />
-
-        {/* Protected Standalone Routes */}
-        <Route path="/fullscreen-editor" element={<ProtectedRoute><FullScreenEditor /></ProtectedRoute>} />
-        <Route path="/client/:clientId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
-        <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
-
-        {/* Authenticated Layout Routes */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Layout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Navigate to="/campaigns" replace />} />
-          <Route path="campaigns" element={<Campaigns />} />
-          <Route path="campaign-results/:id" element={<ResultCampaign />} />
-          <Route path="templates" element={<Templates />} />
-          <Route path="landing-pages" element={<LandingPages />} />
-          <Route path="sending-profiles" element={<SendingProfiles />} />
-          <Route path="users-groups" element={<UsersGroups />} />
-          <Route path="projects" element={<ProjectPage />} />
-          <Route path="clients-user" element={<AdminRoute><UserManagement /></AdminRoute>} />
-          <Route path="projects/:projecId" element={<ClientCampaign />} />
-          <Route path="campaign/:campaignId/details" element={<CampaignDetails />} />
-          <Route path="projects/:projectId/insights" element={<ClientInsights />} />
-          <Route path="quizz" element={<Quiz />} />
-          <Route path="quizz/new" element={<NewQuiz />} />
-          <Route path="quizz/edit/:id" element={<NewQuiz />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="dashboard" element={<Dashboard />} />
-
-          <Route
-            path="user-management"
-            element={
-              <RoleProtectedRoute allowRoles={["admin", "superadmin"]} fallbackPath="/dashboard">
-                <UserManagement />
-              </RoleProtectedRoute>
-            }
-          />
-          <Route
-            path="database"
-            element={
-              <RoleProtectedRoute allowRoles={["admin", "superadmin"]} fallbackPath="/dashboard">
-                <Database_Collection />
-              </RoleProtectedRoute>
-            }
-          />
-        </Route>
-      </Routes>
-
-      {/* SuperAdmin specific */}
-      <SuperAdminRoutes />
-
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar
-        toastStyle={{
-          backgroundColor: isDark ? "#2a2a3b" : "#ffffff",
-          color: isDark ? "#ffffff" : "#000000",
-          boxShadow: isDark
-            ? "0 0 10px rgba(255, 255, 255, 0.1)"
-            : "0 0 10px rgba(0, 0, 0, 0.1)",
-          borderRadius: "8px",
-          zIndex: 1600,
+      <Box
+        className={`min-h-screen ${isDark ? "text-white" : "text-black"}`}
+        sx={{
+          backgroundColor: isDark ? "#1e1e2f" : "#ffffff",
+          transition: "background-color 0.3s ease",
         }}
-        theme={isDark ? "dark" : "light"}
-      />
-    </Box>
+      >
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/quiz/:publicUrl" element={<QuizTemplate />} />
+          <Route path="/training" element={<Training />} />
+
+          {/* Protected Standalone Routes */}
+          <Route path="/fullscreen-editor" element={<ProtectedRoute><FullScreenEditor /></ProtectedRoute>} />
+          <Route path="/client/:clientId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
+          <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
+
+          {/* Authenticated Layout Routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="/campaigns" replace />} />
+            <Route path="campaigns" element={<Campaigns />} />
+            <Route path="campaign-results/:id" element={<ResultCampaign />} />
+            <Route path="templates" element={<Templates />} />
+            <Route path="landing-pages" element={<LandingPages />} />
+            <Route path="sending-profiles" element={<SendingProfiles />} />
+            <Route path="users-groups" element={<UsersGroups />} />
+            <Route path="projects" element={<ProjectPage />} />
+            <Route path="clients-user" element={<AdminRoute><UserManagement /></AdminRoute>} />
+            <Route path="projects/:projecId" element={<ClientCampaign />} />
+            <Route path="campaign/:campaignId/details" element={<CampaignDetails />} />
+            <Route path="projects/:projectId/insights" element={<ClientInsights />} />
+            <Route path="quizz" element={<Quiz />} />
+            <Route path="quizz/new" element={<NewQuiz />} />
+            <Route path="quizz/edit/:id" element={<NewQuiz />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="dashboard" element={<Dashboard />} />
+
+            <Route
+              path="user-management"
+              element={
+                <RoleProtectedRoute allowRoles={["admin", "superadmin"]} fallbackPath="/dashboard">
+                  <UserManagement />
+                </RoleProtectedRoute>
+              }
+            />
+            <Route
+              path="database"
+              element={
+                <RoleProtectedRoute allowRoles={["admin", "superadmin"]} fallbackPath="/dashboard">
+                  <Database_Collection />
+                </RoleProtectedRoute>
+              }
+            />
+            <Route
+              path="database/:dbName"
+              element={
+                <RoleProtectedRoute allowRoles={["admin", "superadmin"]} fallbackPath="/dashboard">
+                  <Database_Docs />
+                </RoleProtectedRoute>
+              }
+            />
+
+          </Route>
+        </Routes>
+
+        {/* SuperAdmin specific */}
+        <SuperAdminRoutes />
+
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar
+          toastStyle={{
+            backgroundColor: isDark ? "#2a2a3b" : "#ffffff",
+            color: isDark ? "#ffffff" : "#000000",
+            boxShadow: isDark
+              ? "0 0 10px rgba(255, 255, 255, 0.1)"
+              : "0 0 10px rgba(0, 0, 0, 0.1)",
+            borderRadius: "8px",
+            zIndex: 1600,
+          }}
+          theme={isDark ? "dark" : "light"}
+        />
+      </Box>
     </ThemeProvider>
   );
 }
