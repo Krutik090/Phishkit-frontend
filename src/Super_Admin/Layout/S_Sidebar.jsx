@@ -10,7 +10,6 @@ import {
   FaUserShield,
   FaUsers,
   FaUser,
-  FaUserTag,
   FaKey,
   FaCog,
   FaDatabase,
@@ -108,9 +107,7 @@ const S_Sidebar = () => {
           defaultOpen={
             location.pathname.startsWith('/super-admin/admins') ||
             location.pathname.startsWith('/super-admin/logs') ||
-            location.pathname.startsWith('/super-admin/users') ||
-            location.pathname.startsWith('/super-admin/roles') ||
-            location.pathname.startsWith('/super-admin/permissions')
+            location.pathname.startsWith('/super-admin/users')
           }
         >
           <MenuItem
@@ -131,9 +128,7 @@ const S_Sidebar = () => {
             label="User Management"
             icon={<FaUsers />}
             defaultOpen={
-              location.pathname.startsWith('/super-admin/users') ||
-              location.pathname.startsWith('/super-admin/roles') ||
-              location.pathname.startsWith('/super-admin/permissions')
+              location.pathname.startsWith('/super-admin/users')
             }
           >
             <MenuItem
@@ -142,20 +137,6 @@ const S_Sidebar = () => {
               onClick={() => navigate('/super-admin/users')}
             >
               All Users
-            </MenuItem>
-            <MenuItem
-              icon={<FaUserTag />}
-              active={isActive('/super-admin/roles')}
-              onClick={() => navigate('/super-admin/roles')}
-            >
-              Roles
-            </MenuItem>
-            <MenuItem
-              icon={<FaKey />}
-              active={isActive('/super-admin/permissions')}
-              onClick={() => navigate('/super-admin/permissions')}
-            >
-              Permissions
             </MenuItem>
           </SubMenu>
         </SubMenu>
