@@ -38,7 +38,7 @@ const CampaignDetails = () => {
 
   const loadCampaignDetails = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/campaigns/${campaignId}`);
+      const res = await fetch(`${API_BASE_URL}/campaigns/gophish/${campaignId}`);
       const data = await res.json();
       setCampaign(data);
 
@@ -49,7 +49,7 @@ const CampaignDetails = () => {
         const enriched = await Promise.all(
           data.results.map(async (r) => {
             try {
-              const uRes = await fetch(`${API_BASE_URL}/users/email/${r.email}`);
+              const uRes = await fetch(`${API_BASE_URL}/users/email/${r.email}`,{credentials: "include"});
               const uData = await uRes.json();
               return {
                 ...r,
