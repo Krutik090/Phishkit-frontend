@@ -166,7 +166,6 @@ const NewCampaignModal = ({ open, onClose, onSave, formData, setFormData }) => {
         credentials: "include",
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify(payload),
       });
 
