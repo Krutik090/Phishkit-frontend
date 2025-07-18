@@ -132,7 +132,7 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
           >
             IMPORT SITE
           </Button> */}
-
+          {/* 
           <Box>
             <Typography variant="body2" fontWeight={500} mb={1}>
               HTML Content
@@ -171,7 +171,24 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
                 branding: false,
               }}
             />
+          </Box> */}
+          <Box>
+            <Typography variant="body2" fontWeight={500} mb={1}>
+              HTML Content
+            </Typography>
+
+            <TextField
+              fullWidth
+              multiline
+              minRows={8}
+              placeholder="Enter HTML content here"
+              value={html}
+              onChange={(e) => setHtml(e.target.value)}
+              sx={inputStyle}
+              aria-label="HTML Content"
+            />
           </Box>
+
 
           <FormControlLabel
             control={
