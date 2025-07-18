@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  ChevronDown, ChevronRight, Plus, RefreshCw, Search, Grid, List, MoreHorizontal
+  ChevronDown, ChevronRight, RefreshCw, Search, Grid, List, MoreHorizontal, Database
 } from 'lucide-react';
-import { Box, Button, Input, Select, MenuItem, Typography, IconButton } from '@mui/material';
 
 const dummyCollections = [
   {
@@ -59,7 +58,7 @@ const Database_Collection = () => {
   const [openCollection, setOpenCollection] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState('list');
+  const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('Collection Name');
 
   const toggleCollection = (name) => {
@@ -81,92 +80,452 @@ const Database_Collection = () => {
     return 0;
   });
 
+  const containerStyle = {
+    minHeight: '100vh',
+    padding: '24px'
+  };
+
+  const headerStyle = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '32px',
+    gap: '16px'
+  };
+
+  const titleContainerStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px'
+  };
+
+  const titleStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  };
+
+  const h1Style = {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    margin: 0
+  };
+
+  const refreshButtonStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 16px',
+    backgroundColor: '#ffffff',
+    border: '1px solid #cbd5e1',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+    fontSize: '14px'
+  };
+
+  const controlsStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px'
+  };
+
+  const searchContainerStyle = {
+    position: 'relative'
+  };
+
+  const searchInputStyle = {
+    paddingLeft: '40px',
+    paddingRight: '16px',
+    paddingTop: '8px',
+    paddingBottom: '8px',
+    border: '1px solid #cbd5e1',
+    borderRadius: '8px',
+    outline: 'none',
+    backgroundColor: '#ffffff',
+    fontSize: '14px'
+  };
+
+  const searchIconStyle = {
+    position: 'absolute',
+    left: '12px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#94a3b8',
+    width: '16px',
+    height: '16px'
+  };
+
+  const viewToggleStyle = {
+    display: 'flex',
+    backgroundColor: '#ffffff',
+    border: '1px solid #cbd5e1',
+    borderRadius: '8px',
+    overflow: 'hidden'
+  };
+
+  const viewButtonStyle = (isActive) => ({
+    padding: '8px',
+    backgroundColor: isActive ? localStorage.getItem("primaryColor") : '#ffffff',
+    color: isActive ? '#ffffff' : '#64748b',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  });
+
+  const selectStyle = {
+    padding: '8px 16px',
+    border: '1px solid #cbd5e1',
+    borderRadius: '8px',
+    outline: 'none',
+    backgroundColor: '#ffffff',
+    fontSize: '14px'
+  };
+
+  const gridStyle = {
+    display: 'grid',
+    gap: '16px',
+    gridTemplateColumns: viewMode === 'list' ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))'
+  };
+
+  const cardStyle = {
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0',
+    cursor: 'pointer',
+    overflow: 'hidden',
+    transition: 'all 0.3s ease'
+  };
+
+  const cardHeaderStyle = {
+    padding: '16px',
+    borderBottom: '1px solid #f1f5f9',
+    background: localStorage.getItem("primaryColor"),
+    transition: 'all 0.3s ease'
+  };
+
+  const cardHeaderContentStyle = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  };
+
+  const cardTitleContainerStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  };
+
+  const cardTitleStyle = {
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#1e293b',
+    margin: 0
+  };
+
+  const cardContentStyle = {
+    padding: viewMode === 'list' ? '8px' : '16px'
+  };
+
+  const statsGridStyle = {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px'
+  };
+
+  const statItemStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  };
+
+  const statDotStyle = (color) => ({
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    backgroundColor: color
+  });
+
+  const statContainerStyle = {
+    display: 'flex',
+    flexDirection: 'column'
+  };
+
+  const statLabelStyle = {
+    fontSize: '11px',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    marginBottom: '2px'
+  };
+
+  const statValueStyle = {
+    fontWeight: '600',
+    color: '#1e293b',
+    fontSize: '14px'
+  };
+
+  const footerStyle = {
+    marginTop: '16px',
+    paddingTop: '16px',
+    borderTop: '1px solid #f1f5f9',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  };
+
+  const footerLabelStyle = {
+    fontSize: '14px',
+    color: '#64748b'
+  };
+
+  const footerValueStyle = {
+    fontWeight: '500',
+    color: '#374151'
+  };
+
+  const expandedStyle = {
+    padding: '16px',
+    backgroundColor: '#f8fafc',
+    borderTop: '1px solid #f1f5f9'
+  };
+
+  const expandedTitleStyle = {
+    fontWeight: '500',
+    color: '#1e293b',
+    marginBottom: '8px',
+    fontSize: '16px'
+  };
+
+  const expandedContentStyle = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    fontSize: '14px'
+  };
+
+  const expandedRowStyle = {
+    display: 'flex',
+    justifyContent: 'space-between'
+  };
+
+  const expandedLabelStyle = {
+    color: '#64748b'
+  };
+
+  const expandedValueStyle = {
+    color: '#1e293b'
+  };
+
+  const noResultsStyle = {
+    textAlign: 'center',
+    padding: '64px 16px',
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e2e8f0'
+  };
+
+  const noResultsIconStyle = {
+    width: '48px',
+    height: '48px',
+    color: '#94a3b8',
+    margin: '0 auto 16px'
+  };
+
+  const noResultsTitleStyle = {
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: '8px'
+  };
+
+  const noResultsTextStyle = {
+    color: '#64748b'
+  };
+
   return (
-    <Box sx={{ minHeight: '100vh', p: 3 }}>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', mb: 4, gap: 2 }}>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <Button variant="contained" startIcon={<Plus />}>Create Collection</Button>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshCw className={isRefreshing ? 'animate-spin' : ''} />}
+    <div style={containerStyle}>
+      {/* Header */}
+      <div style={headerStyle}>
+        <div style={titleContainerStyle}>
+          <div style={titleStyle}>
+            <Database style={{ width: '24px', height: '24px' }} />
+            <h1 style={h1Style}>Database Collections</h1>
+          </div>
+          <button
             onClick={handleRefresh}
             disabled={isRefreshing}
+            style={{
+              ...refreshButtonStyle,
+              opacity: isRefreshing ? 0.5 : 1,
+              backgroundColor: isRefreshing ? '#f1f5f9' : '#ffffff'
+            }}
+            onMouseEnter={(e) => !isRefreshing && (e.target.style.backgroundColor = '#f8fafc')}
+            onMouseLeave={(e) => !isRefreshing && (e.target.style.backgroundColor = '#ffffff')}
           >
+            <RefreshCw style={{ width: '16px', height: '16px' }} className={isRefreshing ? 'animate-spin' : ''} />
             Refresh
-          </Button>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Box sx={{ position: 'relative' }}>
-            <Search style={{ position: 'absolute', left: 8, top: 10, color: '#888' }} />
-            <Input
+          </button>
+        </div>
+
+        <div style={controlsStyle}>
+          {/* Search */}
+          <div style={searchContainerStyle}>
+            <Search style={searchIconStyle} />
+            <input
+              type="text"
               placeholder="Search collections..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ pl: 5, borderRadius: 1 }}
+              style={searchInputStyle}
             />
-          </Box>
-          <Box sx={{ display: 'flex', border: '1px solid', borderColor: 'grey.700', borderRadius: 1 }}>
-            <IconButton onClick={() => setViewMode('list')} color={viewMode === 'list' ? 'primary' : 'default'}>
-              <List />
-            </IconButton>
-            <IconButton onClick={() => setViewMode('grid')} color={viewMode === 'grid' ? 'primary' : 'default'}>
-              <Grid />
-            </IconButton>
-          </Box>
-          <Select
+          </div>
+
+          {/* View Mode Toggle */}
+          <div style={viewToggleStyle}>
+            <button
+              onClick={() => setViewMode('list')}
+              style={viewButtonStyle(viewMode === 'list')}
+            >
+              <List style={{ width: '16px', height: '16px' }} />
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              style={viewButtonStyle(viewMode === 'grid')}
+            >
+              <Grid style={{ width: '16px', height: '16px' }} />
+            </button>
+          </div>
+
+          {/* Sort Dropdown */}
+          <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            sx={{ bgcolor: 'grey.800', color: 'white', borderRadius: 1, '.MuiSvgIcon-root': { color: 'white' } }}
+            style={selectStyle}
           >
-            <MenuItem value="Collection Name">Collection Name</MenuItem>
-            <MenuItem value="Document Count">Document Count</MenuItem>
-            <MenuItem value="Storage Size">Storage Size</MenuItem>
-          </Select>
-        </Box>
-      </Box>
+            <option value="Collection Name">Collection Name</option>
+            <option value="Document Count">Document Count</option>
+            <option value="Storage Size">Storage Size</option>
+          </select>
+        </div>
+      </div>
 
+      {/* Collections */}
       {filteredCollections.length === 0 ? (
-        <Box textAlign="center" py={10} bgcolor="grey.800" borderRadius={2} boxShadow={3}>
-          <Search style={{ width: 40, height: 40, color: '#888', marginBottom: 12 }} />
-          <Typography variant="h6">No collections found</Typography>
-          <Typography variant="body2" color="grey.400">Try adjusting your search term.</Typography>
-        </Box>
+        <div style={noResultsStyle}>
+          <Search style={noResultsIconStyle} />
+          <h3 style={noResultsTitleStyle}>No collections found</h3>
+          <p style={noResultsTextStyle}>Try adjusting your search term.</p>
+        </div>
       ) : (
-        <Box display="grid" gap={3} gridTemplateColumns="repeat(auto-fit, minmax(280px, 1fr))">
+        <div style={gridStyle}>
           {filteredCollections.map((col) => (
-            <Box
+            <div
               key={col.name}
-              bgcolor="grey.800"
-              borderRadius={2}
-              border="1px solid"
-              borderColor="grey.700"
-              boxShadow={4}
-              sx={{ cursor: 'pointer', transition: 'box-shadow 0.3s', '&:hover': { boxShadow: 6 } }}
+              style={cardStyle}
               onClick={() => toggleCollection(col.name)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                const header = e.currentTarget.querySelector('.card-header');
+                if (header) {
+                  header.style.background = localStorage.getItem("primaryColor");
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.transform = 'translateY(0)';
+                const header = e.currentTarget.querySelector('.card-header');
+                if (header) {
+                  header.style.background = localStorage.getItem("primaryColor");
+                }
+              }}
             >
-              <Box p={2} display="flex" justifyContent="space-between" alignItems="center" sx={{ '&:hover': { bgcolor: 'grey.700' } }}>
-                <Box display="flex" alignItems="center" gap={1}>
-                  {openCollection === col.name ? (
-                    <ChevronDown style={{ width: 16, height: 16, color: '#3b82f6' }} />
-                  ) : (
-                    <ChevronRight style={{ width: 16, height: 16, color: '#aaa' }} />
-                  )}
-                  <Typography variant="subtitle1" color="teal.300">{col.name}</Typography>
-                </Box>
-                <MoreHorizontal style={{ width: 18, height: 18, color: '#888' }} />
-              </Box>
-              <Box px={2} pb={2} fontSize={14} display="grid" gridTemplateColumns="1fr 1fr" rowGap={1}>
-                <Typography variant="body2"><b>Documents:</b> {col.documentCount}</Typography>
-                <Typography variant="body2"><b>Size:</b> {col.storageSize}</Typography>
-                <Typography variant="body2"><b>Avg. Doc:</b> {col.avgDocumentSize}</Typography>
-                <Typography variant="body2"><b>Indexes:</b> {col.indexes}</Typography>
-                <Typography variant="body2"><b>Index Size:</b> {col.totalIndexSize}</Typography>
-              </Box>
-            </Box>
+              {/* Card Header */}
+              <div className="card-header" style={cardHeaderStyle}>
+                <div style={cardHeaderContentStyle}>
+                  <div style={cardTitleContainerStyle}>
+                    {openCollection === col.name ? (
+                      <ChevronDown style={{ width: '20px', height: '20px', color: '#2563eb' }} />
+                    ) : (
+                      <ChevronRight style={{ width: '20px', height: '20px', color: '#94a3b8' }} />
+                    )}
+                    <h3 style={cardTitleStyle}>{col.name}</h3>
+                  </div>
+                  <MoreHorizontal style={{ width: '20px', height: '20px', color: '#94a3b8' }} />
+                </div>
+              </div>
+
+              {/* Card Content */}
+              <div style={cardContentStyle}>
+                <div style={statsGridStyle}>
+                  <div style={statItemStyle}>
+                    <div style={statDotStyle('#10b981')}></div>
+                    <div style={statContainerStyle}>
+                      <p style={statLabelStyle}>Documents</p>
+                      <p style={statValueStyle}>{col.documentCount.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  <div style={statItemStyle}>
+                    <div style={statDotStyle('#3b82f6')}></div>
+                    <div style={statContainerStyle}>
+                      <p style={statLabelStyle}>Size</p>
+                      <p style={statValueStyle}>{col.storageSize}</p>
+                    </div>
+                  </div>
+
+                  <div style={statItemStyle}>
+                    <div style={statDotStyle('#8b5cf6')}></div>
+                    <div style={statContainerStyle}>
+                      <p style={statLabelStyle}>Avg. Doc</p>
+                      <p style={statValueStyle}>{col.avgDocumentSize}</p>
+                    </div>
+                  </div>
+
+                  <div style={statItemStyle}>
+                    <div style={statDotStyle('#f59e0b')}></div>
+                    <div style={statContainerStyle}>
+                      <p style={statLabelStyle}>Indexes</p>
+                      <p style={statValueStyle}>{col.indexes}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={footerStyle}>
+                  <span style={footerLabelStyle}>Index Size:</span>
+                  <span style={footerValueStyle}>{col.totalIndexSize}</span>
+                </div>
+              </div>
+
+              {/* Expanded Content */}
+              {openCollection === col.name && (
+                <div style={expandedStyle}>
+                  <h4 style={expandedTitleStyle}>Collection Details</h4>
+                  <div style={expandedContentStyle}>
+                    <div style={expandedRowStyle}>
+                      <span style={expandedLabelStyle}>Created:</span>
+                      <span style={expandedValueStyle}>2024-01-15</span>
+                    </div>
+                    <div style={expandedRowStyle}>
+                      <span style={expandedLabelStyle}>Last Modified:</span>
+                      <span style={expandedValueStyle}>2024-07-18</span>
+                    </div>
+                    <div style={expandedRowStyle}>
+                      <span style={expandedLabelStyle}>Status:</span>
+                      <span style={{ color: '#10b981', fontWeight: '500' }}>Active</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 
