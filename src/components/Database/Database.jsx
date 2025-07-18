@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import SecureIconWithTooltip from './SecureIconWithTooltip';
 import {
-  ChevronDown, ChevronRight, RefreshCw, Search, Grid, List, MoreHorizontal, Database, AlertCircle
+  ChevronDown, ChevronRight, RefreshCw, Search, Grid, List, MoreHorizontal, Database, AlertCircle, ShieldCheck
 } from 'lucide-react';
 
 const Database_Collection = () => {
@@ -111,7 +110,6 @@ const Database_Collection = () => {
     fontSize: '24px',
     fontWeight: 'bold',
     margin: 0,
-    color: '#1e293b'
   };
 
   const refreshButtonStyle = {
@@ -169,7 +167,7 @@ const Database_Collection = () => {
 
   const viewButtonStyle = (isActive) => ({
     padding: '8px',
-    backgroundColor: isActive ? '#3b82f6' : '#ffffff',
+    backgroundColor: isActive ? localStorage.getItem("primaryColor") : '#ffffff',
     color: isActive ? '#ffffff' : '#64748b',
     border: 'none',
     cursor: 'pointer',
@@ -204,7 +202,7 @@ const Database_Collection = () => {
   const cardHeaderStyle = {
     padding: '16px',
     borderBottom: '1px solid #f1f5f9',
-    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+    background: localStorage.getItem("primaryColor"),
     transition: 'all 0.3s ease'
   };
 
@@ -505,7 +503,7 @@ const Database_Collection = () => {
                 e.currentTarget.style.transform = 'translateY(-2px)';
                 const header = e.currentTarget.querySelector('.card-header');
                 if (header) {
-                  header.style.background = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
+                  header.style.background = localStorage.getItem("primaryColor");
                 }
               }}
               onMouseLeave={(e) => {
@@ -513,7 +511,7 @@ const Database_Collection = () => {
                 e.currentTarget.style.transform = 'translateY(0)';
                 const header = e.currentTarget.querySelector('.card-header');
                 if (header) {
-                  header.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
+                  header.style.background = localStorage.getItem("primaryColor");
                 }
               }}
             >

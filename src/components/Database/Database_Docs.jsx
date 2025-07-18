@@ -474,9 +474,9 @@ const Database_Docs = () => {
                     </div>
                   </th>
                 ))}
-                <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '500', color: '#374151', width: '120px' }}>
+                {/* <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '500', color: '#374151', width: '120px' }}>
                   Actions
-                </th>
+                </th> */}
               </tr>
             </thead>
             <tbody>
@@ -523,7 +523,7 @@ const Database_Docs = () => {
                       )}
                     </td>
                   ))}
-                  <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                  {/* <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                       <button
                         onClick={() => handleView(doc._id)}
@@ -571,7 +571,7 @@ const Database_Docs = () => {
                         <Trash2 style={{ width: '14px', height: '14px' }} />
                       </button>
                     </div>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>

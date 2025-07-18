@@ -87,33 +87,6 @@ function AppContent() {
           <Route path="/client/:clientId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
           <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
 
-        {/* Authenticated Layout Routes */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Layout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Navigate to="/campaigns" replace />} />
-          <Route path="campaigns" element={<Campaigns />} />
-          <Route path="campaign-results/:id" element={<ResultCampaign />} />
-          <Route path="templates" element={<Templates />} />
-          <Route path="landing-pages" element={<LandingPages />} />
-          <Route path="sending-profiles" element={<SendingProfiles />} />
-          <Route path="users-groups" element={<UsersGroups />} />
-          <Route path="projects" element={<ProjectPage />} />
-          <Route path="clients-user" element={<AdminRoute><UserManagement /></AdminRoute>} />
-          <Route path="projects/:id" element={<ClientCampaign />} />
-          <Route path="campaign/:campaignId/details" element={<CampaignDetails />} />
-          <Route path="projects/:projectId/insights" element={<ClientInsights />} />
-          <Route path="quizz" element={<Quiz />} />
-          <Route path="quizz/new" element={<NewQuiz />} />
-          <Route path="quizz/edit/:id" element={<NewQuiz />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="dashboard" element={<Dashboard />} />
-
           {/* Authenticated Layout Routes */}
           <Route
             path="/"
