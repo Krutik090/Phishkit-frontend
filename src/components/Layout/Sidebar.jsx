@@ -25,7 +25,7 @@ import QuizIcon from "@mui/icons-material/Quiz";
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const { darkMode, setDarkMode } = useTheme();
-  const { user} = useAuth(); // Use AuthContext instead of separate API call
+  const { user } = useAuth(); // Use AuthContext instead of separate API call
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -62,7 +62,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
 
   const bgColor = darkMode ? "#1e1e2f" : "#ffffff";
   const textColor = darkMode ? "#ffffffcc" : "#333333";
-  const primaryColor = "#ec008c";
+  const primaryColor = localStorage.getItem("primaryColor");
   const activeBg = darkMode ? primaryColor : primaryColor + "33";
   const activeText = darkMode ? "#ffffff" : primaryColor;
 
@@ -71,6 +71,23 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       ? location.pathname.startsWith(item.path)
       : location.pathname === item.path;
 
+    useEffect(() => {
+      const fetchThemeColors = async () => {
+        try {
+          const response = await axios.get(`${import.meta.env.VITE_API_URL}/auth/theme-color`, {
+            withCredentials: true,
+          });
+          const { primaryColor, secondaryColor } = response.data;
+
+          if (primaryColor) localStorage.setItem("primaryColor", primaryColor);
+          if (secondaryColor) localStorage.setItem("secondaryColor", secondaryColor);
+        } catch (error) {
+          console.error("Error fetching theme colors:", error);
+        }
+      };
+
+      fetchThemeColors();
+    }, []);
 
     return (
       <Tooltip title={collapsed ? item.label : ""} placement="right" arrow key={item.label}>
@@ -258,7 +275,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
           </>
         )}
 
-         {renderMenuItem({ label: "Settings", icon: <FaCog />, path: "/settings" })}
+        {renderMenuItem({ label: "Settings", icon: <FaCog />, path: "/settings" })}
       </Box>
 
       {/* Theme Toggle */}

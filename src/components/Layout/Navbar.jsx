@@ -42,7 +42,7 @@ const Navbar = () => {
             sx={{
                 backgroundColor: darkMode ? "#1e1e2f" : "#ffffff",
                 color: darkMode ? "#ffffff" : "#1e1e2f",
-                borderBottom: `1px solid ${darkMode ? "#ec008c" : "#ec008c33"}`,
+                borderBottom: `1px solid ${darkMode ? localStorage.getItem("pirmaryColor") : localStorage.getItem("pirmaryColor")}`,
                 boxShadow: darkMode
                     ? "inset 0 -2px 4px rgba(236, 0, 140, 0.2)"
                     : "inset 0 -2px 4px rgba(236, 0, 140, 0.1)",
@@ -62,7 +62,7 @@ const Navbar = () => {
                         maxWidth: 600,
                         justifyContent: "center",
                         border: "1px solid",
-                        borderColor: darkMode ? "#ec008c88" : "#ec008c33",
+                        borderColor: darkMode ? localStorage.getItem("primaryColor") : localStorage.getItem("pirmaryColor"),
                     }}
                 >
                     <InputBase
@@ -78,7 +78,7 @@ const Navbar = () => {
                     />
                     <IconButton
                         onClick={handleSearch}
-                        sx={{ color: "#ec008c" }}
+                        sx={{ color: localStorage.getItem("pirmaryColor") }}
                         aria-label="search-button"
                     >
                         <SearchIcon />
