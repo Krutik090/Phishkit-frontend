@@ -201,7 +201,7 @@ const Quiz = () => {
               <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Description</th>
               <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Questions</th>
               <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Public URL</th>
-              <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Poster</th>
+              {/* <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Poster</th> */}
               <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Actions</th>
             </tr>
           </thead>
@@ -220,7 +220,7 @@ const Quiz = () => {
                     "—"
                   )}
                 </td>
-                <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>
+                {/* <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>
                   <Box display="flex" justifyContent="center" alignItems="center" gap={1}>
                     <input
                       type="file"
@@ -254,7 +254,7 @@ const Quiz = () => {
                       </Tooltip>
                     )}
                   </Box>
-                </td>
+                </td> */}
 
                 <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>
                   <Tooltip title="Edit">
