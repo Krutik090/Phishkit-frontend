@@ -29,201 +29,216 @@ const pinkTextFieldSx = {
 };
 
 const NewUserModel = ({ open, onClose, user, onSave }) => {
+  const isEdit = Boolean(user?._id);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   useEffect(() => {
-    if (user) {
-      setName(user.name || "");
-      setEmail(user.email || "");
+    const fetchUserDetails = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/superadmin/users-under-admin/${user._id}`, {
+          method: "GET",
+          credentials: "include",
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.message || "Failed to fetch user info.");
+        }
+        const userData = await res.json();
+        setName(userData.name || "");
+        setEmail(userData.email || "");
+      } catch (error) {
+        console.error("Error loading user details:", error.message);
+        toast.error("Unable to load user details.");
+      }
+    };
+
+    if (user?._id && open) {
+      fetchUserDetails();
       setPassword("");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     } else {
       setName("");
       setEmail("");
       setPassword("");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     }
   }, [user, open]);
 
+
   const handleSave = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      toast.error("Please fill in all required fields");
-      return;
+    if (!name.trim()) {
+      return toast.error("Name is required");
     }
 
     try {
-      const payload = {
-        name: name.trim(),
-        email: email.trim(),
-        password: password.trim(),
-      };
+      if (isEdit) {
+        // Update flow
+        const payload = {
+          name: name.trim(),
+          ...(currentPassword && {
+            currentPassword: currentPassword.trim(),
+            newPassword: newPassword.trim(),
+            confirmPassword: confirmPassword.trim(),
+          }),
+        };
 
-      // Call superadmin route
-      const endpoint = `${API_BASE_URL}/superadmin/create-user`;
+        if (newPassword || confirmPassword) {
+          if (newPassword !== confirmPassword) {
+            return toast.error("New password and confirm password do not match");
+          }
+        }
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+        const res = await fetch(`${API_BASE_URL}/superadmin/${user._id}`, {
+          method: "PUT",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || "Something went wrong.");
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.message || "Failed to update user");
+        }
+
+        toast.success("User updated successfully!");
+      } else {
+        // Create flow
+        if (!email.trim() || !password.trim()) {
+          return toast.error("Email and password are required");
+        }
+
+        const res = await fetch(`${API_BASE_URL}/superadmin/create-user`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: name.trim(),
+            email: email.trim(),
+            password: password.trim(),
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.message || "User creation failed");
+        }
+
+        toast.success("User created successfully!");
       }
 
-      toast.success("User created successfully!");
       onSave();
-    } catch (error) {
-      console.error(error);
-      toast.error(`Error: ${error.message}`);
+    } catch (err) {
+      toast.error(err.message);
     }
   };
 
-  const dropdownStyles = {
-    "& .MuiOutlinedInput-notchedOutline": {
-      borderColor: "#d1d5db",
-    },
-    "&:hover .MuiOutlinedInput-notchedOutline": {
-      borderColor: pink,
-    },
-    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-      borderColor: pink,
-    },
-    "& .MuiSelect-icon": {
-      color: pink,
-    },
-  };
-
-  const menuItemStyles = {
-    "& .MuiMenuItem-root": {
-      backgroundColor: "transparent",
-      "&.Mui-selected": {
-        backgroundColor: "#fce4f6 !important",
-        color: pink,
-        fontWeight: "bold",
-      },
-      "&:hover": {
-        backgroundColor: "transparent",
-      },
-    },
-  };
-
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth="sm"
-      PaperProps={{
-        sx: {
-          width: "600px",
-          borderRadius: "16px",
-          border: `2px solid ${localStorage.getItem("primaryColor")}`,
-          boxShadow: "0 8px 24px rgba(236, 0, 140, 0.2)",
-        },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          fontWeight: "bold",
-          color: localStorage.getItem("primaryColor"),
-          borderBottom: `1px solid ${localStorage.getItem("primaryColor")}`,
-          backgroundColor: "#f5f5f5",
-        }}
-      >
-        👤 Add User
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>
+        {isEdit ? "✏️ Edit User" : "👤 Add User"}
       </DialogTitle>
-
       <DialogContent dividers sx={{ p: 4 }}>
-        {/* Name Field */}
-        <Box mb={2}>
-          <Typography variant="body2" fontWeight="500" mb={0.5}>
-            Name <span style={{ color: "#ef4444" }}>*</span>
-          </Typography>
-          <TextField
-            fullWidth
-            variant="outlined"
-            margin="dense"
-            sx={pinkTextFieldSx}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter full name"
-          />
-        </Box>
+        {/* Name */}
+        <TextField
+          fullWidth
+          label="Name"
+          margin="dense"
+          variant="outlined"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          sx={pinkTextFieldSx}
+        />
 
-        {/* Email Field */}
-        <Box mb={2}>
-          <Typography variant="body2" fontWeight="500" mb={0.5}>
-            Email <span style={{ color: "#ef4444" }}>*</span>
-          </Typography>
+        {/* Email - only in create mode */}
+        {!isEdit && (
           <TextField
             fullWidth
             type="email"
-            variant="outlined"
+            label="Email"
             margin="dense"
-            sx={pinkTextFieldSx}
+            variant="outlined"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter email address"
+            sx={pinkTextFieldSx}
           />
-        </Box>
+        )}
 
-        {/* Password Field */}
-        <Box mb={2}>
-          <Typography variant="body2" fontWeight="500" mb={0.5}>
-            Password <span style={{ color: "#ef4444" }}>*</span>
-          </Typography>
+        {/* Password (create) */}
+        {!isEdit && (
           <TextField
             fullWidth
             type="password"
-            variant="outlined"
+            label="Password"
             margin="dense"
-            sx={pinkTextFieldSx}
+            variant="outlined"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password"
+            sx={pinkTextFieldSx}
           />
-        </Box>
+        )}
+
+        {/* Password fields in edit */}
+        {isEdit && (
+          <>
+            <TextField
+              fullWidth
+              type="password"
+              label="Current Password"
+              margin="dense"
+              variant="outlined"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              sx={pinkTextFieldSx}
+            />
+            <TextField
+              fullWidth
+              type="password"
+              label="New Password"
+              margin="dense"
+              variant="outlined"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              sx={pinkTextFieldSx}
+            />
+            <TextField
+              fullWidth
+              type="password"
+              label="Confirm Password"
+              margin="dense"
+              variant="outlined"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              sx={pinkTextFieldSx}
+            />
+          </>
+        )}
       </DialogContent>
 
       <DialogActions sx={{ p: 3 }}>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          sx={{
-            color: "#374151",
-            borderColor: "#d1d5db",
-            fontWeight: "bold",
-            borderRadius: 1,
-            textTransform: "none",
-          }}
-        >
-          CANCEL
+        <Button onClick={onClose} variant="outlined">
+          Cancel
         </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          sx={{
-            background: `linear-gradient(to right,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`,
-            color: "#fff",
-            fontWeight: "bold",
-            borderRadius: 1,
-            textTransform: "none",
-            boxShadow: 1,
-            "&:hover": {
-              background: `linear-gradient(to right,${localStorage.getItem("primaryColor")},${localStorage.getItem("secondaryColor")})`
-            },
-          }}
-        >
-          SAVE USER
+        <Button onClick={handleSave} variant="contained">
+          {isEdit ? "Update" : "Save"}
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
+
 
 export default NewUserModel;

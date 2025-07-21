@@ -10,9 +10,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Select,
-  MenuItem,
-  FormControl,
   Switch,
 } from "@mui/material";
 import {
@@ -29,7 +26,7 @@ import { useTheme } from "../../context/ThemeContext";
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const UserManagement = () => {
-  const [users, setUsers] = useState([]); // Initialize with empty array
+  const [users, setUsers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
@@ -56,7 +53,7 @@ const UserManagement = () => {
         lengthChange: true,
         destroy: true,
         columnDefs: [
-          { targets: [2, 3], orderable: false }, // Actions and Read Only columns not orderable
+          { targets: [2, 3], orderable: false },
         ],
       });
     }
@@ -65,7 +62,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/superadmin/users-under-admin`, {
-        credentials: "include", // send cookies if needed
+        credentials: "include",
       });
       const data = await res.json();
       setUsers(data);
@@ -92,42 +89,41 @@ const UserManagement = () => {
 
   const confirmDelete = async () => {
     try {
-      const id = deleteDialog.user.id;
-      const res = await fetch(`${API_BASE_URL}/auth/users/${id}`, {
+      const id = deleteDialog.user._id;
+      const res = await fetch(`${API_BASE_URL}/superadmin/${id}`, {
         method: "DELETE",
+        credentials: "include",
       });
-      if (!res.ok) throw new Error();
-      setUsers((prev) => prev.filter((u) => u.id !== id));
+
+      if (!res.ok) throw new Error("Failed to delete user");
+
+      setUsers((prev) => prev.filter((u) => u._id !== id));
     } catch (err) {
       console.error("Failed to delete user:", err);
-      // For dummy data, still remove from local state
-      const id = deleteDialog.user.id;
-      setUsers((prev) => prev.filter((u) => u.id !== id));
     } finally {
       setDeleteDialog({ open: false, user: null });
     }
   };
 
   const handleReadOnlyToggle = async (user) => {
-  try {
-    const res = await fetch(`${API_BASE_URL}/superadmin/${user._id}/readonly`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        isReadOnly: !user.isReadOnly,
-      }),
-    });
+    try {
+      const res = await fetch(`${API_BASE_URL}/superadmin/${user._id}/readonly`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          isReadOnly: !user.isReadOnly,
+        }),
+      });
 
-    if (!res.ok) throw new Error("Failed to toggle readonly");
-    fetchUsers(); // Refresh list
-  } catch (err) {
-    console.error("Failed to update readonly status:", err);
-  }
-};
-
+      if (!res.ok) throw new Error("Failed to toggle readonly");
+      fetchUsers();
+    } catch (err) {
+      console.error("Failed to update readonly status:", err);
+    }
+  };
 
   return (
     <Box p={3}>
@@ -164,10 +160,10 @@ const UserManagement = () => {
       >
         <thead>
           <tr>
-            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Name</th>
-            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Email</th>
-            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Read Only</th>
-            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Actions</th>
+            <th style={{ border: "1px solid #ccc", padding: 10 }}>Name</th>
+            <th style={{ border: "1px solid #ccc", padding: 10 }}>Email</th>
+            <th style={{ border: "1px solid #ccc", padding: 10 }}>Read Only</th>
+            <th style={{ border: "1px solid #ccc", padding: 10 }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -181,7 +177,6 @@ const UserManagement = () => {
                   onChange={() => handleReadOnlyToggle(user)}
                   color="primary"
                 />
-
               </td>
               <td style={{ border: "1px solid #ddd", padding: 8 }}>
                 <Tooltip title="Edit">
@@ -203,7 +198,6 @@ const UserManagement = () => {
         </tbody>
       </table>
 
-      {/* Modal for New/Edit */}
       <NewUserModel
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -211,7 +205,6 @@ const UserManagement = () => {
         user={selectedUser}
       />
 
-      {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, user: null })}
