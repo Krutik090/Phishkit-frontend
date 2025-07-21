@@ -14,10 +14,16 @@ function QuizTemplate() {
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/quizzes/url/${publicUrl}`);
-        if (!response.ok) throw new Error("Quiz not found");
+        const response = await fetch(`${API_BASE_URL}/quizzes/url/${publicUrl}`, {
+          credentials: 'include',
+        });
         const data = await response.json();
-        setQuiz(data);
+
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error("No quiz found");
+        }
+        
+        setQuiz(data[0]);
       } catch (err) {
         console.error(err);
         setError("Unable to load quiz. Please check the link.");
@@ -31,18 +37,16 @@ function QuizTemplate() {
     }
   }, [publicUrl]);
 
-
-  if (loading) return <div className="quiz-container">Loading quiz...</div>;
+  if (loading) return <div className="quiz-container">⏳ Loading quiz...</div>;
   if (error) return <div className="quiz-container error">{error}</div>;
+  if (!quiz || !Array.isArray(quiz.questions) || quiz.questions.length === 0) {
+    return <div className="quiz-container error">❌ No valid quiz data found.</div>;
+  }
 
   return (
     <div className="quiz-page">
       <div className="header">
-        <img
-          src='/Triabation_Logo.png'
-          alt=" Logo"
-          height={50}
-        />
+        <img src="/Triabation_Logo.png" alt="Logo" height={50} />
         <h1 className="quiz-title">{quiz.title}</h1>
       </div>
 
@@ -53,7 +57,6 @@ function QuizTemplate() {
           title={quiz.title}
           description={quiz.description}
           questions={quiz.questions}
-          uid={quiz.uid || 'anonymous'}
         />
       </div>
     </div>

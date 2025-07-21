@@ -13,6 +13,7 @@ import {
   Select,
   MenuItem,
   FormControl,
+  Switch,
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
@@ -27,96 +28,8 @@ import { useTheme } from "../../context/ThemeContext";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-// Dummy data for development
-const DUMMY_USERS = [
-  {
-    id: 1,
-    name: "John Doe",
-    email: "john.doe@example.com",
-    role: "User",
-    permission: "Launch"
-  },
-  {
-    id: 2,
-    name: "Jane Smith",
-    email: "jane.smith@company.com",
-    role: "Maintenance User",
-    permission: "Read Only"
-  },
-  {
-    id: 3,
-    name: "Mike Johnson",
-    email: "mike.johnson@tech.com",
-    role: "User",
-    permission: "Launch"
-  },
-  {
-    id: 4,
-    name: "Sarah Wilson",
-    email: "sarah.wilson@domain.com",
-    role: "Maintenance User",
-    permission: "Launch"
-  },
-  {
-    id: 5,
-    name: "David Brown",
-    email: "david.brown@email.com",
-    role: "User",
-    permission: "Read Only"
-  },
-  {
-    id: 6,
-    name: "Emily Davis",
-    email: "emily.davis@service.com",
-    role: "Maintenance User",
-    permission: "Launch"
-  },
-  {
-    id: 7,
-    name: "Alex Rodriguez",
-    email: "alex.rodriguez@corp.com",
-    role: "User",
-    permission: "Read Only"
-  },
-  {
-    id: 8,
-    name: "Lisa Anderson",
-    email: "lisa.anderson@business.com",
-    role: "Maintenance User",
-    permission: "Launch"
-  },
-  {
-    id: 9,
-    name: "Chris Taylor",
-    email: "chris.taylor@organization.com",
-    role: "User",
-    permission: "Launch"
-  },
-  {
-    id: 10,
-    name: "Amanda White",
-    email: "amanda.white@platform.com",
-    role: "User",
-    permission: "Read Only"
-  },
-  {
-    id: 11,
-    name: "Robert Martinez",
-    email: "robert.martinez@systems.com",
-    role: "Maintenance User",
-    permission: "Launch"
-  },
-  {
-    id: 12,
-    name: "Jessica Lee",
-    email: "jessica.lee@solutions.com",
-    role: "User",
-    permission: "Read Only"
-  }
-];
-
 const UserManagement = () => {
-  const [users, setUsers] = useState(DUMMY_USERS); // Initialize with dummy data
+  const [users, setUsers] = useState([]); // Initialize with empty array
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
@@ -126,10 +39,8 @@ const UserManagement = () => {
 
   const { darkMode } = useTheme();
 
-
   useEffect(() => {
-    // Comment out fetchUsers() to use dummy data
-    // fetchUsers();
+    fetchUsers();
   }, []);
 
   useEffect(() => {
@@ -145,7 +56,7 @@ const UserManagement = () => {
         lengthChange: true,
         destroy: true,
         columnDefs: [
-          { targets: [2, 3, 4], orderable: false }, // Disable sorting for Role, Permission, and Actions columns
+          { targets: [2, 3], orderable: false }, // Actions and Read Only columns not orderable
         ],
       });
     }
@@ -153,13 +64,13 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/users`);
+      const res = await fetch(`${API_BASE_URL}/superadmin/users-under-admin`, {
+        credentials: "include", // send cookies if needed
+      });
       const data = await res.json();
       setUsers(data);
     } catch (err) {
       console.error("Failed to fetch users:", err);
-      // Fallback to dummy data if API fails
-      setUsers(DUMMY_USERS);
     }
   };
 
@@ -197,63 +108,26 @@ const UserManagement = () => {
     }
   };
 
-  const handleRoleChange = async (userId, newRole) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/users/${userId}/role`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ role: newRole }),
-      });
+  const handleReadOnlyToggle = async (user) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/superadmin/${user._id}/readonly`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        isReadOnly: !user.isReadOnly,
+      }),
+    });
 
-      if (!res.ok) throw new Error();
+    if (!res.ok) throw new Error("Failed to toggle readonly");
+    fetchUsers(); // Refresh list
+  } catch (err) {
+    console.error("Failed to update readonly status:", err);
+  }
+};
 
-      // Update local state
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, role: newRole } : user
-        )
-      );
-    } catch (err) {
-      console.error("Failed to update role:", err);
-      // For dummy data, still update local state
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, role: newRole } : user
-        )
-      );
-    }
-  };
-
-  const handlePermissionChange = async (userId, newPermission) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/users/${userId}/permission`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ permission: newPermission }),
-      });
-
-      if (!res.ok) throw new Error();
-
-      // Update local state
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, permission: newPermission } : user
-        )
-      );
-    } catch (err) {
-      console.error("Failed to update permission:", err);
-      // For dummy data, still update local state
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, permission: newPermission } : user
-        )
-      );
-    }
-  };
 
   return (
     <Box p={3}>
@@ -292,118 +166,21 @@ const UserManagement = () => {
           <tr>
             <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Name</th>
             <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Email</th>
-            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Role</th>
-            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Permission</th>
+            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Read Only</th>
             <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {users.map((user) => (
-            <tr key={user.id}>
+            <tr key={user._id}>
               <td style={{ border: "1px solid #ddd", padding: 8 }}>{user.name}</td>
               <td style={{ border: "1px solid #ddd", padding: 8 }}>{user.email}</td>
-              <td style={{ border: "1px solid #ddd", padding: 0 }}>
-                <FormControl size="small" sx={{ width: "100%", minWidth: 120 }}>
-                  <Select
-                    value={user.role || "User"}
-                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                    sx={{
-                      "& .MuiSelect-select": {
-                        padding: "8px 12px",
-                        fontSize: "14px",
-                        border: "none",
-                        borderRadius: 0,
-                        color: darkMode ? '#ffffff' : '#000000'
-                      },
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        border: "none",
-                      },
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        border: "none",
-                      },
-                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        border: "none",
-                      },
-                      "& .MuiSelect-icon": {
-                        color: darkMode ? "#ffffff" : "#000000", // 👈 dropdown icon color
-                      },
-                      height: "100%",
-                      minHeight: "40px",
-                    }}
-                    MenuProps={{
-                      PaperProps: {
-                        sx: {
-                          "& .MuiMenuItem-root.Mui-selected.user-role": {
-                            backgroundColor: "#fce4f6",
-                            color: "#ec008c",
-                            fontWeight: "bold",
-                          },
-                          "& .MuiMenuItem-root.Mui-selected.maint-role": {
-                            backgroundColor: "#fce4f6",
-                            color: "#ec008c",
-                            fontWeight: "bold",
-                          },
-                          "& .MuiMenuItem-root.Mui-selected": {
-                            backgroundColor: "#fce4f6",
-                          },
-                        },
-                      },
-                    }}
-                  >
-                    <MenuItem value="User" className="user-role">User</MenuItem>
-                    <MenuItem value="Maintenance User" className="maint-role">Maintenance User</MenuItem>
-                  </Select>
-                </FormControl>
-              </td>
-              <td style={{ border: "1px solid #ddd", padding: 0 }}>
-                <FormControl size="small" sx={{ width: "100%", minWidth: 120 }}>
-                  <Select
-                    value={user.permission || "Read Only"}
-                    onChange={(e) => handlePermissionChange(user.id, e.target.value)}
-                    sx={{
-                      "& .MuiSelect-select": {
-                        padding: "8px 12px",
-                        fontSize: "14px",
-                        border: "none",
-                        borderRadius: 0,
-                        color: darkMode ? '#ffffff' : '#000000'
-                      },
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        border: "none",
-                      },
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        border: "none",
-                      },
-                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        border: "none",
-                      },
-                      "& .MuiSelect-icon": {
-                        color: darkMode ? "#ffffff" : "#000000", // 👈 dropdown icon color
-                      },
-                      height: "100%",
-                      minHeight: "40px",
-                    }}
-                    MenuProps={{
-                      PaperProps: {
-                        sx: {
-                          "& .MuiMenuItem-root.Mui-selected.permission-read": {
-                            backgroundColor: "#fce4f6",
-                            color: "#ec008c",
-                            fontWeight: "bold",
-                          },
-                          "& .MuiMenuItem-root.Mui-selected.permission-launch": {
-                            backgroundColor: "#fce4f6",
-                            color: "#ec008c",
-                            fontWeight: "bold",
-                          },
-                        },
-                      },
-                    }}
-                  >
-                    <MenuItem value="Launch" className="permission-launch">Launch</MenuItem>
-                    <MenuItem value="Read Only" className="permission-read">Read Only</MenuItem>
-                  </Select>
-                </FormControl>
+              <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                <Switch
+                  checked={!!user.isReadOnly}
+                  onChange={() => handleReadOnlyToggle(user)}
+                  color="primary"
+                />
 
               </td>
               <td style={{ border: "1px solid #ddd", padding: 8 }}>

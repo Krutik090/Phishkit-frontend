@@ -10,7 +10,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL;
 function Quiz_question({ questions = [], title, description }) {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const uid = queryParams.get('uid') || 'Guest';
+  const uid = queryParams.get('uid');
+  const isGuest = !uid;
 
   const [userAnswers, setUserAnswers] = useState({});
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -36,9 +37,10 @@ function Quiz_question({ questions = [], title, description }) {
     return `${m}:${s}`;
   };
 
+  // Fetch user details if not a guest
   useEffect(() => {
-    if (uid !== 'guest') {
-      fetch(`${API_BASE_URL}/users/user/${uid}`)
+    if (!isGuest) {
+      fetch(`${API_BASE_URL}/users/${uid}`, { credentials: "include" })
         .then(res => res.json())
         .then(data => {
           const fullName = [data.first_name, data.last_name].filter(Boolean).join(" ");
@@ -55,10 +57,12 @@ function Quiz_question({ questions = [], title, description }) {
         })
         .finally(() => setIsLoading(false));
     } else {
+      setUserName("Guest");
       setIsLoading(false);
     }
   }, [uid]);
 
+  // Timer per question
   useEffect(() => {
     if (!submitted && q && !quizCompleted) {
       setTimeLeft(60);
@@ -80,6 +84,7 @@ function Quiz_question({ questions = [], title, description }) {
     return () => clearInterval(timerRef.current);
   }, [currentQuestion, q, submitted, quizCompleted]);
 
+  // Auto-advance logic
   useEffect(() => {
     if (autoAdvanceRef.current && !submitted) {
       autoAdvanceRef.current = false;
@@ -143,7 +148,7 @@ function Quiz_question({ questions = [], title, description }) {
     setSubmitted(true);
     setScore(finalScore);
 
-    if (uid === 'guest') return;
+    if (isGuest) return;
 
     try {
       const res = await fetch(`${API_BASE_URL}/tracking/complete`, {
@@ -163,16 +168,17 @@ function Quiz_question({ questions = [], title, description }) {
     }
   };
 
-  if (isLoading) {
-    return <div className="quiz-card"><ToastContainer /><p>Loading user info...</p></div>;
+  // UI: Loading or invalid questions
+  if (!Array.isArray(questions)) {
+    return <div className="quiz-card"><ToastContainer /><p>❌ Invalid quiz data.</p></div>;
   }
 
-  if (!Array.isArray(questions) || questions.length === 0) {
-    return <div className="quiz-card"><ToastContainer /><p>Loading quiz...</p></div>;
+  if (isLoading || questions.length === 0) {
+    return <div className="quiz-card"><ToastContainer /><p>⏳ Loading quiz...</p></div>;
   }
 
   if (!q || currentQuestion >= questions.length) {
-    return <div className="quiz-card"><ToastContainer /><p>Invalid question index.</p></div>;
+    return <div className="quiz-card"><ToastContainer /><p>❌ Invalid question index.</p></div>;
   }
 
   if (submitted || quizCompleted) {
