@@ -81,7 +81,6 @@ function AppContent() {
           <Route path="/quiz/:publicUrl" element={<QuizTemplate />} />
           <Route path="/training" element={<Training />} />
 
-
           {/* Protected Standalone Routes */}
           <Route path="/fullscreen-editor" element={<ProtectedRoute><FullScreenEditor /></ProtectedRoute>} />
           <Route path="/client/:clientId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />

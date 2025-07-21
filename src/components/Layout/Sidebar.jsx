@@ -20,7 +20,6 @@ import {
   FaKey,
   FaSignOutAlt,
 } from "react-icons/fa";
-import axios from 'axios';
 import { useNavigate, useLocation } from "react-router-dom";
 import QuizIcon from "@mui/icons-material/Quiz";
 

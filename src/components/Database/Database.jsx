@@ -23,6 +23,10 @@ const Database_Collection = () => {
       const response = await fetch(`${API_BASE_URL}/db/full-db`, {
         credentials: 'include',
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch collections');
+      }
       const result = await response.json();
 
       if (result.success && result.data) {
@@ -57,6 +61,7 @@ const Database_Collection = () => {
       toggleCollection(collectionName);
       return;
     }
+
     // Navigate to the database detail page
     navigate(`/database/${encodeURIComponent(collectionName)}`);
   };
@@ -110,6 +115,7 @@ const Database_Collection = () => {
     fontSize: '24px',
     fontWeight: 'bold',
     margin: 0,
+
   };
 
   const refreshButtonStyle = {

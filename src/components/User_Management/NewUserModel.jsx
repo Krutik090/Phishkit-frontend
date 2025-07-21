@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -33,27 +32,21 @@ const NewUserModel = ({ open, onClose, user, onSave }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("User");
-  const [permission, setPermission] = useState("Read Only");
 
   useEffect(() => {
     if (user) {
       setName(user.name || "");
       setEmail(user.email || "");
       setPassword("");
-      setRole(user.role || "User");
-      setPermission(user.permission || "Read Only");
     } else {
       setName("");
       setEmail("");
       setPassword("");
-      setRole("User");
-      setPermission("Read Only");
     }
   }, [user, open]);
 
   const handleSave = async () => {
-    if (!name.trim() || !email.trim() || (!user && !password.trim())) {
+    if (!name.trim() || !email.trim() || !password.trim()) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -62,20 +55,15 @@ const NewUserModel = ({ open, onClose, user, onSave }) => {
       const payload = {
         name: name.trim(),
         email: email.trim(),
-        role,
-        permission,
-        ...(password && { password }),
+        password: password.trim(),
       };
 
-      const isEditing = !!user;
-      const endpoint = isEditing
-        ? `${API_BASE_URL}/auth/users/${user.id}`
-        : `${API_BASE_URL}/auth/register`;
-
-      const method = isEditing ? "PUT" : "POST";
+      // Call superadmin route
+      const endpoint = `${API_BASE_URL}/superadmin/create-user`;
 
       const res = await fetch(endpoint, {
-        method,
+        method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -87,7 +75,7 @@ const NewUserModel = ({ open, onClose, user, onSave }) => {
         throw new Error(errData.message || "Something went wrong.");
       }
 
-      toast.success(isEditing ? "User updated successfully!" : "User created successfully!");
+      toast.success("User created successfully!");
       onSave();
     } catch (error) {
       console.error(error);
@@ -147,7 +135,7 @@ const NewUserModel = ({ open, onClose, user, onSave }) => {
           backgroundColor: "#f5f5f5",
         }}
       >
-        👤 {user ? "Edit User" : "Add User"}
+        👤 Add User
       </DialogTitle>
 
       <DialogContent dividers sx={{ p: 4 }}>
@@ -187,7 +175,7 @@ const NewUserModel = ({ open, onClose, user, onSave }) => {
         {/* Password Field */}
         <Box mb={2}>
           <Typography variant="body2" fontWeight="500" mb={0.5}>
-            Password {user ? <i>(leave blank to keep unchanged)</i> : <span style={{ color: "#ef4444" }}>*</span>}
+            Password <span style={{ color: "#ef4444" }}>*</span>
           </Typography>
           <TextField
             fullWidth
@@ -197,53 +185,8 @@ const NewUserModel = ({ open, onClose, user, onSave }) => {
             sx={pinkTextFieldSx}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder={user ? "Enter new password (optional)" : "Enter password"}
+            placeholder="Enter password"
           />
-        </Box>
-
-        {/* Role Selection */}
-        <Box mb={2}>
-          <Typography variant="body2" fontWeight="500" mb={0.5}>
-            Role {user ? <i>(leave blank to keep unchanged)</i> : <span style={{ color: "#ef4444" }}>*</span>}
-          </Typography>
-
-          <FormControl fullWidth margin="dense">
-            <Select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              sx={dropdownStyles}
-              MenuProps={{
-                PaperProps: {
-                  sx: menuItemStyles,
-                },
-              }}
-            >
-              <MenuItem value="User">User</MenuItem>
-              <MenuItem value="Maintenance User">Maintenance User</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
-
-        {/* Permission Selection */}
-        <Box mb={2}>
-          <Typography variant="body2" fontWeight="500" mb={0.5}>
-            Permission {user ? <i>(leave blank to keep unchanged)</i> : <span style={{ color: "#ef4444" }}>*</span>}
-          </Typography>
-          <FormControl fullWidth margin="dense">
-            <Select
-              value={permission}
-              onChange={(e) => setPermission(e.target.value)}
-              sx={dropdownStyles}
-              MenuProps={{
-                PaperProps: {
-                  sx: menuItemStyles,
-                },
-              }}
-            >
-              <MenuItem value="Launch">Launch</MenuItem>
-              <MenuItem value="Read Only">Read Only</MenuItem>
-            </Select>
-          </FormControl>
         </Box>
       </DialogContent>
 
@@ -276,7 +219,7 @@ const NewUserModel = ({ open, onClose, user, onSave }) => {
             },
           }}
         >
-          {user ? "UPDATE USER" : "SAVE USER"}
+          SAVE USER
         </Button>
       </DialogActions>
     </Dialog>
