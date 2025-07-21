@@ -3,9 +3,6 @@ import { useNavigate } from 'react-router-dom';
 
 import SecureIconWithTooltip from './SecureIconWithTooltip';
 import {
-  ChevronDown, ChevronRight, RefreshCw, Search, Grid, List, MoreHorizontal, Database, AlertCircle, ShieldCheck
-
-import {
   ChevronDown, ChevronRight, RefreshCw, Search, Grid, List, MoreHorizontal, Database, AlertCircle
 } from 'lucide-react';
 
