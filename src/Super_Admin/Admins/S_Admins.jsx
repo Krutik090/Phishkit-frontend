@@ -26,6 +26,7 @@ const S_Admins = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSuperAdmin, setSelectedSuperAdmin] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, superAdmin: null });
+  const [isLoading, setIsLoading] = useState(false); // Add loading state
 
   const tableRef = useRef(null);
   const dataTableRef = useRef(null);
@@ -36,36 +37,71 @@ const S_Admins = () => {
 
   useEffect(() => {
     if (superAdmins.length > 0) {
+      // Destroy existing DataTable
       if (dataTableRef.current) {
         dataTableRef.current.destroy();
         dataTableRef.current = null;
       }
 
-      setTimeout(() => {
-        dataTableRef.current = $(tableRef.current).DataTable({
-          destroy: true,
-          responsive: true,
-          pageLength: 10,
-          lengthChange: true,
-          searching: true,
-          ordering: true,
-          info: true,
-          autoWidth: false,
-        });
+      // Initialize new DataTable with a slight delay to ensure DOM is ready
+      const timeoutId = setTimeout(() => {
+        if (tableRef.current) {
+          dataTableRef.current = $(tableRef.current).DataTable({
+            destroy: true,
+            responsive: true,
+            pageLength: 10,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            autoWidth: false,
+          });
+        }
       }, 100);
+
+      return () => clearTimeout(timeoutId);
     }
   }, [superAdmins]);
 
-  const fetchSuperAdmins = async () => {
+  const fetchSuperAdmins = async (showToast = false) => {
+    // Prevent multiple simultaneous API calls
+    if (isLoading) return;
+
+    setIsLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/superadmin/admins`, {
         credentials: "include",
       });
+
+      // Check if the response is OK and is JSON
+      const contentType = res.headers.get("content-type");
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Server response:", errorText);
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+
+      if (!contentType?.includes("application/json")) {
+        const responseText = await res.text();
+        console.error("Non-JSON response:", responseText);
+        throw new Error("Server returned non-JSON response");
+      }
+
       const data = await res.json();
       setSuperAdmins(data);
+
+      // Only show success toast when explicitly requested (after create/update)
+      if (showToast) {
+        toast.success("Operation completed successfully!");
+      }
     } catch (err) {
       console.error("Failed to fetch super admins:", err);
-      toast.error("Failed to load super admins");
+      // Only show toast error on initial load or explicit requests
+      if (showToast || superAdmins.length === 0) {
+        toast.error("Failed to load super admins");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -75,21 +111,28 @@ const S_Admins = () => {
   };
 
   const handleEditSuperAdmin = (superAdmin) => {
-    setSelectedSuperAdmin(superAdmin);
-    setIsModalOpen(true);
+    toast.info("Edit functionality is currently disabled.");
   };
 
+
   const handleSaveSuccess = async () => {
+    const wasEditing = !!selectedSuperAdmin;
+
     if (dataTableRef.current) {
       dataTableRef.current.destroy();
       dataTableRef.current = null;
     }
-    await fetchSuperAdmins(); // update state, triggers useEffect
+
+    await fetchSuperAdmins(true, wasEditing);
+
     setIsModalOpen(false);
     setSelectedSuperAdmin(null);
   };
 
   const handleDeleteConfirm = async () => {
+    if (isLoading) return; // Prevent multiple delete calls
+
+    setIsLoading(true);
     try {
       const id = deleteDialog.superAdmin._id;
 
@@ -100,25 +143,30 @@ const S_Admins = () => {
 
       if (!res.ok) throw new Error("Delete failed");
 
+      // Destroy DataTable
       if (dataTableRef.current) {
         dataTableRef.current.destroy();
         dataTableRef.current = null;
       }
 
-      await fetchSuperAdmins(); // re-fetch state after delete
+      // Re-fetch data with success toast for delete
+      await fetchSuperAdmins(false); // Don't show success toast, we already show it below
       toast.success("Super admin deleted successfully");
     } catch (err) {
       console.error("Delete error:", err);
       toast.error("Failed to delete super admin");
     } finally {
+      setIsLoading(false);
       setDeleteDialog({ open: false, superAdmin: null });
     }
   };
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (dataTableRef.current) {
         dataTableRef.current.destroy();
+        dataTableRef.current = null;
       }
     };
   }, []);
@@ -133,6 +181,7 @@ const S_Admins = () => {
           variant="contained"
           onClick={handleOpenModal}
           startIcon={<AddIcon />}
+          disabled={isLoading}
           sx={{
             background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
             color: "#fff",
@@ -173,12 +222,20 @@ const S_Admins = () => {
               <td style={{ padding: 10, border: "1px solid #ddd" }}>{admin.emailLimit?.toLocaleString() || 'N/A'}</td>
               <td style={{ padding: 10, border: "1px solid #ddd" }}>
                 <Tooltip title="Edit">
-                  <IconButton color="primary" onClick={() => handleEditSuperAdmin(admin)}>
+                  <IconButton
+                    color="primary"
+                    onClick={() => handleEditSuperAdmin(admin)}
+                    disabled={isLoading}
+                  >
                     <EditIcon />
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Delete">
-                  <IconButton color="error" onClick={() => setDeleteDialog({ open: true, superAdmin: admin })}>
+                  <IconButton
+                    color="error"
+                    onClick={() => setDeleteDialog({ open: true, superAdmin: admin })}
+                    disabled={isLoading}
+                  >
                     <DeleteIcon />
                   </IconButton>
                 </Tooltip>
@@ -197,7 +254,10 @@ const S_Admins = () => {
       />
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, superAdmin: null })}>
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => !isLoading && setDeleteDialog({ open: false, superAdmin: null })}
+      >
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -205,9 +265,18 @@ const S_Admins = () => {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialog({ open: false, superAdmin: null })}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} color="error">
-            Delete
+          <Button
+            onClick={() => setDeleteDialog({ open: false, superAdmin: null })}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            disabled={isLoading}
+          >
+            {isLoading ? "Deleting..." : "Delete"}
           </Button>
         </DialogActions>
       </Dialog>
