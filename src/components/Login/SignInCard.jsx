@@ -115,12 +115,16 @@ export default function SignInCard() {
         const encryptedPassword = await encryptWithPublicKey(publicKey, password);
         setUserInfo({ email: encryptedEmail, password: encryptedPassword });
         setMfaDialogOpen(true);
+      } else if (message === "Invalid CAPTCHA") {
+        toast.error("Incorrect captcha. Please try again.");
+        fetchCaptcha(); // refresh captcha
       } else {
         console.error("Login failed:", error.response?.data || error.message);
         setLoginErrorDialogOpen(true);
-        fetchCaptcha(); // refresh captcha on failure
+        fetchCaptcha(); // refresh captcha
       }
     }
+
   };
 
   const handleMfaSubmit = async () => {

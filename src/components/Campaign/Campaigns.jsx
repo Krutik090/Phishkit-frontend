@@ -127,6 +127,7 @@ const Campaigns = () => {
   };
 
 
+  // Cleanup DataTable on component unmount
   useEffect(() => {
     return () => {
       if (dataTableRef.current) {

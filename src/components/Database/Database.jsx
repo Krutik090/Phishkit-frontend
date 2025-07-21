@@ -114,7 +114,8 @@ const Database_Collection = () => {
   const h1Style = {
     fontSize: '24px',
     fontWeight: 'bold',
-    margin: 0
+    margin: 0,
+
   };
 
   const refreshButtonStyle = {

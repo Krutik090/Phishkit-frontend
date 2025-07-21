@@ -22,7 +22,6 @@ import {
 } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import QuizIcon from "@mui/icons-material/Quiz";
-import axios from "axios";
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const { darkMode, setDarkMode } = useTheme();
