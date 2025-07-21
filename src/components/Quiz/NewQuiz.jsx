@@ -148,6 +148,9 @@ const NewQuiz = () => {
 
       setQuestions(importedQuestions);
       toast.success("📥 Quiz imported and populated!");
+
+      navigate("/quizz");
+
     } catch (error) {
       console.error("Import error:", error);
       toast.error("Failed to import from Excel.");
