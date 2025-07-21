@@ -11,8 +11,8 @@ import AddIcon from "@mui/icons-material/Add";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-const pink = localStorage.getItem("primaryColor");
-const secondary = localStorage.getItem("secondaryColor");
+const pink = localStorage.getItem("primaryColor") || "#e91e63"; // fallback to pink
+const secondary = localStorage.getItem("secondaryColor") || "#f06292"; // fallback to lighter pink
 
 const pinkTextFieldSx = {
     "& label.Mui-focused": { color: pink },

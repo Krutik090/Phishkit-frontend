@@ -14,7 +14,7 @@ function QuizTemplate() {
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/quizzes/url/${publicUrl}`, {credentials: "include"});
+        const response = await fetch(`${API_BASE_URL}/quizzes/url/${publicUrl}`, { credentials: "include" });
         if (!response.ok) throw new Error("Quiz not found");
         const data = await response.json();
         setQuiz(data);
