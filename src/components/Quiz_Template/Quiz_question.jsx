@@ -13,6 +13,8 @@ function Quiz_question({ questions = [], title, description }) {
   const uid = queryParams.get('uid');
   const isGuest = !uid;
 
+  const hasShownToastRef = useRef(false);
+
   const [userAnswers, setUserAnswers] = useState({});
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [timeLeft, setTimeLeft] = useState(60);
@@ -24,9 +26,13 @@ function Quiz_question({ questions = [], title, description }) {
   const [timedOutQuestions, setTimedOutQuestions] = useState(new Set());
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [isTabActive, setIsTabActive] = useState(true);
-  const [quizState, setQuizState] = useState(null);
   const [showQuizInfo, setShowQuizInfo] = useState(true);
   const [quizStarted, setQuizStarted] = useState(false);
+  const [timeLeftMap, setTimeLeftMap] = useState({});
+
+  useEffect(() => {
+    hasShownToastRef.current = false;
+  }, [currentQuestion]);
 
   const timerRef = useRef(null);
   const stopTimerRef = useRef(false);
@@ -54,7 +60,7 @@ function Quiz_question({ questions = [], title, description }) {
     const state = {
       userAnswers,
       currentQuestion,
-      timeLeft,
+      timeLeftMap, // Save all timers
       timedOutQuestions: Array.from(timedOutQuestions),
       tabSwitchCount,
       quizStarted,
@@ -62,8 +68,6 @@ function Quiz_question({ questions = [], title, description }) {
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      localStorage.setItem(TIMER_KEY, timeLeft.toString());
-      localStorage.setItem(QUESTION_KEY, currentQuestion.toString());
     } catch (e) {
       console.error('Failed to save quiz state:', e);
     }
@@ -75,11 +79,11 @@ function Quiz_question({ questions = [], title, description }) {
       const savedState = localStorage.getItem(STORAGE_KEY);
       if (savedState) {
         const state = JSON.parse(savedState);
-        // Only load if saved within last 24 hours
         if (Date.now() - state.timestamp < 24 * 60 * 60 * 1000) {
           setUserAnswers(state.userAnswers || {});
           setCurrentQuestion(state.currentQuestion || 0);
-          setTimeLeft(state.timeLeft || 60);
+          setTimeLeftMap(state.timeLeftMap || {});
+          setTimeLeft((state.timeLeftMap || {})[state.currentQuestion] || 60);
           setTimedOutQuestions(new Set(state.timedOutQuestions || []));
           setTabSwitchCount(state.tabSwitchCount || 0);
           setQuizStarted(state.quizStarted || false);
@@ -105,28 +109,45 @@ function Quiz_question({ questions = [], title, description }) {
   };
 
   // Handle page visibility changes (tab switching)
+  const hasShownTabSwitchToastRef = useRef(false);
+  const hasShownAutoSubmitToastRef = useRef(false);
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
       setIsTabActive(isVisible);
-      
-      if (!isVisible && !submitted && !quizCompleted && quizStarted) {
+
+      if (isVisible) {
+        // Reset warning toast so it can show again next time
+        hasShownTabSwitchToastRef.current = false;
+        return;
+      }
+
+      if (!submitted && !quizCompleted && quizStarted) {
         setTabSwitchCount(prev => {
           const newCount = prev + 1;
+
           if (newCount >= 3) {
-            toast.error('⚠️ Too many tab switches! Quiz will be auto-submitted.', { 
-              position: 'top-center',
-              autoClose: 3000 
-            });
-            // Auto-submit after 3 seconds
-            setTimeout(() => {
-              document.getElementById('quiz-form')?.requestSubmit();
-            }, 3000);
+            if (!hasShownAutoSubmitToastRef.current) {
+              toast.error('⚠️ Too many tab switches! Quiz will be auto-submitted.', {
+                position: 'top-center',
+                autoClose: 3000
+              });
+              hasShownAutoSubmitToastRef.current = true;
+
+              setTimeout(() => {
+                document.getElementById('quiz-form')?.requestSubmit();
+              }, 3000);
+            }
           } else {
-            toast.warning(`⚠️ Tab switching detected! Warning ${newCount}/3`, { 
-              position: 'top-center' 
-            });
+            if (!hasShownTabSwitchToastRef.current) {
+              toast.warn(`⚠️ Tab switching detected! Warning ${newCount}/3`, {
+                position: 'top-center'
+              });
+              hasShownTabSwitchToastRef.current = true;
+            }
           }
+
           return newCount;
         });
       }
@@ -135,6 +156,7 @@ function Quiz_question({ questions = [], title, description }) {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [submitted, quizCompleted, quizStarted]);
+
 
   // Handle page refresh/reload
   useEffect(() => {
@@ -154,7 +176,7 @@ function Quiz_question({ questions = [], title, description }) {
   useEffect(() => {
     const handleContextMenu = (e) => {
       e.preventDefault();
-      toast.warning('⚠️ Right-click is disabled during quiz', { position: 'top-center' });
+      toast.warning('⚠️ Right-click is disabled during quiz', { position: 'top-right' });
     };
 
     document.addEventListener('contextmenu', handleContextMenu);
@@ -166,16 +188,16 @@ function Quiz_question({ questions = [], title, description }) {
     const handleKeyDown = (e) => {
       // Disable developer tools shortcuts
       if (
-        e.key === 'F12' || 
+        e.key === 'F12' ||
         (e.ctrlKey && e.shiftKey && e.key === 'I') ||
         (e.ctrlKey && e.shiftKey && e.key === 'J') ||
         (e.ctrlKey && e.key === 'U') ||
         (e.ctrlKey && e.shiftKey && e.key === 'C')
       ) {
         e.preventDefault();
-        toast.warning('⚠️ Developer tools are disabled during quiz', { position: 'top-center' });
+        toast.warning('⚠️ Developer tools are disabled during quiz', { position: 'top-right' });
       }
-      
+
       // Disable refresh shortcuts
       if ((e.ctrlKey && e.key === 'r') || e.key === 'F5') {
         e.preventDefault();
@@ -191,7 +213,7 @@ function Quiz_question({ questions = [], title, description }) {
   useEffect(() => {
     // Load saved state first
     const stateLoaded = loadQuizState();
-    
+
     if (!isGuest) {
       fetch(`${API_BASE_URL}/users/${uid}`, { credentials: "include" })
         .then(res => res.json())
@@ -215,9 +237,6 @@ function Quiz_question({ questions = [], title, description }) {
       setIsLoading(false);
     }
 
-    if (stateLoaded) {
-      toast.success('📁 Previous quiz session restored!', { position: 'top-center' });
-    }
   }, [uid]);
 
   // Save state whenever it changes
@@ -230,49 +249,68 @@ function Quiz_question({ questions = [], title, description }) {
   // Timer per question - Fixed: Only reset timer when moving to new question
   useEffect(() => {
     if (!submitted && q && !quizCompleted && quizStarted) {
-      // Only reset timer if this question hasn't been timed out and we're starting fresh
-      if (!timedOutQuestions.has(currentQuestion)) {
-        // Only reset timeLeft to 60 if we're moving to a new question or starting quiz
-        const shouldResetTimer = timeLeft === 60 || userAnswers[currentQuestion] === undefined;
-        
-        if (shouldResetTimer) {
-          setTimeLeft(60);
-        }
-        
-        stopTimerRef.current = false;
-        clearInterval(timerRef.current);
-        
-        timerRef.current = setInterval(() => {
-          setTimeLeft((prev) => {
-            if (stopTimerRef.current || timedOutQuestions.has(currentQuestion)) return prev;
-            if (prev <= 1) {
-              clearInterval(timerRef.current);
-              // Mark question as timed out
-              setTimedOutQuestions(prevSet => {
-                const newSet = new Set(prevSet);
-                newSet.add(currentQuestion);
-                return newSet;
-              });
-              autoAdvanceRef.current = true;
-              toast.error('⏰ Time up! Question frozen.', { position: 'top-center' });
-              return 0;
+      const questionTime = timeLeftMap[currentQuestion] ?? 60;
+      setTimeLeft(questionTime);
+
+      stopTimerRef.current = false;
+      clearInterval(timerRef.current);
+
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (stopTimerRef.current || timedOutQuestions.has(currentQuestion)) return prev;
+          if (prev <= 1) {
+            clearInterval(timerRef.current);
+            setTimedOutQuestions(prevSet => {
+              const newSet = new Set(prevSet);
+              newSet.add(currentQuestion);
+              return newSet;
+            });
+            autoAdvanceRef.current = true;
+            setTimeLeftMap(prevMap => ({
+              ...prevMap,
+              [currentQuestion]: 0
+            }));
+
+            if (!hasShownToastRef.current) {
+              hasShownToastRef.current = true;
+              toast.error('⏰ Time up! Question frozen.', { position: 'top-right' });
             }
-            return prev - 1;
-          });
-        }, 1000);
-      }
+
+            return 0;
+          }
+          const newTime = prev - 1;
+          setTimeLeftMap(prevMap => ({
+            ...prevMap,
+            [currentQuestion]: newTime
+          }));
+          return newTime;
+        });
+      }, 1000);
     }
 
     return () => clearInterval(timerRef.current);
   }, [currentQuestion, q, submitted, quizCompleted, quizStarted]);
 
+
   // Reset timer when moving to next question
   useEffect(() => {
-    if (quizStarted && !timedOutQuestions.has(currentQuestion) && !userAnswers[currentQuestion]) {
-      setTimeLeft(60);
-      stopTimerRef.current = false;
+    if (!quizStarted || timedOutQuestions.has(currentQuestion)) return;
+
+    const savedTime = timeLeftMap[currentQuestion];
+
+    if (typeof savedTime === 'number') {
+      setTimeLeft(savedTime); // Use saved time
+    } else {
+      setTimeLeft(60); // Only set to 60 if visiting for the first time
+      setTimeLeftMap(prev => ({
+        ...prev,
+        [currentQuestion]: 60
+      }));
     }
-  }, [currentQuestion, quizStarted]);
+
+    stopTimerRef.current = false;
+  }, [currentQuestion, quizStarted, timedOutQuestions, timeLeftMap]);
+
 
   // Auto-advance logic
   useEffect(() => {
@@ -290,8 +328,8 @@ function Quiz_question({ questions = [], title, description }) {
 
   const handleAnswerChange = (optionIdx) => {
     if (isAnswered || isQuestionTimedOut) {
-      const message = isQuestionTimedOut 
-        ? '⏰ This question is frozen due to timeout!' 
+      const message = isQuestionTimedOut
+        ? '⏰ This question is frozen due to timeout!'
         : '⚠️ You can only answer once!';
       toast.warning(message, { position: 'top-center' });
       return;
@@ -311,13 +349,24 @@ function Quiz_question({ questions = [], title, description }) {
       return;
     }
 
+    // ✅ Save time before leaving current question
+    setTimeLeftMap((prevMap) => ({
+      ...prevMap,
+      [currentQuestion]: timeLeft
+    }));
+
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion((prev) => prev + 1);
     }
   };
 
   const handlePrev = () => {
-    clearInterval(timerRef.current);
+    // ✅ Save time before leaving current question
+    setTimeLeftMap((prevMap) => ({
+      ...prevMap,
+      [currentQuestion]: timeLeft
+    }));
+
     toast.info('⏪ Moved to previous question', { position: 'top-center' });
 
     if (currentQuestion > 0) {
@@ -329,7 +378,6 @@ function Quiz_question({ questions = [], title, description }) {
     setShowQuizInfo(false);
     setQuizStarted(true);
     setTimeLeft(60);
-    toast.success('🚀 Quiz started! Good luck!', { position: 'top-center' });
   };
 
   const calculateScore = () => {
@@ -357,8 +405,8 @@ function Quiz_question({ questions = [], title, description }) {
       const res = await fetch(`${API_BASE_URL}/tracking/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          uid, 
+        body: JSON.stringify({
+          uid,
           score: finalScore,
           tabSwitchCount,
           completedAt: new Date().toISOString()
@@ -479,7 +527,7 @@ function Quiz_question({ questions = [], title, description }) {
 
         <div className="start-quiz-section">
           <p className="ready-text">🎓 Ready to begin? Click the button below to start your quiz!</p>
-          <button 
+          <button
             onClick={handleStartQuiz}
             className="btn-start-quiz"
           >
@@ -498,11 +546,11 @@ function Quiz_question({ questions = [], title, description }) {
 
       {/* Warning indicators - only show during active quiz */}
       {tabSwitchCount > 0 && quizStarted && (
-        <div className="warning-banner" style={{ 
-          background: '#fff3cd', 
-          border: '1px solid #ffeaa7', 
-          padding: '10px', 
-          borderRadius: '5px', 
+        <div className="warning-banner" style={{
+          background: '#fff3cd',
+          border: '1px solid #ffeaa7',
+          padding: '10px',
+          borderRadius: '5px',
           margin: '10px 0',
           color: '#856404'
         }}>
@@ -511,11 +559,11 @@ function Quiz_question({ questions = [], title, description }) {
       )}
 
       {!isTabActive && quizStarted && (
-        <div className="tab-warning" style={{ 
-          background: '#f8d7da', 
-          border: '1px solid #f5c6cb', 
-          padding: '10px', 
-          borderRadius: '5px', 
+        <div className="tab-warning" style={{
+          background: '#f8d7da',
+          border: '1px solid #f5c6cb',
+          padding: '10px',
+          borderRadius: '5px',
           margin: '10px 0',
           color: '#721c24'
         }}>
@@ -524,7 +572,7 @@ function Quiz_question({ questions = [], title, description }) {
       )}
 
       {/* Timer bar - hidden when question is timed out */}
-      {!isQuestionTimedOut && (
+      {!isAnswered && !isQuestionTimedOut && (
         <div className="timer-bar-container">
           <div className="timer-bar">
             <div className="bar" style={{ width: `${(timeLeft / 60) * 100}%` }} />
@@ -533,13 +581,14 @@ function Quiz_question({ questions = [], title, description }) {
         </div>
       )}
 
+
       {/* Frozen question indicator */}
       {isQuestionTimedOut && (
-        <div className="frozen-indicator" style={{ 
-          background: '#e2e3e5', 
-          border: '1px solid #d6d8db', 
-          padding: '10px', 
-          borderRadius: '5px', 
+        <div className="frozen-indicator" style={{
+          background: '#e2e3e5',
+          border: '1px solid #d6d8db',
+          padding: '10px',
+          borderRadius: '5px',
           margin: '10px 0',
           color: '#383d41',
           textAlign: 'center'
@@ -552,10 +601,10 @@ function Quiz_question({ questions = [], title, description }) {
         <div className="question-block">
           <p className="question-text"><strong>Q{currentQuestion + 1}:</strong> {q.questionText}</p>
           {q.options.map((opt, oIdx) => (
-            <label 
-              key={opt._id || oIdx} 
+            <label
+              key={opt._id || oIdx}
               className={`option-label ${isQuestionTimedOut ? 'disabled' : ''}`}
-              style={{ 
+              style={{
                 opacity: isQuestionTimedOut ? 0.6 : 1,
                 cursor: isQuestionTimedOut ? 'not-allowed' : 'pointer'
               }}
@@ -574,7 +623,7 @@ function Quiz_question({ questions = [], title, description }) {
           {(isAnswered || isQuestionTimedOut) && (
             <div className="answer-feedback">
               <p>
-                {isQuestionTimedOut 
+                {isQuestionTimedOut
                   ? '⏰ Time expired - No answer recorded'
                   : selectedIdx === correctIdx ? '✅ Correct' : '❌ Incorrect'
                 }
@@ -591,10 +640,10 @@ function Quiz_question({ questions = [], title, description }) {
             <button type="button" onClick={handlePrev} className="btn-secondary">⬅ Prev</button>
           )}
           {currentQuestion < questions.length - 1 && (
-            <button 
-              type="button" 
-              onClick={handleNext} 
-              className="btn-primary" 
+            <button
+              type="button"
+              onClick={handleNext}
+              className="btn-primary"
               style={{ marginLeft: 'auto' }}
               disabled={!isAnswered && !isQuestionTimedOut}
             >

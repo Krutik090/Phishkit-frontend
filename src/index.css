@@ -9,6 +9,7 @@ html, body, #root {
   width: 100%;
   font-family: 'Segoe UI', sans-serif;
   overflow: hidden;
+  overflow-y: auto;
 }
 body.dark .dataTables_wrapper {
   color: #e0e0e0;
