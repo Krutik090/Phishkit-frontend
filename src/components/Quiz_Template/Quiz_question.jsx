@@ -21,6 +21,12 @@ function Quiz_question({ questions = [], title, description }) {
   const [submitted, setSubmitted] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [timedOutQuestions, setTimedOutQuestions] = useState(new Set());
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [isTabActive, setIsTabActive] = useState(true);
+  const [quizState, setQuizState] = useState(null);
+  const [showQuizInfo, setShowQuizInfo] = useState(true);
+  const [quizStarted, setQuizStarted] = useState(false);
 
   const timerRef = useRef(null);
   const stopTimerRef = useRef(false);
@@ -30,6 +36,7 @@ function Quiz_question({ questions = [], title, description }) {
   const selectedIdx = userAnswers[currentQuestion];
   const correctIdx = q?.options.findIndex((opt) => opt.isCorrect);
   const isAnswered = selectedIdx !== undefined;
+  const isQuestionTimedOut = timedOutQuestions.has(currentQuestion);
 
   const formatTime = (sec) => {
     const m = String(Math.floor(sec / 60)).padStart(2, '0');
@@ -37,8 +44,154 @@ function Quiz_question({ questions = [], title, description }) {
     return `${m}:${s}`;
   };
 
+  // Storage keys for persistence
+  const STORAGE_KEY = `quiz_${uid || 'guest'}_${title?.replace(/\s+/g, '_')}`;
+  const TIMER_KEY = `${STORAGE_KEY}_timer`;
+  const QUESTION_KEY = `${STORAGE_KEY}_question`;
+
+  // Save quiz state to localStorage
+  const saveQuizState = () => {
+    const state = {
+      userAnswers,
+      currentQuestion,
+      timeLeft,
+      timedOutQuestions: Array.from(timedOutQuestions),
+      tabSwitchCount,
+      quizStarted,
+      timestamp: Date.now()
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(TIMER_KEY, timeLeft.toString());
+      localStorage.setItem(QUESTION_KEY, currentQuestion.toString());
+    } catch (e) {
+      console.error('Failed to save quiz state:', e);
+    }
+  };
+
+  // Load quiz state from localStorage
+  const loadQuizState = () => {
+    try {
+      const savedState = localStorage.getItem(STORAGE_KEY);
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        // Only load if saved within last 24 hours
+        if (Date.now() - state.timestamp < 24 * 60 * 60 * 1000) {
+          setUserAnswers(state.userAnswers || {});
+          setCurrentQuestion(state.currentQuestion || 0);
+          setTimeLeft(state.timeLeft || 60);
+          setTimedOutQuestions(new Set(state.timedOutQuestions || []));
+          setTabSwitchCount(state.tabSwitchCount || 0);
+          setQuizStarted(state.quizStarted || false);
+          setShowQuizInfo(!state.quizStarted);
+          return true;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load quiz state:', e);
+    }
+    return false;
+  };
+
+  // Clear quiz state from localStorage
+  const clearQuizState = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(TIMER_KEY);
+      localStorage.removeItem(QUESTION_KEY);
+    } catch (e) {
+      console.error('Failed to clear quiz state:', e);
+    }
+  };
+
+  // Handle page visibility changes (tab switching)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      setIsTabActive(isVisible);
+      
+      if (!isVisible && !submitted && !quizCompleted && quizStarted) {
+        setTabSwitchCount(prev => {
+          const newCount = prev + 1;
+          if (newCount >= 3) {
+            toast.error('⚠️ Too many tab switches! Quiz will be auto-submitted.', { 
+              position: 'top-center',
+              autoClose: 3000 
+            });
+            // Auto-submit after 3 seconds
+            setTimeout(() => {
+              document.getElementById('quiz-form')?.requestSubmit();
+            }, 3000);
+          } else {
+            toast.warning(`⚠️ Tab switching detected! Warning ${newCount}/3`, { 
+              position: 'top-center' 
+            });
+          }
+          return newCount;
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [submitted, quizCompleted, quizStarted]);
+
+  // Handle page refresh/reload
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (!submitted && !quizCompleted && quizStarted) {
+        saveQuizState();
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [userAnswers, currentQuestion, timeLeft, timedOutQuestions, tabSwitchCount, submitted, quizCompleted, quizStarted]);
+
+  // Disable right-click context menu
+  useEffect(() => {
+    const handleContextMenu = (e) => {
+      e.preventDefault();
+      toast.warning('⚠️ Right-click is disabled during quiz', { position: 'top-center' });
+    };
+
+    document.addEventListener('contextmenu', handleContextMenu);
+    return () => document.removeEventListener('contextmenu', handleContextMenu);
+  }, []);
+
+  // Disable F12, Ctrl+Shift+I, etc.
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Disable developer tools shortcuts
+      if (
+        e.key === 'F12' || 
+        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+        (e.ctrlKey && e.shiftKey && e.key === 'J') ||
+        (e.ctrlKey && e.key === 'U') ||
+        (e.ctrlKey && e.shiftKey && e.key === 'C')
+      ) {
+        e.preventDefault();
+        toast.warning('⚠️ Developer tools are disabled during quiz', { position: 'top-center' });
+      }
+      
+      // Disable refresh shortcuts
+      if ((e.ctrlKey && e.key === 'r') || e.key === 'F5') {
+        e.preventDefault();
+        toast.warning('⚠️ Page refresh is disabled. Your progress is automatically saved.', { position: 'top-center' });
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Fetch user details if not a guest
   useEffect(() => {
+    // Load saved state first
+    const stateLoaded = loadQuizState();
+    
     if (!isGuest) {
       fetch(`${API_BASE_URL}/users/${uid}`, { credentials: "include" })
         .then(res => res.json())
@@ -49,6 +202,7 @@ function Quiz_question({ questions = [], title, description }) {
           if (data.quizCompleted) {
             setScore(data.score || 0);
             setSubmitted(true);
+            clearQuizState(); // Clear saved state if quiz already completed
           }
         })
         .catch(err => {
@@ -60,45 +214,86 @@ function Quiz_question({ questions = [], title, description }) {
       setUserName("Guest");
       setIsLoading(false);
     }
+
+    if (stateLoaded) {
+      toast.success('📁 Previous quiz session restored!', { position: 'top-center' });
+    }
   }, [uid]);
 
-  // Timer per question
+  // Save state whenever it changes
   useEffect(() => {
-    if (!submitted && q && !quizCompleted) {
-      setTimeLeft(60);
-      stopTimerRef.current = false;
-      clearInterval(timerRef.current);
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (stopTimerRef.current) return prev;
-          if (prev <= 1) {
-            clearInterval(timerRef.current);
-            autoAdvanceRef.current = true;
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    if (!isLoading && !submitted && !quizCompleted && quizStarted) {
+      saveQuizState();
+    }
+  }, [userAnswers, currentQuestion, timeLeft, timedOutQuestions, tabSwitchCount, isLoading, submitted, quizCompleted, quizStarted]);
+
+  // Timer per question - Fixed: Only reset timer when moving to new question
+  useEffect(() => {
+    if (!submitted && q && !quizCompleted && quizStarted) {
+      // Only reset timer if this question hasn't been timed out and we're starting fresh
+      if (!timedOutQuestions.has(currentQuestion)) {
+        // Only reset timeLeft to 60 if we're moving to a new question or starting quiz
+        const shouldResetTimer = timeLeft === 60 || userAnswers[currentQuestion] === undefined;
+        
+        if (shouldResetTimer) {
+          setTimeLeft(60);
+        }
+        
+        stopTimerRef.current = false;
+        clearInterval(timerRef.current);
+        
+        timerRef.current = setInterval(() => {
+          setTimeLeft((prev) => {
+            if (stopTimerRef.current || timedOutQuestions.has(currentQuestion)) return prev;
+            if (prev <= 1) {
+              clearInterval(timerRef.current);
+              // Mark question as timed out
+              setTimedOutQuestions(prevSet => {
+                const newSet = new Set(prevSet);
+                newSet.add(currentQuestion);
+                return newSet;
+              });
+              autoAdvanceRef.current = true;
+              toast.error('⏰ Time up! Question frozen.', { position: 'top-center' });
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
     }
 
     return () => clearInterval(timerRef.current);
-  }, [currentQuestion, q, submitted, quizCompleted]);
+  }, [currentQuestion, q, submitted, quizCompleted, quizStarted]);
+
+  // Reset timer when moving to next question
+  useEffect(() => {
+    if (quizStarted && !timedOutQuestions.has(currentQuestion) && !userAnswers[currentQuestion]) {
+      setTimeLeft(60);
+      stopTimerRef.current = false;
+    }
+  }, [currentQuestion, quizStarted]);
 
   // Auto-advance logic
   useEffect(() => {
-    if (autoAdvanceRef.current && !submitted) {
+    if (autoAdvanceRef.current && !submitted && quizStarted) {
       autoAdvanceRef.current = false;
-      if (currentQuestion < questions.length - 1) {
-        setCurrentQuestion((prev) => prev + 1);
-      } else {
-        document.getElementById('quiz-form')?.requestSubmit();
-      }
+      setTimeout(() => {
+        if (currentQuestion < questions.length - 1) {
+          setCurrentQuestion((prev) => prev + 1);
+        } else {
+          document.getElementById('quiz-form')?.requestSubmit();
+        }
+      }, 2000); // Wait 2 seconds before auto-advancing
     }
-  }, [timeLeft, submitted]);
+  }, [timeLeft, submitted, quizStarted]);
 
   const handleAnswerChange = (optionIdx) => {
-    if (isAnswered) {
-      toast.warning('⚠️ You can only answer once!', { position: 'top-center' });
+    if (isAnswered || isQuestionTimedOut) {
+      const message = isQuestionTimedOut 
+        ? '⏰ This question is frozen due to timeout!' 
+        : '⚠️ You can only answer once!';
+      toast.warning(message, { position: 'top-center' });
       return;
     }
 
@@ -111,7 +306,7 @@ function Quiz_question({ questions = [], title, description }) {
   };
 
   const handleNext = () => {
-    if (!isAnswered) {
+    if (!isAnswered && !isQuestionTimedOut) {
       toast.warning('⏳ Please answer or wait for timeout.', { position: 'top-center' });
       return;
     }
@@ -128,6 +323,13 @@ function Quiz_question({ questions = [], title, description }) {
     if (currentQuestion > 0) {
       setCurrentQuestion((prev) => prev - 1);
     }
+  };
+
+  const handleStartQuiz = () => {
+    setShowQuizInfo(false);
+    setQuizStarted(true);
+    setTimeLeft(60);
+    toast.success('🚀 Quiz started! Good luck!', { position: 'top-center' });
   };
 
   const calculateScore = () => {
@@ -147,6 +349,7 @@ function Quiz_question({ questions = [], title, description }) {
     const finalScore = calculateScore();
     setSubmitted(true);
     setScore(finalScore);
+    clearQuizState(); // Clear saved state on submission
 
     if (isGuest) return;
 
@@ -154,7 +357,12 @@ function Quiz_question({ questions = [], title, description }) {
       const res = await fetch(`${API_BASE_URL}/tracking/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid, score: finalScore }),
+        body: JSON.stringify({ 
+          uid, 
+          score: finalScore,
+          tabSwitchCount,
+          completedAt: new Date().toISOString()
+        }),
       });
 
       if (!res.ok) {
@@ -185,41 +393,195 @@ function Quiz_question({ questions = [], title, description }) {
     return <Score name={userName} score={score ?? 0} total={questions.length} />;
   }
 
+  // Quiz Info Card - Show before starting the quiz
+  if (showQuizInfo && !quizStarted) {
+    return (
+      <div className="quiz-card">
+        <ToastContainer />
+        <div className="quiz-info-header">
+          <h2>📋 {title}</h2>
+          <p className="quiz-description">{description}</p>
+        </div>
+
+        <div className="quiz-instructions">
+          <h3>📝 Quiz Instructions</h3>
+          <div className="instruction-grid">
+            <div className="instruction-item">
+              <span className="instruction-icon">⏰</span>
+              <div>
+                <strong>Time Limit</strong>
+                <p>60 seconds per question</p>
+              </div>
+            </div>
+            <div className="instruction-item">
+              <span className="instruction-icon">📊</span>
+              <div>
+                <strong>Total Questions</strong>
+                <p>{questions.length} questions</p>
+              </div>
+            </div>
+            <div className="instruction-item">
+              <span className="instruction-icon">🎯</span>
+              <div>
+                <strong>Answer Once</strong>
+                <p>You can only select one answer per question</p>
+              </div>
+            </div>
+            <div className="instruction-item">
+              <span className="instruction-icon">⚠️</span>
+              <div>
+                <strong>No Tab Switching</strong>
+                <p>Maximum 3 warnings, then auto-submit</p>
+              </div>
+            </div>
+            <div className="instruction-item">
+              <span className="instruction-icon">💾</span>
+              <div>
+                <strong>Auto-Save</strong>
+                <p>Progress saved automatically</p>
+              </div>
+            </div>
+            <div className="instruction-item">
+              <span className="instruction-icon">❄️</span>
+              <div>
+                <strong>Time Up = Freeze</strong>
+                <p>Questions freeze when time expires</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="quiz-rules">
+          <h3>🔒 Security Rules</h3>
+          <ul>
+            <li>Right-click is disabled during the quiz</li>
+            <li>Developer tools and shortcuts are blocked</li>
+            <li>Page refresh will restore your progress</li>
+            <li>Leaving and returning is allowed but monitored</li>
+            <li>All quiz activity is tracked and logged</li>
+          </ul>
+        </div>
+
+        <div className="quiz-stats">
+          <div className="stat-card">
+            <span className="stat-number">{questions.length}</span>
+            <span className="stat-label">Questions</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">{Math.ceil((questions.length * 60) / 60)}</span>
+            <span className="stat-label">Max Minutes</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">100</span>
+            <span className="stat-label">Max Score</span>
+          </div>
+        </div>
+
+        <div className="start-quiz-section">
+          <p className="ready-text">🎓 Ready to begin? Click the button below to start your quiz!</p>
+          <button 
+            onClick={handleStartQuiz}
+            className="btn-start-quiz"
+          >
+            🚀 Start Quiz
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="quiz-card">
       <ToastContainer />
       <h2>{title}</h2>
       <p className="quiz-description">{description}</p>
 
-      <div className="timer-bar-container">
-        <div className="timer-bar">
-          <div className="bar" style={{ width: `${(timeLeft / 60) * 100}%` }} />
+      {/* Warning indicators - only show during active quiz */}
+      {tabSwitchCount > 0 && quizStarted && (
+        <div className="warning-banner" style={{ 
+          background: '#fff3cd', 
+          border: '1px solid #ffeaa7', 
+          padding: '10px', 
+          borderRadius: '5px', 
+          margin: '10px 0',
+          color: '#856404'
+        }}>
+          ⚠️ Tab Switch Warnings: {tabSwitchCount}/3 {tabSwitchCount >= 3 && '(Quiz will be auto-submitted)'}
         </div>
-        <p className="timer-text">⏰ {formatTime(timeLeft)}</p>
-      </div>
+      )}
+
+      {!isTabActive && quizStarted && (
+        <div className="tab-warning" style={{ 
+          background: '#f8d7da', 
+          border: '1px solid #f5c6cb', 
+          padding: '10px', 
+          borderRadius: '5px', 
+          margin: '10px 0',
+          color: '#721c24'
+        }}>
+          ⚠️ Please return to the quiz tab. Tab switching is being monitored.
+        </div>
+      )}
+
+      {/* Timer bar - hidden when question is timed out */}
+      {!isQuestionTimedOut && (
+        <div className="timer-bar-container">
+          <div className="timer-bar">
+            <div className="bar" style={{ width: `${(timeLeft / 60) * 100}%` }} />
+          </div>
+          <p className="timer-text">⏰ {formatTime(timeLeft)}</p>
+        </div>
+      )}
+
+      {/* Frozen question indicator */}
+      {isQuestionTimedOut && (
+        <div className="frozen-indicator" style={{ 
+          background: '#e2e3e5', 
+          border: '1px solid #d6d8db', 
+          padding: '10px', 
+          borderRadius: '5px', 
+          margin: '10px 0',
+          color: '#383d41',
+          textAlign: 'center'
+        }}>
+          ❄️ This question is frozen due to timeout
+        </div>
+      )}
 
       <form id="quiz-form" onSubmit={handleSubmit}>
         <div className="question-block">
           <p className="question-text"><strong>Q{currentQuestion + 1}:</strong> {q.questionText}</p>
           {q.options.map((opt, oIdx) => (
-            <label key={opt._id || oIdx} className="option-label">
+            <label 
+              key={opt._id || oIdx} 
+              className={`option-label ${isQuestionTimedOut ? 'disabled' : ''}`}
+              style={{ 
+                opacity: isQuestionTimedOut ? 0.6 : 1,
+                cursor: isQuestionTimedOut ? 'not-allowed' : 'pointer'
+              }}
+            >
               <input
                 type="radio"
                 name={`q${currentQuestion}`}
                 value={oIdx}
                 checked={selectedIdx === oIdx}
                 onChange={() => handleAnswerChange(oIdx)}
-                disabled={isAnswered}
+                disabled={isAnswered || isQuestionTimedOut}
               />{' '}
               {opt.text}
             </label>
           ))}
-          {isAnswered && (
+          {(isAnswered || isQuestionTimedOut) && (
             <div className="answer-feedback">
               <p>
-                {selectedIdx === correctIdx ? '✅ Correct' : '❌ Incorrect'}
+                {isQuestionTimedOut 
+                  ? '⏰ Time expired - No answer recorded'
+                  : selectedIdx === correctIdx ? '✅ Correct' : '❌ Incorrect'
+                }
               </p>
-              <p><strong>Explanation:</strong> {q.options[selectedIdx]?.explanation || 'No explanation provided.'}</p>
+              {isAnswered && (
+                <p><strong>Explanation:</strong> {q.options[selectedIdx]?.explanation || 'No explanation provided.'}</p>
+              )}
             </div>
           )}
         </div>
@@ -229,11 +591,17 @@ function Quiz_question({ questions = [], title, description }) {
             <button type="button" onClick={handlePrev} className="btn-secondary">⬅ Prev</button>
           )}
           {currentQuestion < questions.length - 1 && (
-            <button type="button" onClick={handleNext} className="btn-primary" style={{ marginLeft: 'auto' }}>
+            <button 
+              type="button" 
+              onClick={handleNext} 
+              className="btn-primary" 
+              style={{ marginLeft: 'auto' }}
+              disabled={!isAnswered && !isQuestionTimedOut}
+            >
               Next ➡
             </button>
           )}
-          {currentQuestion === questions.length - 1 && isAnswered && (
+          {currentQuestion === questions.length - 1 && (isAnswered || isQuestionTimedOut) && (
             <button type="submit" className="btn-submit" style={{ marginLeft: 'auto' }}>
               ✅ Submit Quiz
             </button>
