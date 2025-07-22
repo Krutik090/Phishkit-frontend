@@ -4,6 +4,8 @@ import SecureIconWithTooltip from './SecureIconWithTooltip';
 import {
   ChevronDown, ChevronRight, RefreshCw, Search, Grid, List, MoreHorizontal, Database, AlertCircle, ShieldCheck
 } from 'lucide-react';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const Database_Collection = () => {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ const Database_Collection = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('Collection Name');
+  const [secureMode, setSecureMode] = useState(false);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -51,6 +54,18 @@ const Database_Collection = () => {
   };
 
   useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/db/encryption-status`, { withCredentials: true });
+        if (res.data.success) {
+          setSecureMode(res.data.encrypted); // true → toggle on, false → toggle off
+        }
+      } catch (err) {
+        console.error("Error fetching encryption status", err);
+      }
+    };
+
+    fetchStatus();
     fetchCollections();
   }, []);
 
@@ -443,7 +458,66 @@ const Database_Collection = () => {
             Refresh
           </button>
 
-        <SecureIconWithTooltip />
+          <SecureIconWithTooltip />
+          <div style={{ display: 'flex', alignItems: 'center', marginLeft: '1rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={secureMode}
+                onChange={async (e) => {
+                  const newMode = e.target.checked;
+                  setSecureMode(newMode);
+
+                  try {
+                    if (newMode) {
+                      toast.info('Encrypting database...');
+                      const res = await axios.post(`${API_BASE_URL}/db/encrypt`, {}, {
+                        withCredentials: true
+                      });
+                      toast.success(res.data.message || 'Database encrypted');
+                    } else {
+                      toast.info('Decrypting database...');
+                      const res = await axios.post(`${API_BASE_URL}/db/decrypt`, {}, {
+                        withCredentials: true
+                      });
+                      toast.success(res.data.message || 'Database decrypted');
+                    }
+                  } catch (err) {
+                    console.error('Toggle error:', err);
+                    toast.error('Failed to toggle secure mode');
+                  }
+                }}
+                style={{ display: 'none' }}
+              />
+              <div
+                style={{
+                  width: '40px',
+                  height: '20px',
+                  backgroundColor: secureMode ? '#3b82f6' : '#e5e7eb',
+                  borderRadius: '9999px',
+                  position: 'relative',
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                <div
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    backgroundColor: '#fff',
+                    borderRadius: '9999px',
+                    position: 'absolute',
+                    top: '2px',
+                    left: secureMode ? '22px' : '2px',
+                    transition: 'left 0.2s',
+                  }}
+                />
+              </div>
+              <span style={{ marginLeft: '8px', fontSize: '0.875rem' }}>
+                {secureMode ? 'Secure On' : 'Secure Off'}
+              </span>
+            </label>
+          </div>
+
 
 
         </div>
