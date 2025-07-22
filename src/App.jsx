@@ -40,6 +40,7 @@ import SuperAdminRoutes from "./Super_Admin/SuperAdminRoutes";
 import Database_Collection from "./components/Database/Database";
 import AdminRoute from "./components/RoleProtectedRoute";
 import Database_Docs from "./components/Database/Database_Docs";
+// import accessLosg from "./components/Logs/accessLogs"
 
 function AppContent() {
   const location = useLocation();
@@ -112,6 +113,7 @@ function AppContent() {
             <Route path="quizz/edit/:id" element={<NewQuiz />} />
             <Route path="settings" element={<Settings />} />
             <Route path="dashboard" element={<Dashboard />} />
+            {/* <Route path="access-logs" element={<accessLogs />} /> */}
 
             <Route
               path="user-management"
