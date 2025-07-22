@@ -44,21 +44,24 @@ import Database_Docs from "./components/Database/Database_Docs";
 function AppContent() {
   const location = useLocation();
   const { darkMode } = useTheme();
-  const { loading } = useAuth(); // Add loading from auth context
+  const { loading } = useAuth();
+
   const isLoginPage = location.pathname === "/login";
   const isTraining = location.pathname === "/training";
   const isQuiz = location.pathname.startsWith("/quiz/");
-  const isDark = isLoginPage || isTraining || isQuiz ? false : darkMode;
+  const isPublic = isLoginPage || isTraining || isQuiz;
 
-  // Show loading spinner while checking authentication
-  if (loading) {
+  const isDark = isPublic ? false : darkMode;
+
+  // Only block loading on protected routes
+  if (loading && !isPublic) {
     return (
       <Box
         sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
           backgroundColor: isDark ? "#1e1e2f" : "#ffffff",
         }}
       >
@@ -81,7 +84,6 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           <Route path="/quiz/:publicUrl" element={<QuizTemplate />} />
           <Route path="/training" element={<Training />} />
-
 
           {/* Protected Standalone Routes */}
           <Route path="/fullscreen-editor" element={<ProtectedRoute><FullScreenEditor /></ProtectedRoute>} />
@@ -139,7 +141,6 @@ function AppContent() {
                 </RoleProtectedRoute>
               }
             />
-
           </Route>
         </Routes>
 

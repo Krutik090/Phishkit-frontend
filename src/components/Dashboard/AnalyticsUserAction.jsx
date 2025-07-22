@@ -42,9 +42,9 @@ export default function AnalyticsUserAction({ darkMode = false }) {
   />
 
 
-  useEffect(() => {
-    fetchQuizCompletedData();
-  }, []);
+  // useEffect(() => {
+  //   fetchQuizCompletedData();
+  // }, []);
 
   return (
     <div

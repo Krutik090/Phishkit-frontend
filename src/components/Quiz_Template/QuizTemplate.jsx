@@ -14,9 +14,7 @@ function QuizTemplate() {
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/quizzes/url/${publicUrl}`, {
-          credentials: 'include',
-        });
+        const response = await fetch(`${API_BASE_URL}/quizzes/url/${publicUrl}`);
         const data = await response.json();
 
         if (!Array.isArray(data) || data.length === 0) {
