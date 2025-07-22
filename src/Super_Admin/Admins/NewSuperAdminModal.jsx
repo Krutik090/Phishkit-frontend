@@ -1,3 +1,4 @@
+// NewSuperAdminModal.js
 import React, { useState, useEffect } from "react";
 import {
     Dialog, DialogTitle, DialogContent, DialogActions,
@@ -11,8 +12,8 @@ import AddIcon from "@mui/icons-material/Add";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-const pink = localStorage.getItem("primaryColor") || "#e91e63"; // fallback to pink
-const secondary = localStorage.getItem("secondaryColor") || "#f06292"; // fallback to lighter pink
+const pink = localStorage.getItem("primaryColor") || "#e91e63";
+const secondary = localStorage.getItem("secondaryColor") || "#f06292";
 
 const pinkTextFieldSx = {
     "& label.Mui-focused": { color: pink },
@@ -24,7 +25,7 @@ const pinkTextFieldSx = {
     },
 };
 
-const StyledInputRoot = styled('div')`
+const StyledInputRoot = styled("div")`
   font-family: 'IBM Plex Sans', sans-serif;
   font-weight: 400;
   display: flex;
@@ -32,7 +33,7 @@ const StyledInputRoot = styled('div')`
   align-items: center;
 `;
 
-const StyledInput = styled('input')`
+const StyledInput = styled("input")`
   font-size: 0.875rem;
   font-family: inherit;
   font-weight: 400;
@@ -61,7 +62,7 @@ const StyledInput = styled('input')`
   }
 `;
 
-const StyledButton = styled('button')`
+const StyledButton = styled("button")`
   font-family: 'IBM Plex Sans', sans-serif;
   font-size: 0.875rem;
   border: 1px solid #ccc;
@@ -88,30 +89,32 @@ const StyledButton = styled('button')`
 `;
 
 const NumberInput = React.forwardRef(function CustomNumberInput(props, ref) {
-  return (
-    <BaseNumberInput
-      slots={{
-        root: StyledInputRoot,
-        input: StyledInput,
-        incrementButton: StyledButton,
-        decrementButton: StyledButton,
-      }}
-      slotProps={{
-        incrementButton: {
-          children: <AddIcon fontSize="small" />,
-          className: 'increment',
-        },
-        decrementButton: {
-          children: <RemoveIcon fontSize="small" />,
-        },
-      }}
-      {...props}
-      ref={ref}
-    />
-  );
+    return (
+        <BaseNumberInput
+            slots={{
+                root: StyledInputRoot,
+                input: StyledInput,
+                incrementButton: StyledButton,
+                decrementButton: StyledButton,
+            }}
+            slotProps={{
+                incrementButton: {
+                    children: <AddIcon fontSize="small" />,
+                    className: "increment",
+                    type: "button",
+                },
+                decrementButton: {
+                    children: <RemoveIcon fontSize="small" />,
+                    type: "button",
+                },
+            }}
+            {...props}
+            ref={ref}
+        />
+    );
 });
 
-const NewSuperAdminModal = ({ open, onClose, onSave, superAdminData }) => {
+const NewSuperAdminModal = ({ open, onClose, onSave }) => {
     const [formData, setFormData] = useState({
         name: "",
         email: "",
@@ -121,26 +124,16 @@ const NewSuperAdminModal = ({ open, onClose, onSave, superAdminData }) => {
 
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
-    const isEditing = Boolean(superAdminData);
 
     useEffect(() => {
-        if (superAdminData) {
-            setFormData({
-                name: superAdminData.name || "",
-                email: superAdminData.email || "",
-                password: "",
-                emailLimit: superAdminData.emailLimit || 1,
-            });
-        } else {
-            setFormData({
-                name: "",
-                email: "",
-                password: "",
-                emailLimit: 1,
-            });
-        }
+        setFormData({
+            name: "",
+            email: "",
+            password: "",
+            emailLimit: 1,
+        });
         setErrors({});
-    }, [superAdminData, open]);
+    }, [open]);
 
     const handleInputChange = (e, val) => {
         const { name, value, type } = e.target || {};
@@ -161,16 +154,15 @@ const NewSuperAdminModal = ({ open, onClose, onSave, superAdminData }) => {
         const newErrors = {};
 
         if (!formData.name.trim()) newErrors.name = "Company name is required";
-
         if (!formData.email.trim()) {
             newErrors.email = "Email is required";
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             newErrors.email = "Please enter a valid email address";
         }
 
-        if (!isEditing && !formData.password.trim()) {
+        if (!formData.password.trim()) {
             newErrors.password = "Password is required";
-        } else if (formData.password && formData.password.length < 6) {
+        } else if (formData.password.length < 6) {
             newErrors.password = "Password must be at least 6 characters";
         }
 
@@ -194,46 +186,45 @@ const NewSuperAdminModal = ({ open, onClose, onSave, superAdminData }) => {
                 name: formData.name.trim(),
                 email: formData.email.trim(),
                 emailLimit: parseInt(formData.emailLimit),
+                password: formData.password.trim(),
             };
-            if (formData.password.trim()) {
-                submitData.password = formData.password;
-            }
 
-            const url = isEditing
-                ? `${API_BASE_URL}/superadmin/admins/${superAdminData._id}`
-                : `${API_BASE_URL}/superadmin/create-admin`;
-
-            const method = isEditing ? "PUT" : "POST";
+            const url = `${API_BASE_URL}/superadmin/create-admin`;
 
             const response = await fetch(url, {
-                method,
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 credentials: "include",
                 body: JSON.stringify(submitData),
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Failed to ${isEditing ? 'update' : 'create'} super admin`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to create super admin");
             }
 
-            toast.success(`Super admin ${isEditing ? 'updated' : 'created'} successfully!`);
-            onSave();
+            toast.success("Super Admin created successfully!");
+            setTimeout(() => {
+                onSave();
+            }, 500);
         } catch (error) {
+            console.error("Modal error:", error);
             toast.error(error.message);
-        } finally {
             setLoading(false);
         }
+    };
+
+    const handleClose = () => {
+        if (!loading) onClose();
     };
 
     return (
         <Dialog
             open={open}
-            onClose={() => !loading && onClose()}
+            onClose={handleClose}
             fullWidth
             maxWidth="lg"
+            disableEscapeKeyDown={loading}
             PaperProps={{
                 sx: {
                     width: "600px",
@@ -245,22 +236,13 @@ const NewSuperAdminModal = ({ open, onClose, onSave, superAdminData }) => {
                 },
             }}
         >
-            <DialogTitle
-                sx={{
-                    fontWeight: "bold",
-                    color: pink,
-                    borderBottom: "1px solid #f5f5f5",
-                    backgroundColor: "#f5f5f5",
-                }}
-            >
-                👥 {isEditing ? "Edit Super Admin" : "Create New Super Admin"}
+            <DialogTitle sx={{ fontWeight: "bold", color: pink, backgroundColor: "#f5f5f5" }}>
+                👥 Create New Super Admin
             </DialogTitle>
 
             <DialogContent dividers sx={{ p: 4 }}>
                 <Box component="form" onSubmit={handleSubmit}>
-                    <Typography variant="body2" fontWeight="500" mb={0.5}>
-                        Company Name
-                    </Typography>
+                    <Typography variant="body2" fontWeight="500" mb={0.5}>Company Name</Typography>
                     <TextField
                         fullWidth
                         name="name"
@@ -272,9 +254,7 @@ const NewSuperAdminModal = ({ open, onClose, onSave, superAdminData }) => {
                         sx={pinkTextFieldSx}
                     />
 
-                    <Typography variant="body2" fontWeight="500" mt={2} mb={0.5}>
-                        Email
-                    </Typography>
+                    <Typography variant="body2" fontWeight="500" mt={2} mb={0.5}>Email</Typography>
                     <TextField
                         fullWidth
                         name="email"
@@ -287,9 +267,7 @@ const NewSuperAdminModal = ({ open, onClose, onSave, superAdminData }) => {
                         sx={pinkTextFieldSx}
                     />
 
-                    <Typography variant="body2" fontWeight="500" mt={2} mb={0.5}>
-                        {isEditing ? "New Password (optional)" : "Password"}
-                    </Typography>
+                    <Typography variant="body2" fontWeight="500" mt={2} mb={0.5}>Password</Typography>
                     <TextField
                         fullWidth
                         name="password"
@@ -302,9 +280,7 @@ const NewSuperAdminModal = ({ open, onClose, onSave, superAdminData }) => {
                         sx={pinkTextFieldSx}
                     />
 
-                    <Typography variant="body2" fontWeight="500" mt={2} mb={0.5}>
-                        Email Limit (Credits)
-                    </Typography>
+                    <Typography variant="body2" fontWeight="500" mt={2} mb={0.5}>Email Limit (Credits)</Typography>
                     <Box mt={1}>
                         <NumberInput
                             min={1}
@@ -319,34 +295,28 @@ const NewSuperAdminModal = ({ open, onClose, onSave, superAdminData }) => {
                             </Typography>
                         )}
                     </Box>
+
+                    <DialogActions sx={{ p: 0, pt: 4 }}>
+                        <Button onClick={handleClose} disabled={loading} variant="outlined">Cancel</Button>
+                        <Button
+                            type="submit"
+                            disabled={loading}
+                            variant="contained"
+                            sx={{
+                                background: `linear-gradient(to right, ${pink}, ${secondary})`,
+                                color: "#fff",
+                                fontWeight: "bold",
+                                textTransform: "none",
+                                "&:hover": {
+                                    background: `linear-gradient(to right, ${pink}, ${secondary})`,
+                                },
+                            }}
+                        >
+                            {loading ? "Saving..." : "Save Admin"}
+                        </Button>
+                    </DialogActions>
                 </Box>
             </DialogContent>
-
-            <DialogActions sx={{ p: 3 }}>
-                <Button onClick={onClose} disabled={loading} variant="outlined">
-                    Cancel
-                </Button>
-                <Button
-                    onClick={handleSubmit}
-                    disabled={loading}
-                    variant="contained"
-                    sx={{
-                        background: `linear-gradient(to right, ${pink}, ${secondary})`,
-                        color: "#fff",
-                        fontWeight: "bold",
-                        textTransform: "none",
-                        boxShadow: 1,
-                        "&:hover": {
-                            background: `linear-gradient(to right, ${pink}, ${secondary})`,
-                        },
-                        "&:disabled": {
-                            background: "#ccc",
-                        },
-                    }}
-                >
-                    {loading ? "Saving..." : isEditing ? "Update" : "Save Admin"}
-                </Button>
-            </DialogActions>
         </Dialog>
     );
 };

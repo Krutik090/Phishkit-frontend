@@ -13,46 +13,34 @@ export default function AnalyticsUserAction({ darkMode = false }) {
   let ymin = 0, ymax = 6;
 
   const chartTheme = {
-    palette: {
-      mode: darkMode ? 'dark' : 'light',
-    },
-    components: {
-      MuiChartsAxis: {
-        styleOverrides: {
-          tickLabel: {
-            style: {
-              fill: darkMode ? '#fff' : '#000', // Axis text color
-            },
-          },
-          line: {
-            style: {
-              stroke: darkMode ? '#aaa' : '#333', // Axis line color
-            },
-          },
-        },
+    axis: {
+      tickLabel: {
+        color: darkMode ? '#ffffff' : '#000000',
       },
-      MuiChartsGrid: {
-        styleOverrides: {
-          line: {
-            style: {
-              stroke: darkMode ? '#444' : '#ccc', // Grid line color
-            },
-          },
-        },
+      line: {
+        color: darkMode ? '#ffffff' : '#333333',
+      },
+    },
+    grid: {
+      line: {
+        color: darkMode ? '#ffffff33' : '#cccccc',
       },
     },
   };
 
-  const fetchQuizCompletedData = async () => {
-    try {
-      const response = await axios.get(`http://localhost:5000/api/clients/${clientId}`);
-      const quizCompleted = response.data.quizCompleted;
-      const updatedQData = new Array(7).fill(quizCompleted);
-      setQData(updatedQData);
-    } catch (error) {
-      console.error('Error fetching quiz data:', error);
-    }
-  };
+  <LineChart
+    height={300}
+    series={[
+      { data: pData, label: 'Mails Sent', color: localStorage.getItem('primaryColor') },
+      { data: uData, label: 'Trainings Done', color: localStorage.getItem('secondaryColor') },
+      { data: qData, label: 'Quizzes Completed', color: '#ffc0cb' },
+    ]}
+    xAxis={[{ scaleType: 'point', data: xLabels }]}
+    yAxis={[{ width: 50, min: ymin, max: ymax }]}
+    margin={margin}
+    theme={chartTheme}
+  />
+
 
   useEffect(() => {
     fetchQuizCompletedData();
@@ -68,6 +56,21 @@ export default function AnalyticsUserAction({ darkMode = false }) {
         transition: 'background-color 0.3s ease, color 0.3s ease',
       }}
     >
+
+      {/* Inline style fixes for MUI X Charts */}
+      <style>{`
+        .dark .MuiChartsAxis-tickLabel {
+          fill: #ffffff !important;
+        }
+        .dark .MuiChartsAxis-line {
+          stroke: #ffffff !important;
+        }
+        .dark .MuiChartsGrid-line {
+          stroke: #ffffff33 !important;
+        }
+      `}</style>
+
+      
       <div>
         <h2 style={{ color: darkMode ? '#fff' : '#000' }}>Quiz and Training Tracking</h2>
         <h3 style={{ color: darkMode ? '#ccc' : '#333' }}>(+43%) than last year</h3>
@@ -76,7 +79,7 @@ export default function AnalyticsUserAction({ darkMode = false }) {
       <LineChart
         height={300}
         series={[
-          { data: pData, label: 'Mails Sent', color: localStorage.getItem('primaryColor') },
+          { data: pData, label: 'Mails Sent', color: localStorage.getItem('primaryColor'),  },
           { data: uData, label: 'Trainings Done', color: localStorage.getItem('secondaryColor') },
           { data: qData, label: 'Quizzes Completed', color: '#ffc0cb' },
         ]}

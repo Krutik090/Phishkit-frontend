@@ -47,7 +47,8 @@ function AppContent() {
   const { loading } = useAuth(); // Add loading from auth context
   const isLoginPage = location.pathname === "/login";
   const isTraining = location.pathname === "/training";
-  const isDark = isLoginPage || isTraining ? false : darkMode;
+  const isQuiz = location.pathname.startsWith("/quiz/");
+  const isDark = isLoginPage || isTraining || isQuiz ? false : darkMode;
 
   // Show loading spinner while checking authentication
   if (loading) {
