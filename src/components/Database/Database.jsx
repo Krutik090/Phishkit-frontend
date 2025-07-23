@@ -459,7 +459,7 @@ const Database_Collection = () => {
           </button>
 
           <SecureIconWithTooltip />
-          <div style={{ display: 'flex', alignItems: 'center', marginLeft: '1rem' }}>
+          {/* <div style={{ display: 'flex', alignItems: 'center', marginLeft: '1rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
               <input
                 type="checkbox"
@@ -516,10 +516,7 @@ const Database_Collection = () => {
                 {secureMode ? 'Secure On' : 'Secure Off'}
               </span>
             </label>
-          </div>
-
-
-
+          </div> */}
         </div>
 
         <div style={controlsStyle}>
