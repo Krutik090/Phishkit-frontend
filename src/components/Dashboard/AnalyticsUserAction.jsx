@@ -41,11 +41,6 @@ export default function AnalyticsUserAction({ darkMode = false }) {
     theme={chartTheme}
   />
 
-
-  useEffect(() => {
-    fetchQuizCompletedData();
-  }, []);
-
   return (
     <div
       style={{
