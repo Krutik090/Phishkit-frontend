@@ -34,7 +34,7 @@ const ClientInsights = () => {
 
   const loadInsights = async () => {
     try {
-      const clientRes = await fetch(`${API_BASE_URL}/clients/${clientId}`);
+      const clientRes = await fetch(`${API_BASE_URL}/projects/${clientId}`);
       const clientData = await clientRes.json();
       setClient(clientData);
 
