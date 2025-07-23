@@ -40,6 +40,7 @@ import SuperAdminRoutes from "./Super_Admin/SuperAdminRoutes";
 import Database_Collection from "./components/Database/Database";
 import AdminRoute from "./components/RoleProtectedRoute";
 import Database_Docs from "./components/Database/Database_Docs";
+import Logs from "./components/Audit_Logs/Logs";
 
 function AppContent() {
   const location = useLocation();
@@ -138,7 +139,14 @@ function AppContent() {
                 </RoleProtectedRoute>
               }
             />
-
+            <Route
+              path="audit-logs"
+              element={
+                <RoleProtectedRoute allowRoles={["admin", "superadmin"]} fallbackPath="/dashboard">
+                  <Logs />
+                </RoleProtectedRoute>
+              }
+            />
           </Route>
         </Routes>
 

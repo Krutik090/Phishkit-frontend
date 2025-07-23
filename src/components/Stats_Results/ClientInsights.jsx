@@ -19,7 +19,7 @@ import { CSVLink } from "react-csv";
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const ClientInsights = () => {
-  const { clientId } = useParams();
+  const { projectId } = useParams();
   const navigate = useNavigate();
   const location = useLocation(); // ✅ Access route state
   const campaignNames = location.state?.campaignNames || []; // ✅ Get campaign names
@@ -30,18 +30,18 @@ const ClientInsights = () => {
 
   useEffect(() => {
     loadInsights();
-  }, [clientId]);
+  }, [projectId]);
 
   const loadInsights = async () => {
     try {
-      const clientRes = await fetch(`${API_BASE_URL}/projects/${clientId}`);
+      const clientRes = await fetch(`${API_BASE_URL}/projects/${projectId}`, {credentials: "include"});
       const clientData = await clientRes.json();
       setClient(clientData);
 
       const allResults = [];
 
       const campaignPromises = clientData.campaigns.map((id) =>
-        fetch(`${API_BASE_URL}/campaigns/${id}`)
+        fetch(`${API_BASE_URL}/campaigns/gophish/${id}`,{credentials: "include"})
           .then((res) => res.json())
           .catch((err) => {
             console.error("Failed to fetch campaign", id, err.message);
@@ -136,7 +136,7 @@ const ClientInsights = () => {
           <Button
             variant="contained"
             color="primary"
-            onClick={() => navigate(`/client/${clientId}/insights/graphview`)}
+            onClick={() => navigate(`/client/${projectId}/insights/graphview`)}
             sx={{
               background:
                 "linear-gradient(135deg, #fff, #fff) padding-box, linear-gradient(135deg, #00c9ff, #92fe9d) border-box",
