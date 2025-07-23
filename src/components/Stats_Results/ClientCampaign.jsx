@@ -14,7 +14,7 @@ import "datatables.net-dt/css/dataTables.dataTables.min.css";
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const ClientCampaign = () => {
-const { id: projectId } = useParams();  console.log(projectId);
+const { id: projectId } = useParams(); 
 
   const navigate = useNavigate();
   const tableRef = useRef(null);

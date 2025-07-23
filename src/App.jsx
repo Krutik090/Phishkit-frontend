@@ -105,7 +105,7 @@ function AppContent() {
             <Route path="users-groups" element={<UsersGroups />} />
             <Route path="projects" element={<ProjectPage />} />
             <Route path="clients-user" element={<AdminRoute><UserManagement /></AdminRoute>} />
-            <Route path="projects/:projecId" element={<ClientCampaign />} />
+            <Route path="projects/:id" element={<ClientCampaign />} />
             <Route path="campaign/:campaignId/details" element={<CampaignDetails />} />
             <Route path="projects/:projectId/insights" element={<ClientInsights />} />
             <Route path="quizz" element={<Quiz />} />
