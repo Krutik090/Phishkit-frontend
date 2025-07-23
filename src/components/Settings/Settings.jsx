@@ -54,6 +54,32 @@ export const ThemeProvider = ({ children }) => {
   );
 };
 
+// export const ThemeProvider = ({ children }) => {
+//   const [primaryColor, setPrimaryColor] = useState('#ec008c');
+//   const [secondaryColor, setSecondaryColor] = useState('#ff6a9f');
+
+//   useEffect(() => {
+//     // axios
+//     //   .get(`${API_BASE_URL}/auth/theme`, { withCredentials: true })
+//     //   .then((res) => {
+//     //     setPrimaryColor(res.data.primaryColor || '#ec008c');
+//     //     setSecondaryColor(res.data.secondaryColor || '#ff6a9f');
+//     //   })
+//     //   .catch((err) => {
+//     //     console.error('Failed to fetch theme', err);
+//     //   });
+//   }, []);
+
+//   return (
+//     <ThemeContext.Provider
+//       value={{ primaryColor, secondaryColor, setPrimaryColor, setSecondaryColor }}
+//     >
+//       {children}
+//     </ThemeContext.Provider>
+//   );
+// };
+
+// ✅ Settings Component
 const SettingsContent = () => {
   const navigate = useNavigate();
   const { primaryColor, secondaryColor, setPrimaryColor, setSecondaryColor } =
@@ -94,13 +120,22 @@ const SettingsContent = () => {
       .catch(() => navigate('/login'));
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API_BASE_URL}/auth/logout`, {}, { withCredentials: true });
+      navigate('/login');
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
+
   const handleApplyTheme = async () => {
     window.location.reload(true);
     setStatus('applying');
     try {
       await axios.put(
         `${API_BASE_URL}/auth/update-theme`,
-        { primaryColor, secondaryColor },
+        { primaryColor, secondaryColor},
         { withCredentials: true }
       );
       setStatus('success');
@@ -108,7 +143,7 @@ const SettingsContent = () => {
     } catch (err) {
       console.error('Theme update failed:', err);
       setStatus('error');
-    }
+     }
   };
 
   const handleEnableMFA = async (checked) => {
@@ -179,6 +214,18 @@ const SettingsContent = () => {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4">⚙️ Settings</Typography>
+        <Button
+          onClick={handleLogout}
+          variant="contained"
+          sx={{
+            background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
+            color: 'white',
+            fontWeight: 500,
+            '&:hover': { background: RED_GRADIENT, opacity: 0.9 },
+          }}
+        >
+          Logout
+        </Button>
       </Box>
 
       <Divider sx={{ my: 4 }} />
@@ -219,7 +266,7 @@ const SettingsContent = () => {
         {status === 'success' && <Alert severity="success">Theme updated! Refreshing...</Alert>}
         {status === 'error' && <Alert severity="error">Failed to update theme. Try again.</Alert>}
       </Box>
-      <Divider sx={{ my: 4 }} />
+<Divider sx={{ my: 4 }} />
       {/* Password */}
       <Typography variant="h5" gutterBottom>🔒 Change Password</Typography>
       <Box component="form" onSubmit={handlePasswordUpdate} sx={{ mt: 2, maxWidth: 400 }}>

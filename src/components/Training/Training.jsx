@@ -61,16 +61,29 @@ function NavButtons({ onBack, onNext, nextDisabled = false }) {
 
 
 /* ---------- Sidebar ---------- */
-function SidebarItem({ id, label, active, done, onClick }) {
+function SidebarItem({ id, label, active, done, onClick, disabled }) {
   const [hover, setHover] = useState(false);
   const Icon = done ? CheckCircle : Circle;
+
+  const handleClick = (e) => {
+    if (disabled) {
+      e.preventDefault();
+      return;
+    }
+    onClick();
+  };
+
   return (
     <div
-      className={`sidebar-item ${active ? "active" : ""}`}
-      style={{ background: hover && !active ? "var(--accent)" : undefined }}
+      className={`sidebar-item ${active ? "active" : ""} ${disabled ? "disabled" : ""}`}
+      style={{ 
+        background: hover && !active && !disabled ? "var(--accent)" : undefined,
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1
+      }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onClick={onClick}
+      onClick={handleClick}
     >
       {typeof id === "number" && <Icon size={20} color="var(--text)" />}
       <span>{label}</span>
@@ -80,16 +93,28 @@ function SidebarItem({ id, label, active, done, onClick }) {
 
 function Sidebar({ stepIndex, setStepIndex }) {
   const { progress } = useProgress();
+
+  // First time users can only progress linearly
+  const isFirstTimeTraining = !Object.values(progress).some(Boolean);
+
+  // Module 1 is accessible if:
+  // 1. User has started training (stepIndex > 0)
+  // 2. Module 1 is completed
+  // 3. Not first time OR current step is appropriate
+  const canAccessModule1 = stepIndex > 0 || progress[1];
+
+  // Module 2 is accessible if:
+  // 1. Module 1 is completed
+  // 2. Not first time OR current step is appropriate
+  const canAccessModule2 = progress[1] || (stepIndex >= 3 && !isFirstTimeTraining);
+
+  // Module 3 is accessible if:
+  // 1. Module 2 is completed
+  // 2. Not first time OR current step is appropriate
+  const canAccessModule3 = progress[2] || (stepIndex >= 5 && !isFirstTimeTraining);
+
   const allDone = Object.values(progress).every(Boolean);
-  const jumpTo = {
-    start: 0,
-    1: 1, // Module1Intro
-    2: 2, // Module1Video
-    3: 3, // Module2Lesson
-    4: 4, // Module2Game
-    5: 5, // Module3Lesson
-    6: 6, // Module3Game
-  };
+
   return (
     <aside className="sidebar">
       <h2 className="sidebar-h2">Hi username</h2>
@@ -100,10 +125,38 @@ function Sidebar({ stepIndex, setStepIndex }) {
       </p>
       <Divider />
       <nav className="sidebar-nav">
-        <SidebarItem id="start" label="Start Here" active={stepIndex === 0} onClick={() => setStepIndex(0)} />
-        <SidebarItem id={1} label="Phishing Awareness Training" active={[1, 2].includes(stepIndex)} done={progress[1]} onClick={() => setStepIndex(1)} />
-        <SidebarItem id={2} label="Password Hygiene Game" active={[3, 4].includes(stepIndex)} done={progress[2]} onClick={() => setStepIndex(3)} />
-        <SidebarItem id={3} label="Phishing Awareness Game" active={[5, 6].includes(stepIndex)} done={progress[3]} onClick={() => setStepIndex(5)} />      </nav>
+        <SidebarItem 
+          id="start" 
+          label="Start Here" 
+          active={stepIndex === 0} 
+          onClick={() => setStepIndex(0)} 
+          disabled={stepIndex !== 0 && isFirstTimeTraining} 
+        />
+        <SidebarItem 
+          id={1} 
+          label="Phishing Awareness Training" 
+          active={[1, 2].includes(stepIndex)} 
+          done={progress[1]} 
+          onClick={() => setStepIndex(1)} 
+          disabled={!canAccessModule1 || (isFirstTimeTraining && !canAccessModule1)}
+        />
+        <SidebarItem 
+          id={2} 
+          label="Password Hygiene Game" 
+          active={[3, 4].includes(stepIndex)} 
+          done={progress[2]} 
+          onClick={() => setStepIndex(3)} 
+          disabled={!canAccessModule2 || (isFirstTimeTraining && !canAccessModule2)}
+        />
+        <SidebarItem 
+          id={3} 
+          label="Phishing Awareness Game" 
+          active={[5, 6].includes(stepIndex)} 
+          done={progress[3]} 
+          onClick={() => setStepIndex(5)} 
+          disabled={!canAccessModule3 || (isFirstTimeTraining && !canAccessModule3)}
+        />
+      </nav>
       <Divider />
       <p className="status">Status: {allDone ? "Completed" : "Not Completed"}</p>
     </aside>
@@ -256,7 +309,7 @@ function Module2Game({ onNext, onBack }) {
       <h2>Password Hygiene – Drag each password to the right box</h2>
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
-        <Btn className="btn-accent" onClick={handlePlayOrRestart}>
+        <Btn className="btn-play" onClick={handlePlayOrRestart}>
           {started ? "Restart Game" : "Play"}
         </Btn>
       </div>
@@ -342,7 +395,7 @@ function Module3Game({ onNext, onBack }) {
   );
   const [message, setMessage] = useState("");
   const [started, setStarted] = useState(() => savedCompleted); // auto-start if already completed
-  const timeoutRef = useRef(null);
+  const timeoutsRef = useRef([]); // Track multiple timeouts
 
   const phishingSpots = [
     { top: "20px", left: "70px" },
@@ -364,28 +417,44 @@ function Module3Game({ onNext, onBack }) {
   }, [status, complete, progress]);
 
   const handleClick = (index) => {
-  if (!started || status[index]) return;
+    // Return early if: game not started, spot already marked, or game is completed
+    if (!started || status[index] || correctIndices.every(i => status[i] === "correct")) return;
 
-  const newStatus = Array(7).fill(null);
+    if (!correctIndices.includes(index)) {
+      // For incorrect spot, only update that spot while preserving correct ones
+      const updatedStatus = [...status];
+      updatedStatus[index] = "incorrect";
+      setStatus(updatedStatus);
+      setMessage("Oops! Try again.");
 
-  if (!correctIndices.includes(index)) {
-    newStatus[index] = "incorrect";
-    setStatus(newStatus);
-    setMessage("Oops! Try again.");
+      // Clear any existing timeout for this spot
+      if (timeoutsRef.current[index]) {
+        clearTimeout(timeoutsRef.current[index]);
+      }
 
-    clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      setStatus(initialStatus);
-      setMessage("");
-    }, 1000);
+      // Set new timeout for this spot
+      timeoutsRef.current[index] = setTimeout(() => {
+        setStatus(prev => {
+          const clearedStatus = [...prev];
+          // Reset all incorrect spots to null
+          for (let i = 0; i < clearedStatus.length; i++) {
+            if (clearedStatus[i] === "incorrect") {
+              clearedStatus[i] = null;
+            }
+          }
+          return clearedStatus;
+        });
+        setMessage("");
+      }, 1000);
 
-    return;
-  }
+      return;
+    }
 
-  const updatedStatus = [...status];
-  updatedStatus[index] = "correct";
-  setStatus(updatedStatus);
-};
+    // For correct spot, add it to existing correct spots
+    const updatedStatus = [...status];
+    updatedStatus[index] = "correct";
+    setStatus(updatedStatus);
+  };
 
   const allCorrect = correctIndices.every((i) => status[i] === "correct");
   const moduleDone = allCorrect || progress[3];
@@ -398,7 +467,7 @@ function Module3Game({ onNext, onBack }) {
       </p>
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
-        <Btn className="btn-accent" onClick={() => {
+        <Btn className="btn-play" onClick={() => {
           if (started) {
             // Restart logic
             setStatus(initialStatus);
@@ -413,9 +482,8 @@ function Module3Game({ onNext, onBack }) {
       {started && (
         <>
           <div className="image-container">
-            <img src="/email.jpg" alt="Phishing Email" className="phishing-image" />
-            {phishingSpots.map((spot, idx) => (
-              <div
+            <img src="/image.jpg" alt="Phishing Email" className="phishing-image" />
+            {phishingSpots.map((spot, idx) => (                <div
                 key={idx}
                 onClick={() => handleClick(idx)}
                 className={`phishing-spot ${
@@ -428,6 +496,8 @@ function Module3Game({ onNext, onBack }) {
                 style={{
                   top: spot.top,
                   left: spot.left,
+                  cursor: allCorrect ? "default" : "pointer", // Change cursor when game is complete
+                  pointerEvents: allCorrect ? "none" : "auto" // Disable interactions when complete
                 }}
               />
             ))}
@@ -473,10 +543,20 @@ const CompletionPage = ({ onBack, onRestart }) => (
 /* ---------- Layout ---------- */
 function Layout() {
   const [stepIndex, setStepIndex] = useState(() => {
+    // Check if this is a fresh navigation or refresh
+    const isRefresh = performance.navigation.type === performance.navigation.TYPE_RELOAD;
     const saved = localStorage.getItem("stepIndex");
-    return saved ? parseInt(saved, 10) : 0;
+    
+    // If it's a refresh and we have a saved state, restore it
+    if (isRefresh && saved) {
+      return parseInt(saved, 10);
+    }
+    
+    // Otherwise start from beginning
+    return 0;
   });
 
+  // Save step index whenever it changes
   useEffect(() => {
     localStorage.setItem("stepIndex", stepIndex);
   }, [stepIndex]);
@@ -507,9 +587,9 @@ function Layout() {
 export default function Training() {
 
   /* ---------- Color changes ---------- */
-const [colors, setColors] = useState({
-    primary: '#ec008c',
-    accent: '#0055cc',
+  const [colors, setColors] = useState({
+    primary: localStorage.getItem('primaryColor') || '#ec008c',
+    accent: localStorage.getItem('secondaryColor') || '#ff6a9f',
     active: '#66b2ff',
     text: '#ffffff',
   });
@@ -517,9 +597,9 @@ const [colors, setColors] = useState({
   useEffect(() => {
     const root = document.documentElement;
     const primary = localStorage.getItem('primaryColor') || colors.primary;
-    const accent =  localStorage.getItem('') || colors.accent;
-    const active = colors.active;
-    const text = colors.text;
+    const accent = localStorage.getItem('secondaryColor') || colors.accent;
+    const active = accent; // Use secondary color for active state
+    const text = '#ffffff';
 
     root.style.setProperty('--primary', primary);
     root.style.setProperty('--accent', accent);
@@ -527,11 +607,32 @@ const [colors, setColors] = useState({
     root.style.setProperty('--text', text);
 
     setColors({ primary, accent, active, text });
+
+    // Add event listener for storage changes
+    const handleStorageChange = () => {
+      const updatedPrimary = localStorage.getItem('primaryColor') || colors.primary;
+      const updatedAccent = localStorage.getItem('secondaryColor') || colors.accent;
+      
+      root.style.setProperty('--primary', updatedPrimary);
+      root.style.setProperty('--accent', updatedAccent);
+      root.style.setProperty('--active', updatedAccent);
+      
+      setColors({
+        primary: updatedPrimary,
+        accent: updatedAccent,
+        active: updatedAccent,
+        text
+      });
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   useEffect(() => {
     document.body.style.margin = "0";
   }, []);
+
   return (
     <ProgressProvider>
       <Layout />
