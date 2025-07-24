@@ -137,7 +137,7 @@ const Projects = () => {
           <thead>
             <tr>
               {[
-                "Project Name", "Campaigns", "Sent", "Failed", "Opened", "Clicked",
+                "Project Name", "Campaigns", "Sent", "Failed", "Clicked",
                 "Submitted Data", "Quiz Started", "Quiz Completed", "Created At",
                 "Certificate", "Upload"
               ].map((header, idx) => (
@@ -166,7 +166,7 @@ const Projects = () => {
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{Array.isArray(project.campaigns) ? project.campaigns.join(", ") : "—"}</td>
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.emailSent ?? 0}</td>
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.emailFailed ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.emailOpened ?? 0}</td>
+                {/* <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.emailOpened ?? 0}</td> */}
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.linkClicked ?? 0}</td>
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.submitted_data ?? 0}</td>
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.quizStarted ?? 0}</td>
