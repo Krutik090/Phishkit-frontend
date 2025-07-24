@@ -74,12 +74,378 @@ const CustomCircularProgress = ({ value, total, color, label }) => {
   );
 };
 
+const TimelineEvent = ({ event, isLast }) => {
+  const getEventColor = (message) => {
+    switch (message) {
+      case "Campaign Created":
+        return "#10b981"; // green
+      case "Email Sent":
+        return "#10b981"; // green
+      case "Email Opened":
+        return "#f59e0b"; // yellow
+      case "Clicked Link":
+        return "#f97316"; // orange
+      case "Submitted Data":
+        return "#ef4444"; // red
+      case "Email Reported":
+        return "#6b7280"; // gray
+      default:
+        return "#6b7280";
+    }
+  };
+
+  const formatTime = (timeString) => {
+    const date = new Date(timeString);
+    return date.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+  };
+
+  const color = getEventColor(event.message);
+
+  return (
+    <Box sx={{ position: 'relative', display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+      {/* Timeline dot */}
+      <Box
+        sx={{
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
+          backgroundColor: color,
+          marginTop: '6px',
+          marginRight: 2,
+          flexShrink: 0,
+          zIndex: 2
+        }}
+      />
+
+      {/* Timeline line */}
+      {!isLast && (
+        <Box
+          sx={{
+            position: 'absolute',
+            left: '5px',
+            top: '18px',
+            width: '2px',
+            height: '60px',
+            backgroundColor: '#e5e7eb',
+            zIndex: 1
+          }}
+        />
+      )}
+
+      {/* Event details */}
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151', mb: 0.5 }}>
+          {formatTime(event.time)}
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#6b7280', mb: 0.5 }}>
+          Event: {event.message}
+        </Typography>
+        {event.email && (
+          <Typography variant="body2" sx={{ color: '#6b7280' }}>
+            Email: {event.email}
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+const CampaignTimelineGraph = ({ timeline }) => {
+  const [hoveredEvent, setHoveredEvent] = useState(null);
+  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+  const graphRef = useRef(null); // Ref for the main graph container
+
+  if (!timeline || timeline.length === 0) {
+    return (
+      <Box sx={{ textAlign: 'center', py: 4 }}>
+        <Typography variant="body2" color="text.secondary">
+          No timeline events available
+        </Typography>
+      </Box>
+    );
+  }
+
+  const sortedTimeline = [...timeline].sort((a, b) => new Date(a.time) - new Date(b.time));
+  const earliestEventTime = new Date(sortedTimeline[0].time);
+  const latestEventTime = new Date(sortedTimeline[sortedTimeline.length - 1].time);
+
+  // Determine the start of the graph's time range (rounded down to the minute of the earliest event)
+  const graphStartTime = new Date(earliestEventTime);
+  graphStartTime.setSeconds(0);
+  graphStartTime.setMilliseconds(0);
+
+  // Determine the end of the graph's time range (rounded up to the minute of the latest event, plus a small buffer)
+  const graphEndTime = new Date(latestEventTime);
+  if (graphEndTime.getSeconds() > 0 || graphEndTime.getMilliseconds() > 0) {
+    graphEndTime.setMinutes(graphEndTime.getMinutes() + 1);
+    graphEndTime.setSeconds(0);
+    graphEndTime.setMilliseconds(0);
+  }
+  // Add a small buffer to the end to ensure the last marker has space
+  graphEndTime.setSeconds(graphEndTime.getSeconds() + 30); // 30 seconds buffer
+
+  const totalGraphDuration = graphEndTime - graphStartTime;
+
+  const getEventColor = (message) => {
+    switch (message) {
+      case "Campaign Created":
+      case "Email Sent":
+        return "#10b981"; // Original Green
+      case "Email Opened":
+        return "#f59e0b"; // Original Yellow/Amber
+      case "Clicked Link":
+        return "#f97316"; // Original Orange
+      case "Submitted Data":
+        return "#ef4444"; // Original Red
+      default:
+        return "#6b7280"; // Original Gray
+    }
+  };
+
+  const formatDetailedTime = (timeString) => {
+    const date = new Date(timeString);
+    // Format to "Wednesday, Jul 23 4:02:45 pm" as per image
+    return date.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+  };
+
+  const getPositionPercentage = (time) => {
+    const timeAsDate = new Date(time);
+    if (totalGraphDuration === 0) return 0; // Avoid division by zero
+    return ((timeAsDate - graphStartTime) / totalGraphDuration) * 100;
+  };
+
+  const handleMouseEnter = (event) => {
+    setHoveredEvent(event);
+    // Calculate tooltip position relative to the graph container
+    if (graphRef.current) {
+      const graphRect = graphRef.current.getBoundingClientRect();
+      const dotPositionX = graphRect.left + (getPositionPercentage(event.time) / 100) * graphRect.width;
+      // Tooltip should appear above the timeline line (which is at '30px' now)
+      // We want it to be above the dot, let's say 20px above the dot's center
+      const dotCenterY = graphRect.top + 30; // 30px is the vertical center of the main line
+      setHoverPosition({
+        x: dotPositionX,
+        y: dotCenterY,
+      });
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredEvent(null);
+  };
+
+
+  const createTimeMarkers = () => {
+    const markers = [];
+    const currentTime = new Date(graphStartTime);
+
+    while (currentTime <= graphEndTime) {
+      const position = getPositionPercentage(currentTime);
+
+      markers.push(
+        <Box
+          key={currentTime.toISOString()}
+          sx={{
+            position: 'absolute',
+            left: `${position}%`,
+            transform: 'translateX(-50%)', // Center the marker over its position
+            // Top position relative to its parent container (which is positioned at the bottom of graph)
+            top: '10px', // Pushes markers 10px below the dashed line
+            zIndex: 2,
+          }}
+        >
+          <Box
+            sx={{
+              width: '1px',
+              height: '8px', // Keep the tick mark height
+              backgroundColor: '#d1d5db',
+              mx: 'auto',
+              mb: 0.5, // Margin-bottom to separate tick from text
+            }}
+          />
+          <Typography
+            variant="caption"
+            sx={{
+              fontSize: '9px',
+              color: '#6b7280', // Darker gray for time text
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {currentTime.toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false // 24-hour format
+            })}
+          </Typography>
+        </Box>
+      );
+      currentTime.setMinutes(currentTime.getMinutes() + 1); // Increment by one minute
+    }
+    return markers;
+  };
+
+  return (
+    <Box sx={{ p: 2 }}>
+      {/* Timeline Graph */}
+      <Box
+        ref={graphRef}
+        sx={{
+          position: 'relative',
+          height: '100px', // Adjusted height to accommodate markers below
+          mb: 2,
+          // Removed padding so dashed line and markers can extend to edge
+        }}
+      >
+        {/* Main Timeline Line (Dashed) */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '30px', // Main line position (changed from 60px)
+            left: 0,
+            right: 0,
+            height: '1px',
+            backgroundColor: 'transparent',
+            backgroundImage: 'repeating-linear-gradient(to right, #ccc 0, #ccc 2px, transparent 2px, transparent 6px)',
+            backgroundSize: '8px 1px',
+            zIndex: 1
+          }}
+        />
+
+        {/* Event Dots */}
+        {sortedTimeline.map((event, index) => {
+          const leftPosition = getPositionPercentage(event.time);
+          const color = getEventColor(event.message);
+          return (
+            <Box
+              key={index}
+              sx={{
+                position: 'absolute',
+                left: `${leftPosition}%`,
+                top: '30px', // Event dots remain on the main timeline line (changed from 60px)
+                transform: 'translate(-50%, -50%)',
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                backgroundColor: color,
+                border: '1px solid rgba(255,255,255,0.8)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                zIndex: 3,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  transform: 'translate(-50%, -50%) scale(1.5)',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                }
+              }}
+              onMouseEnter={handleMouseEnter} // Pass event directly, not mouseEvent
+              onMouseLeave={handleMouseLeave}
+            />
+          );
+        })}
+
+        {/* Time Markers container - placed below the main line */}
+        <Box sx={{
+          position: 'absolute',
+          top: '50px', // Start this container below the main line (30px + some gap)
+          left: 0,
+          right: 0,
+          height: '50px', // Give it enough height for markers
+        }}>
+          {createTimeMarkers()}
+        </Box>
+      </Box>
+
+      {/* Hover Tooltip */}
+      {hoveredEvent && hoverPosition && (
+        <Box
+          sx={{
+            position: 'absolute', // Position relative to nearest positioned ancestor (the outer Box of ResultCampaign)
+            left: hoverPosition.x,
+            top: hoverPosition.y,
+            transform: 'translate(-50%, -100%) translateY(-15px)', // Adjust transform to lift it above the dot
+            backgroundColor: '#fff',
+            color: '#333',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            zIndex: 1000,
+            pointerEvents: 'none',
+            maxWidth: '250px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            border: '1px solid #ddd',
+            '&::after': { // Tooltip pointer
+              content: '""',
+              position: 'absolute',
+              bottom: '-8px', // Position below the tooltip
+              left: '50%',
+              transform: 'translateX(-50%) rotate(45deg)',
+              width: '15px', // Size of the triangle
+              height: '15px', // Size of the triangle
+              backgroundColor: '#fff',
+              borderRight: '1px solid #ddd',
+              borderBottom: '1px solid #ddd',
+              zIndex: -1, // Behind the tooltip content
+            }
+          }}
+        >
+          <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', color: '#333' }}>
+            {formatDetailedTime(hoveredEvent.time)}
+          </Typography>
+          <Typography variant="caption" sx={{ display: 'block', color: '#555' }}>
+            Event: {hoveredEvent.message}
+          </Typography>
+          {hoveredEvent.email && (
+            <Typography variant="caption" sx={{ display: 'block', color: '#555' }}>
+              Email: {hoveredEvent.email}
+            </Typography>
+          )}
+        </Box>
+      )}
+
+      {/* Legend - unchanged for now, but colors might need tweaking based on image */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center', mt: 2 }}>
+        {['Email Sent', 'Clicked Link', 'Submitted Data'].map((eventType) => (
+          <Box key={eventType} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                backgroundColor: getEventColor(eventType)
+              }}
+            />
+            <Typography variant="caption" sx={{ fontSize: '11px', color: '#374151' }}>
+              {eventType}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+};
+
 const ResultCampaign = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   const tableRef = useRef(null);
   const dataTableRef = useRef(null);
 
@@ -185,8 +551,8 @@ const ResultCampaign = () => {
     if (!campaign?.results) return 0;
     return campaign.results.filter((r) => {
       switch (milestone) {
-        case "Scheduled":
-          return ["Scheduled", "Email Sent", "Clicked Link", "Submitted Data"].includes(r.status);
+        case "Email Sent":
+          return ["Email Sent", "Clicked Link", "Submitted Data"].includes(r.status);
         case "Clicked Link":
           return ["Clicked Link", "Submitted Data"].includes(r.status);
         case "Submitted Data":
@@ -222,35 +588,35 @@ const ResultCampaign = () => {
         <Typography variant="h4" sx={{ fontWeight: "bold", color: pink, mb: 4 }}>
           🎯 Results for {campaign.name}
         </Typography>
-        
+
         {/* Action Buttons */}
         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 4 }}>
-          <Button 
-            variant="outlined" 
+          <Button
+            variant="outlined"
             onClick={() => navigate(-1)}
             sx={{ textTransform: 'none' }}
           >
             🔙 Back
           </Button>
-          <Button 
-            variant="contained" 
-            color="success" 
+          <Button
+            variant="contained"
+            color="success"
             onClick={exportToCSV}
             sx={{ textTransform: 'none' }}
           >
             📊 Export CSV
           </Button>
-          <Button 
-            variant="contained" 
-            color="error" 
+          <Button
+            variant="contained"
+            color="error"
             onClick={handleDelete}
             sx={{ textTransform: 'none' }}
           >
             🗑 Delete
           </Button>
-          <Button 
-            variant="outlined" 
-            color="primary" 
+          <Button
+            variant="outlined"
+            color="primary"
             onClick={() => window.location.reload()}
             sx={{ textTransform: 'none' }}
           >
@@ -259,16 +625,29 @@ const ResultCampaign = () => {
         </Box>
       </Box>
 
-      {/* Progress Circles - Removed Email Reported */}
+      {/* Campaign Timeline */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h5" sx={{ fontWeight: "bold", mb: 3 , textAlign: "center" }}>
+          Campaign Timeline {/* This heading is outside the graph component */}
+        </Typography>
+
+        <Box
+          sx={{
+            backgroundColor: '#f9fafb',
+            borderRadius: 2,
+            p: 3,
+            border: '1px solid #e5e7eb',
+            position: 'relative', // Ensure position for absolute tooltip
+          }}
+        >
+          <CampaignTimelineGraph timeline={campaign.timeline} />
+        </Box>
+      </Box>
+
+      {/* Progress Circles */}
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 6, mb: 4, flexWrap: 'wrap' }}>
         <CustomCircularProgress
-          value={countByMilestone("Scheduled")}
-          total={totalSent}
-          color="#6366f1"
-          label="Scheduled"
-        />
-        <CustomCircularProgress
-          value={totalSent}
+          value={countByMilestone("Email Sent")}
           total={totalSent}
           color="#10b981"
           label="Email Sent"
@@ -329,7 +708,7 @@ const ResultCampaign = () => {
                             : r.status === "Clicked Link"
                               ? "#fd7e14"
                               : r.status === "Scheduled"
-                                ? "#6366f1"
+                                ? "#6c757d"
                                 : "#6c757d",
                         color: "#fff",
                         fontWeight: "bold",
