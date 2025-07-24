@@ -23,6 +23,10 @@ const Database_Collection = () => {
       const response = await fetch(`${API_BASE_URL}/db/full-db`, {
         credentials: 'include',
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch collections');
+      }
       const result = await response.json();
 
       if (result.success && result.data) {
@@ -57,6 +61,7 @@ const Database_Collection = () => {
       toggleCollection(collectionName);
       return;
     }
+
     // Navigate to the database detail page
     navigate(`/database/${encodeURIComponent(collectionName)}`);
   };
@@ -109,7 +114,7 @@ const Database_Collection = () => {
   const h1Style = {
     fontSize: '24px',
     fontWeight: 'bold',
-    margin: 0,
+    margin: 0
   };
 
   const refreshButtonStyle = {
@@ -168,6 +173,7 @@ const Database_Collection = () => {
   const viewButtonStyle = (isActive) => ({
     padding: '8px',
     backgroundColor: isActive ? localStorage.getItem("primaryColor") : '#ffffff',
+    backgroundColor: isActive ? localStorage.getItem("primaryColor") : '#ffffff',
     color: isActive ? '#ffffff' : '#64748b',
     border: 'none',
     cursor: 'pointer',
@@ -202,6 +208,7 @@ const Database_Collection = () => {
   const cardHeaderStyle = {
     padding: '16px',
     borderBottom: '1px solid #f1f5f9',
+    background: localStorage.getItem("primaryColor"),
     background: localStorage.getItem("primaryColor"),
     transition: 'all 0.3s ease'
   };
@@ -504,6 +511,7 @@ const Database_Collection = () => {
                 const header = e.currentTarget.querySelector('.card-header');
                 if (header) {
                   header.style.background = localStorage.getItem("primaryColor");
+                  header.style.background = localStorage.getItem("primaryColor");
                 }
               }}
               onMouseLeave={(e) => {
@@ -511,6 +519,7 @@ const Database_Collection = () => {
                 e.currentTarget.style.transform = 'translateY(0)';
                 const header = e.currentTarget.querySelector('.card-header');
                 if (header) {
+                  header.style.background = localStorage.getItem("primaryColor");
                   header.style.background = localStorage.getItem("primaryColor");
                 }
               }}

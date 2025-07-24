@@ -14,17 +14,70 @@ import {
   Paper,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
+import { Doughnut } from "react-chartjs-2";
+import { Chart as ChartJS, ArcElement, Tooltip } from "chart.js";
+
+ChartJS.register(ArcElement, Tooltip);
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-const pink = localStorage.getItem("secondaryColor");
+const pink = localStorage.getItem("secondaryColor") || "#e91e63";
+
+const StatGauge = ({ label, value, total, color }) => {
+  const percentage = total > 0 ? (value / total) * 100 : 0;
+
+  const data = {
+    datasets: [
+      {
+        data: [percentage, 100 - percentage],
+        backgroundColor: [color, "#e0e0e0"],
+        borderWidth: 4,
+        borderColor: "#333",
+        cutout: "70%",
+      },
+    ],
+  };
+
+  const options = {
+    cutout: "70%",
+    rotation: -90,
+    circumference: 360,
+    plugins: {
+      tooltip: { enabled: false },
+    },
+  };
+
+  return (
+    <Box width={150} height={150} position="relative" mx="auto">
+      <Doughnut data={data} options={options} />
+      <Box
+        position="absolute"
+        top={0}
+        left={0}
+        width="100%"
+        height="100%"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        flexDirection="column"
+      >
+        <Typography variant="h6" fontWeight="bold" color={color}>
+          {Math.round(percentage)}%
+        </Typography>
+        <Typography fontSize="12px" color="#555" textAlign="center">
+          {label}
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
 
 const ResultCampaign = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [campaign, setCampaign] = useState(null);
-  
+
   useEffect(() => {
-    fetch(`${API_BASE_URL}/campaigns/${id}/results`, {credentials : "include"})
+    fetch(`${API_BASE_URL}/campaigns/${id}/results`, { credentials: "include" })
       .then((res) => res.json())
       .then((data) => setCampaign(data))
       .catch((err) => {
@@ -32,6 +85,7 @@ const ResultCampaign = () => {
         alert("Failed to load campaign results.");
       });
   }, [id]);
+
   const exportToCSV = () => {
     if (!campaign?.results || campaign.results.length === 0) {
       alert("No data to export.");
@@ -62,29 +116,45 @@ const ResultCampaign = () => {
     link.click();
     document.body.removeChild(link);
   };
+
   const handleDelete = async () => {
-  if (!confirm("Are you sure you want to delete this campaign?")) return;
+    if (!confirm("Are you sure you want to delete this campaign?")) return;
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/campaigns/${id}`, {
-      credentials : "include",
-      method: "DELETE",
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/campaigns/${id}`, {
+        credentials: "include",
+        method: "DELETE",
+      });
 
-    if (!response.ok) {
-      throw new Error("Failed to delete campaign.");
+      if (!response.ok) {
+        throw new Error("Failed to delete campaign.");
+      }
+
+      alert("Campaign deleted successfully.");
+      navigate("/");
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("Error deleting campaign.");
     }
+  };
 
-    alert("Campaign deleted successfully.");
-    navigate("/"); // Or wherever you want to redirect after deletion
-  } catch (error) {
-    console.error("Delete error:", error);
-    alert("Error deleting campaign.");
-  }
-};
-
-  const countByStatus = (status) =>
-    campaign?.results?.filter((r) => r.status === status)?.length || 0;
+  const countByMilestone = (milestone) => {
+    if (!campaign?.results) return 0;
+    return campaign.results.filter((r) => {
+      switch (milestone) {
+        case "Email Opened":
+          return ["Email Opened", "Clicked Link", "Submitted Data"].includes(r.status);
+        case "Clicked Link":
+          return ["Clicked Link", "Submitted Data"].includes(r.status);
+        case "Submitted Data":
+          return r.status === "Submitted Data";
+        case "Email Reported":
+          return r.status === "Email Reported";
+        default:
+          return false;
+      }
+    }).length;
+  };
 
   if (!campaign) {
     return (
@@ -94,14 +164,14 @@ const ResultCampaign = () => {
     );
   }
 
+  const totalSent = campaign.results?.length || 1;
+
   return (
     <Box px={4} py={3}>
-      {/* Page Title */}
       <Typography variant="h4" fontWeight="bold" color={pink} mb={4}>
         🎯 Results: {campaign.name}
       </Typography>
 
-      {/* Action Buttons */}
       <Box display="flex" gap={2} flexWrap="wrap" mb={4}>
         <Button variant="outlined" onClick={() => navigate(-1)}>🔙 Back</Button>
         <Button variant="contained" color="success" onClick={exportToCSV}>Export CSV</Button>
@@ -110,44 +180,31 @@ const ResultCampaign = () => {
         <Button variant="outlined" color="primary" onClick={() => window.location.reload()}>🔄 Refresh</Button>
       </Box>
 
-      {/* Stats Summary */}
-      <Grid container spacing={3} justifyContent="center" mb={5}x color={localStorage.getItem("primaryColor")}>
+      <Grid container spacing={3} justifyContent="center" mb={5}>
         {[
-          { label: "Email Sent", value: campaign.results?.length},
-          { label: "Email Opened", value: countByStatus("Email Opened") },
-          { label: "Clicked Link", value: countByStatus("Clicked Link") },
-          { label: "Submitted Data", value: countByStatus("Submitted Data") },
-          { label: "Email Reported", value: countByStatus("Email Reported") },
+          { label: "Email Opened", value: countByMilestone("Email Opened") },
+          { label: "Clicked Link", value: countByMilestone("Clicked Link") },
+          { label: "Submitted Data", value: countByMilestone("Submitted Data") },
+          { label: "Email Reported", value: countByMilestone("Email Reported") },
         ].map((stat, i) => (
-          <Grid item xs={6} sm={4} md={2.4} key={i} color={localStorage.getItem("primaryColor")}>
-            <Box
-              bgcolor="#f5f5f5"
-              border={`2px solid ${pink}`}
-              borderRadius="12px"
-              textAlign="center"
-              py={3}
-              px={2}
-              boxShadow="0 4px 12px rgba(0,0,0,0.06)"
-            >
-              <Typography variant="h5" fontWeight="bold" color={pink}>
-                {stat.value}
-              </Typography>
-              <Typography fontSize="14px" color={localStorage.getItem("primaryColor")}>
-                {stat.label}
-              </Typography>
-            </Box>
+          <Grid item xs={6} sm={4} md={2.4} key={i}>
+            <StatGauge
+              label={stat.label}
+              value={stat.value}
+              total={totalSent}
+              color={pink}
+            />
           </Grid>
         ))}
       </Grid>
 
-      {/* Table Section */}
       <Typography variant="h5" fontWeight="bold" mb={2}>
         👥 Result Details
       </Typography>
 
       <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: 3 }}>
         <Table size="small">
-          <TableHead sx={{ backgroundColor: localStorage.getItem("secondaryColor") }}>
+          <TableHead sx={{ backgroundColor: pink }}>
             <TableRow>
               <TableCell><strong>First Name</strong></TableCell>
               <TableCell><strong>Last Name</strong></TableCell>
@@ -191,9 +248,7 @@ const ResultCampaign = () => {
                       {r.status}
                     </Typography>
                   </TableCell>
-                  <TableCell>
-                    {r.reported ? "✅" : "❌"}
-                  </TableCell>
+                  <TableCell>{r.reported ? "✅" : "❌"}</TableCell>
                 </TableRow>
               ))
             ) : (

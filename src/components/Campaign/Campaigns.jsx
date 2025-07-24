@@ -87,19 +87,40 @@ const Campaigns = () => {
   const cancelDelete = () => setDeleteDialog({ open: false, campaign: null });
 
   const confirmDelete = async () => {
-    try {
-      const id = deleteDialog.campaign._id;
-      const res = await fetch(`${API_BASE_URL}/campaigns/${id}`, { method: "DELETE", credentials: "include" });
-      if (!res.ok) throw new Error("Delete failed");
+  try {
+    const id = deleteDialog.campaign._id;
+    const res = await fetch(`${API_BASE_URL}/campaigns/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Delete failed");
 
-      setData(prev => prev.filter(c => c._id !== id));
-    } catch (err) {
-      console.error("Delete failed:", err);
-      alert("Delete failed");
-    } finally {
-      cancelDelete();
+    // Destroy existing DataTable first
+    if (dataTableRef.current) {
+      dataTableRef.current.destroy();
+      dataTableRef.current = null;
     }
-  };
+
+    // Fetch updated campaigns list
+    const res2 = await fetch(`${API_BASE_URL}/campaigns`, { credentials: "include" });
+    const json = await res2.json();
+    const normalized = json.map(item => ({ ...item, id: item._id }));
+
+    // Update state and re-initialize DataTable
+    setData(normalized);
+
+    setTimeout(() => {
+      initializeDataTable(normalized);
+    }, 0);
+
+  } catch (err) {
+    console.error("Delete failed:", err);
+    alert("Delete failed");
+  } finally {
+    cancelDelete();
+  }
+};
+
 
   const handleSaveSuccess = async () => {
     try {

@@ -272,7 +272,7 @@ const Database_Docs = () => {
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Database style={{ width: '20px', height: '20px', color: '#3b82f6' }} />
-            <h1 style={{ fontSize: '20px', fontWeight: '600', margin: 0}}>
+            <h1 style={{ fontSize: '20px', fontWeight: '600', margin: 0 }}>
               {dbName}
             </h1>
           </div>
@@ -453,27 +453,31 @@ const Database_Docs = () => {
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '500', color: '#374151', minWidth: '40px' }}>
                   <input type="checkbox" style={{ margin: 0 }} />
                 </th>
-                {documents.length > 0 && Object.keys(documents[0]).map((key) => (
-                  <th key={key} style={{
-                    padding: '12px 16px',
-                    textAlign: 'left',
-                    fontWeight: '500',
-                    color: '#374151',
-                    minWidth: key === '_id' ? '200px' : '150px'
-                  }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <span style={{ fontWeight: '600' }}>{key}</span>
-                      <span style={{
-                        fontSize: '12px',
-                        color: '#64748b',
-                        fontWeight: '400',
-                        fontStyle: 'italic'
-                      }}>
-                        {getColumnType(key)}
-                      </span>
-                    </div>
-                  </th>
-                ))}
+                {documents.length > 0 && Object.keys(documents[0])
+                  // .filter((key) => key !== 'gophishId') 
+                  // .filter((key) => key !== 'mfa') 
+                  // ← Filter out gophishid
+                  .map((key) => (
+                    <th key={key} style={{
+                      padding: '12px 16px',
+                      textAlign: 'left',
+                      fontWeight: '500',
+                      color: '#374151',
+                      minWidth: key === '_id' ? '200px' : '150px'
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontWeight: '600' }}>{key}</span>
+                        <span style={{
+                          fontSize: '12px',
+                          color: '#64748b',
+                          fontWeight: '400',
+                          fontStyle: 'italic'
+                        }}>
+                          {getColumnType(key)}
+                        </span>
+                      </div>
+                    </th>
+                  ))}
                 {/* <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '500', color: '#374151', width: '120px' }}>
                   Actions
                 </th> */}
@@ -488,7 +492,9 @@ const Database_Docs = () => {
                   <td style={{ padding: '12px 16px', textAlign: 'left' }}>
                     <input type="checkbox" style={{ margin: 0 }} />
                   </td>
-                  {Object.entries(doc).map(([key, value]) => (
+                  {Object.entries(doc)
+                  .filter((key) => key !== 'gophishId') // ← Filter out gophishid
+                  .map(([key, value]) => (
                     <td key={key} style={{
                       padding: '12px 16px',
                       textAlign: 'left',

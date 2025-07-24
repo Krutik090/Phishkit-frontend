@@ -1,4 +1,4 @@
-import React, { useEffect, useContext, useState } from "react";
+import React, { useEffect, useState } from "react";
 import CategoryBar from "./CategoryBar";
 import ShieldBlock from "./ShieldBlock";
 import ScoreCard from './ScoreCard';
@@ -6,9 +6,10 @@ import AnalyticsWebsiteVisits from './AnalyticsWebsiteVisits';
 import AnalyticsUserAction from "./AnalyticsUserAction";
 import StatsRow from "./StateRow";
 import axios from "axios";
-import { useTheme } from "../../context/ThemeContext"; // ✅ Context for darkMode
+import { useTheme } from "../../context/ThemeContext";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const calculateGrade = (score, total) => {
   if (total === 0 || score === null || score === undefined) return "N/A";
   const percent = (score / total) * 100;
@@ -23,53 +24,104 @@ const calculateGrade = (score, total) => {
 
 export default function Dashboard() {
   const [graphData, setGraphData] = useState(null);
+  const [projectList, setProjectList] = useState([]);
+  const [selectedProject, setSelectedProject] = useState("All");
+  const { darkMode } = useTheme();
 
+  const primaryColor = localStorage.getItem('primaryColor') || (darkMode ? "#90caf9" : "#1976d2");
+
+  // Fetch project list
   useEffect(() => {
-    axios.get(`${API_BASE_URL}/graph/graph-data`, {
-      params: {
-        projectName: 'All'
-      },
-      withCredentials: true
-    })
-      .then(response => {
-        setGraphData(response.data);
+    axios.get(`${API_BASE_URL}/projects`, { withCredentials: true })
+      .then((res) => {
+        const projects = res.data;
+        setProjectList(projects);
+        projects.forEach((project) => {
+          const projectId = project._id;
+          axios.post(`${API_BASE_URL}/projects/sync-stats/${projectId}`, null, {
+            withCredentials: true
+          })
+            .then(syncRes => {
+              console.log(`Synced stats for project ${project.name}`);
+            })
+            .catch(syncErr => {
+              console.error(`Failed to sync stats for project ${project.name}:`, syncErr);
+            });
+        });
+        // Initialize selected project from localStorage or default to first one
+        const storedProject = localStorage.getItem("selectedProject");
+        if (storedProject) {
+          setSelectedProject(storedProject);
+        } else if (projects.length > 0) {
+          setSelectedProject(projects[0].name);
+          localStorage.setItem("selectedProject", projects[0].name);
+        }
       })
-      .catch(error => {
-        console.error('API Error:', error);
+      .catch((err) => {
+        console.error("Error fetching project list:", err);
       });
   }, []);
 
-  // Log updated graphData after it's been set
+  // Fetch graph data when project changes
   useEffect(() => {
-    if (graphData !== null) {
-      console.log('Updated graphData:', graphData);
-    }
-  }, [graphData]);
+    if (!selectedProject) return;
 
-  const { darkMode } = useTheme();
-  const primaryColor = localStorage.getItem('primaryColor') || (darkMode ? "#90caf9" : "#1976d2");
+    localStorage.setItem("selectedProject", selectedProject);
+
+    axios.get(`${API_BASE_URL}/graph/graph-data`, {
+      params: { projectName: selectedProject },
+      withCredentials: true
+    })
+      .then((response) => {
+        console.log(localStorage.getItem("selectedProject"))
+        setGraphData(response.data);
+      })
+      .catch((error) => {
+        console.error('API Error:', error);
+      });
+  }, [selectedProject]);
 
   const statsData = [
-    { id: 1, value: graphData ? graphData.emailOpened : "Loading...", description: 'Users Clicked on Phishing Email',  icon: '📊'  },
+    { id: 1, value: graphData ? graphData.emailOpened : "Loading...", description: 'Users Clicked on Phishing Email', icon: '📊' },
     { id: 2, value: graphData ? graphData.submitted_data : "Loading...", description: 'Submitted Data on Phishing Page', icon: '📈' },
     { id: 3, value: graphData ? graphData.emailSent : "Loading...", description: 'Total Phishing email Sent', icon: '📉' },
-    { id: 4, value: graphData ? graphData.trainingCompleted : "Loading...", description: 'Completed all Trainings', icon: '🥧'  }
-    // { id: 1, value: 1, description: 'Users Clicked on Phishing Email', icon: '' },
-    // { id: 2, value: 1, description: 'Submitted Data on Phishing Page', icon: '' },
-    // { id: 3, value: 1, description: 'Total Phishing email Sent', icon: '' },
-    // { id: 4, value: 1, description: 'Completed all Trainings', icon: '不' }
+    { id: 4, value: graphData ? graphData.trainingCompleted : "Loading...", description: 'Completed all Trainings', icon: '🥧' }
   ];
 
   return (
     <div className={`dashboard ${darkMode ? "dashboard--dark" : "dashboard--light"}`}>
-      {/* Row 1: Stats */}
+
+      {/* Project Selector - Top Right */}
+      <div style={{ display: "flex", justifyContent: "flex-end", padding: "1rem" }}>
+        <select
+          value={selectedProject}
+          onChange={(e) => {
+            setSelectedProject(e.target.value);
+            localStorage.setItem("selectedProject", e.target.value);
+          }}
+          style={{
+            padding: "0.5rem 1rem",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+            background: darkMode ? "#333" : "#fff",
+            color: darkMode ? "#fff" : "#000"
+          }}
+        >
+          <option value="All">All</option>
+          {projectList.map((project) => (
+            <option key={project._id} value={project.name}>{project.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Stats */}
       <div className="dashboard__row">
         <div className="dashboard__col--quarter">
           <StatsRow stats={statsData} darkMode={darkMode} />
         </div>
       </div>
 
-      {/* Row 2: Charts */}
+      {/* Charts */}
       <div className="dashboard__row">
         <div className="dashboard__col--half">
           <AnalyticsWebsiteVisits
@@ -90,7 +142,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Row 3: Score Cards */}
+      {/* Score Cards */}
       <div className="dashboard__row">
         <div className="dashboard__col--half">
           {graphData ? (
@@ -102,13 +154,7 @@ export default function Dashboard() {
               darkMode={darkMode}
             />
           ) : (
-            <ScoreCard
-              title="Risky user"
-              score="Loading..."
-              grade="Loading..."
-              final="Loading..."
-              darkMode={darkMode}
-            />
+            <ScoreCard title="Risky user" score="Loading..." grade="Loading..." final="Loading..." darkMode={darkMode} />
           )}
         </div>
         <div className="dashboard__col--half">
@@ -116,54 +162,32 @@ export default function Dashboard() {
             <ScoreCard
               title="Compromised user"
               score={graphData.submitted_data}
-              grade={calculateGrade(graphData.submitted_data,graphData.emailSent)}
+              grade={calculateGrade(graphData.submitted_data, graphData.emailSent)}
               final={graphData.submitted_data}
               darkMode={darkMode}
             />
           ) : (
-            <ScoreCard
-              title="Compromised user"
-              score="Loading..."
-              grade="Loading..."
-              final="Loading..."
-              darkMode={darkMode}
-            />
+            <ScoreCard title="Compromised user" score="Loading..." grade="Loading..." final="Loading..." darkMode={darkMode} />
           )}
         </div>
       </div>
 
-      {/* Row 4: Organization Score */}
+      {/* Organization Score */}
       <div className="dashboard__row">
         <div className="dashboard__col--half">
           {graphData ? (
             <ScoreCard
               title="Organization Score"
               score={graphData.ogScore}
-              grade={calculateGrade(graphData.ogScore,graphData.emailSent)}
+              grade={calculateGrade(graphData.ogScore, graphData.emailSent)}
               final={graphData.ogScore}
               darkMode={darkMode}
             />
           ) : (
-            <ScoreCard
-              title="Organization Score"
-              score="Loading..."
-              grade="Loading..."
-              final="Loading..."
-              darkMode={darkMode}
-            />
+            <ScoreCard title="Organization Score" score="Loading..." grade="Loading..." final="Loading..." darkMode={darkMode} />
           )}
         </div>
       </div>
-
-      {/* Optional: Shield Blocks */}
-      {/* <div className="dashboard__row">
-        <div className="dashboard__col--third">
-          <ShieldBlock title="Web Findings" critical={4} high={9} medium={13} low={23} darkMode={darkMode} />
-        </div>
-        <div className="dashboard__col--third">
-          <ShieldBlock title="Mobile Security" critical={3} high={6} medium={7} low={15} darkMode={darkMode} />
-        </div>
-      </div> */}
     </div>
   );
 }
