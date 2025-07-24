@@ -159,9 +159,9 @@ const Projects = () => {
             {projects.map((project, idx) => (
               <tr key={idx}>
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>
-                  <Link to={`/projects/${project._id}`} style={{ color: localStorage.getItem('primaryColor'), fontWeight: "bold", textDecoration: "none" }}>
+                  {/* <Link to={`/projects/${project._id}`} style={{ color: localStorage.getItem('primaryColor'), fontWeight: "bold", textDecoration: "none" }}> */}
                     {project.name}
-                  </Link>
+                  {/* </Link> */}
                 </td>
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{Array.isArray(project.campaigns) ? project.campaigns.join(", ") : "—"}</td>
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.emailSent ?? 0}</td>
