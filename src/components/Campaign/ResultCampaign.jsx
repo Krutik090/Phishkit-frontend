@@ -60,13 +60,13 @@ const CustomCircularProgress = ({ value, total, color, label }) => {
             flexDirection: 'column'
           }}
         >
-          <Typography variant="h4" sx={{ fontWeight: 'bold', color }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold'}}>
             {value}
           </Typography>
         </Box>
       </Box>
       <Box sx={{ mt: 2, textAlign: 'center' }}>
-        <Typography variant="body2" sx={{ fontWeight: 500, color: '#374151' }}>
+        <Typography variant="body2" sx={{ fontWeight: 500}}>
           {label}
         </Typography>
       </Box>
@@ -230,18 +230,19 @@ const CampaignTimelineGraph = ({ timeline }) => {
     return ((timeAsDate - graphStartTime) / totalGraphDuration) * 100;
   };
 
-  const handleMouseEnter = (event) => {
-    setHoveredEvent(event);
-    // Calculate tooltip position relative to the graph container
+  // Corrected handleMouseEnter to accept both event data and mouse event
+  const handleMouseEnter = (timelineEvent) => { // Removed mouseEvent as it's not directly used for positioning anymore
+    setHoveredEvent(timelineEvent);
     if (graphRef.current) {
-      const graphRect = graphRef.current.getBoundingClientRect();
-      const dotPositionX = graphRect.left + (getPositionPercentage(event.time) / 100) * graphRect.width;
-      // Tooltip should appear above the timeline line (which is at '30px' now)
-      // We want it to be above the dot, let's say 20px above the dot's center
-      const dotCenterY = graphRect.top + 30; // 30px is the vertical center of the main line
+      // Calculate dotPositionX as a percentage, which is directly used for 'left'
+      const dotPositionX = getPositionPercentage(timelineEvent.time);
+      // The dots are positioned at 'top: 30px' relative to graphRef.
+      // So, the vertical center of the dots within graphRef is 30px.
+      const dotCenterY = 30;
+
       setHoverPosition({
-        x: dotPositionX,
-        y: dotCenterY,
+        x: dotPositionX, // This is a percentage
+        y: dotCenterY,   // This is a pixel value relative to graphRef
       });
     }
   };
@@ -265,16 +266,16 @@ const CampaignTimelineGraph = ({ timeline }) => {
             position: 'absolute',
             left: `${position}%`,
             transform: 'translateX(-50%)', // Center the marker over its position
-            // Top position relative to its parent container (which is positioned at the bottom of graph)
-            top: '10px', // Pushes markers 10px below the dashed line
+            // top is relative to its parent container (time-markers-container)
+            top: '0px', // Place the tick at the very top of its container
             zIndex: 2,
           }}
         >
           <Box
             sx={{
               width: '1px',
-              height: '8px', // Keep the tick mark height
-              backgroundColor: '#d1d5db',
+              height: '8px', // Tick mark height
+              backgroundColor: '#d1d5db', // Light gray for tick mark
               mx: 'auto',
               mb: 0.5, // Margin-bottom to separate tick from text
             }}
@@ -309,14 +310,13 @@ const CampaignTimelineGraph = ({ timeline }) => {
           position: 'relative',
           height: '100px', // Adjusted height to accommodate markers below
           mb: 2,
-          // Removed padding so dashed line and markers can extend to edge
         }}
       >
         {/* Main Timeline Line (Dashed) */}
         <Box
           sx={{
             position: 'absolute',
-            top: '30px', // Main line position (changed from 60px)
+            top: '30px', // Main line position
             left: 0,
             right: 0,
             height: '1px',
@@ -337,7 +337,7 @@ const CampaignTimelineGraph = ({ timeline }) => {
               sx={{
                 position: 'absolute',
                 left: `${leftPosition}%`,
-                top: '30px', // Event dots remain on the main timeline line (changed from 60px)
+                top: '30px', // Event dots remain on the main timeline line
                 transform: 'translate(-50%, -50%)',
                 width: 8,
                 height: 8,
@@ -353,7 +353,7 @@ const CampaignTimelineGraph = ({ timeline }) => {
                   boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
                 }
               }}
-              onMouseEnter={handleMouseEnter} // Pass event directly, not mouseEvent
+              onMouseEnter={() => handleMouseEnter(event)}
               onMouseLeave={handleMouseLeave}
             />
           );
@@ -362,7 +362,7 @@ const CampaignTimelineGraph = ({ timeline }) => {
         {/* Time Markers container - placed below the main line */}
         <Box sx={{
           position: 'absolute',
-          top: '50px', // Start this container below the main line (30px + some gap)
+          top: '50px', // Start this container below the main line (30px line + 20px gap)
           left: 0,
           right: 0,
           height: '50px', // Give it enough height for markers
@@ -375,9 +375,9 @@ const CampaignTimelineGraph = ({ timeline }) => {
       {hoveredEvent && hoverPosition && (
         <Box
           sx={{
-            position: 'absolute', // Position relative to nearest positioned ancestor (the outer Box of ResultCampaign)
-            left: hoverPosition.x,
-            top: hoverPosition.y,
+            position: 'absolute', // Position relative to graphRef
+            left: `${hoverPosition.x}%`, // Use percentage for left
+            top: hoverPosition.y, // Use pixel value for top
             transform: 'translate(-50%, -100%) translateY(-15px)', // Adjust transform to lift it above the dot
             backgroundColor: '#fff',
             color: '#333',
@@ -627,7 +627,7 @@ const ResultCampaign = () => {
 
       {/* Campaign Timeline */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h5" sx={{ fontWeight: "bold", mb: 3 , textAlign: "center" }}>
+        <Typography variant="h5" sx={{ fontWeight: "bold", mb: 3, textAlign: "center" }}>
           Campaign Timeline {/* This heading is outside the graph component */}
         </Typography>
 
