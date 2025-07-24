@@ -176,7 +176,7 @@ const Campaigns = () => {
         >
           <thead>
             <tr>
-              {["Campaign Name", "Client", "Status", "Launch Date", "Sent", "Actions"].map((h, i) => (
+              {["Campaign Name", "Launch Date", "Actions"].map((h, i) => (
                 <th key={i} style={{ border: "1px solid #ccc", padding: 10 }}>
                   {h}
                 </th>
@@ -191,14 +191,14 @@ const Campaigns = () => {
                     {row.name}
                   </Link>
                 </td>
-                <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.client || "—"}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.status || "—"}</td>
+                {/* <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.client || "—"}</td> */}
+                {/* <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.status || "—"}</td> */}
                 <td style={{ border: "1px solid #ddd", padding: 8 }}>
                   {row.launchDate ? new Date(row.launchDate).toLocaleString() : "—"}
                 </td>
-                <td style={{ border: "1px solid #ddd", padding: 8 }}>
+                {/* <td style={{ border: "1px solid #ddd", padding: 8 }}>
                   {Array.isArray(row.results) ? row.results.length : 0}
-                </td>
+                </td> */}
                 <td style={{ border: "1px solid #ddd", padding: 8 }}>
                   <Tooltip title="View">
                     <IconButton size="small" color="primary" component={Link} to={`/campaign-results/${row._id}`}>

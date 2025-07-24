@@ -231,7 +231,7 @@ const handleDeleteGroup = async () => {
         >
           <thead>
             <tr>
-              {["Name", "# of Members", "Modified Date", "Actions"].map((h, i) => (
+              {["Name", "# of Members", "Actions"].map((h, i) => (
                 <th key={i} style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>
                   {h}
                 </th>
@@ -245,9 +245,9 @@ const handleDeleteGroup = async () => {
                 <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
                   {group.targets?.length || 0}
                 </td>
-                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
+                {/* <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
                   {new Date(group.modified_date).toLocaleString()}
-                </td>
+                </td> */}
                 <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
                   <Tooltip title="Edit">
                     <IconButton color="secondary" size="small" onClick={() => handleEditGroup(group)}>

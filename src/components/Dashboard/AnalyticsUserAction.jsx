@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { LineChart } from '@mui/x-charts/LineChart';
 import axios from 'axios';
-
+import React from 'react';
 const margin = { right: 24 };
 const uData = [0, 1, 2, 3, 4, 5, 6];
 const pData = [0, 3, 1, 2, 4, 5, 2];
@@ -9,7 +9,6 @@ const xLabels = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL'];
 
 export default function AnalyticsUserAction({ darkMode = false }) {
   const [qData, setQData] = useState([0, 200, 400, 600, 898, 1800, 2500]);
-  const clientId = '685d3dc25385364ddde63c34';
   let ymin = 0, ymax = 6;
 
   const chartTheme = {

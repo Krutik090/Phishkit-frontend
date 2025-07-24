@@ -246,7 +246,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
               {renderMenuItem({ label: "Projects", icon: <FaUsers />, path: "/projects" })}
               {renderMenuItem({ label: "User Management", icon: <FaUsers />, path: "/user-management" })}
               {renderMenuItem({ label: "Database", icon: <FaDatabase />, path: "/database" })}
-              {renderMenuItem({ label: "Audit Logs", icon: <FaKey />, path: "/audit-logs" })}
+              {/* {renderMenuItem({ label: "Audit Logs", icon: <FaKey />, path: "/audit-logs" })} */}
               {isSuperAdmin && renderMenuItem({ label: "Super Admin", icon: <FaUsers />, path: "/super-admin" })}
             </>
           )}

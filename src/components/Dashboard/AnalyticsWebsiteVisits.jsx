@@ -1,5 +1,5 @@
 import Chart from 'react-apexcharts';
-
+import React from 'react';
 const AnalyticsWebsiteVisits = ({ title, subheader, chart, darkMode = false }) => {
   const chartOptions = {
     chart: {
