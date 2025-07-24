@@ -74,28 +74,6 @@ const CustomCircularProgress = ({ value, total, color, label }) => {
   );
 };
 
-const TimelineStep = ({ time, isActive, isCompleted }) => {
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <Typography variant="caption" sx={{ color: '#6b7280', mb: 1 }}>
-        {time}
-      </Typography>
-      <Box
-        sx={{
-          width: 12,
-          height: 12,
-          borderRadius: '50%',
-          backgroundColor: isCompleted
-            ? '#10b981'
-            : isActive
-            ? '#f59e0b'
-            : '#d1d5db'
-        }}
-      />
-    </Box>
-  );
-};
-
 const ResultCampaign = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -158,14 +136,13 @@ const ResultCampaign = () => {
       return;
     }
 
-    const headers = ["First Name", "Last Name", "Email", "Position", "Status", "Reported"];
+    const headers = ["First Name", "Last Name", "Email", "Position", "Status"];
     const rows = campaign.results.map((r) => [
       r.first_name,
       r.last_name,
       r.email,
       r.position || "",
       r.status,
-      r.reported ? "Yes" : "No",
     ]);
 
     const csvContent = [headers, ...rows]
@@ -208,50 +185,16 @@ const ResultCampaign = () => {
     if (!campaign?.results) return 0;
     return campaign.results.filter((r) => {
       switch (milestone) {
-        case "Email Opened":
-          return ["Email Opened", "Clicked Link", "Submitted Data"].includes(r.status);
+        case "Scheduled":
+          return ["Scheduled", "Email Sent", "Clicked Link", "Submitted Data"].includes(r.status);
         case "Clicked Link":
           return ["Clicked Link", "Submitted Data"].includes(r.status);
         case "Submitted Data":
           return r.status === "Submitted Data";
-        case "Email Reported":
-          return r.status === "Email Reported";
         default:
           return false;
       }
     }).length;
-  };
-
-  // Generate timeline based on campaign data
-  const generateTimeline = () => {
-    if (!campaign?.results) return [];
-    
-    const now = new Date();
-    const baseTime = new Date(now.getTime() - (15 * 60 * 1000)); // 15 minutes ago
-    
-    const timeline = [];
-    for (let i = 0; i <= 14; i++) {
-      const time = new Date(baseTime.getTime() + (i * 60 * 1000));
-      const timeStr = time.toLocaleTimeString('en-US', { 
-        hour12: false, 
-        hour: '2-digit', 
-        minute: '2-digit',
-        second: '2-digit'
-      });
-      
-      let isCompleted = false;
-      let isActive = false;
-      
-      if (i <= 1) isCompleted = true; // Email sent
-      else if (i <= 3 && countByMilestone("Email Opened") > 0) isCompleted = true;
-      else if (i <= 5 && countByMilestone("Clicked Link") > 0) isCompleted = true;
-      else if (i <= 7 && countByMilestone("Submitted Data") > 0) isCompleted = true;
-      else if (i === 8 && countByMilestone("Submitted Data") > 0) isActive = true;
-      
-      timeline.push({ time: timeStr, isCompleted, isActive });
-    }
-    
-    return timeline;
   };
 
   if (loading) {
@@ -271,7 +214,6 @@ const ResultCampaign = () => {
   }
 
   const totalSent = campaign.results?.length || 1;
-  const timeline = generateTimeline();
 
   return (
     <Box sx={{ px: 4, py: 3, minHeight: '100vh' }}>
@@ -298,13 +240,6 @@ const ResultCampaign = () => {
           >
             📊 Export CSV
           </Button>
-          {/* <Button 
-            variant="contained" 
-            color="info"
-            sx={{ textTransform: 'none' }}
-          >
-            ✓ Mark Complete
-          </Button> */}
           <Button 
             variant="contained" 
             color="error" 
@@ -324,50 +259,19 @@ const ResultCampaign = () => {
         </Box>
       </Box>
 
-      {/* Campaign Timeline */}
-      {/* <Box sx={{ mb: 6 }}>
-        <Typography variant="h5" sx={{ fontWeight: "600", color: '#374151', mb: 3, textAlign: 'center' }}>
-          Campaign Timeline
-        </Typography>
-        
-        <Box sx={{ position: 'relative', mb: 6 }}>
-          <Box 
-            sx={{ 
-              position: 'absolute', 
-              top: '32px', 
-              left: 0, 
-              right: 0, 
-              height: '2px', 
-              backgroundColor: '#d1d5db' 
-            }} 
-          />
-          
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
-            {timeline.map((step, index) => (
-              <TimelineStep
-                key={index}
-                time={step.time}
-                isActive={step.isActive}
-                isCompleted={step.isCompleted}
-              />
-            ))}
-          </Box>
-        </Box>
-      </Box> */}
-
-      {/* Progress Circles */}
+      {/* Progress Circles - Removed Email Reported */}
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 6, mb: 4, flexWrap: 'wrap' }}>
+        <CustomCircularProgress
+          value={countByMilestone("Scheduled")}
+          total={totalSent}
+          color="#6366f1"
+          label="Scheduled"
+        />
         <CustomCircularProgress
           value={totalSent}
           total={totalSent}
           color="#10b981"
           label="Email Sent"
-        />
-        <CustomCircularProgress
-          value={countByMilestone("Email Opened")}
-          total={totalSent}
-          color="#f59e0b"
-          label="Email Opened"
         />
         <CustomCircularProgress
           value={countByMilestone("Clicked Link")}
@@ -381,12 +285,6 @@ const ResultCampaign = () => {
           color="#ef4444"
           label="Submitted Data"
         />
-        {/* <CustomCircularProgress
-          value={countByMilestone("Email Reported")}
-          total={totalSent}
-          color="#6b7280"
-          label="Email Reported"
-        /> */}
       </Box>
 
       {/* Results Table */}
@@ -412,7 +310,6 @@ const ResultCampaign = () => {
               <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Email</th>
               <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Position</th>
               <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Status</th>
-              {/* <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Reported</th> */}
             </tr>
           </thead>
           <tbody>
@@ -431,8 +328,8 @@ const ResultCampaign = () => {
                             ? "#dc3545"
                             : r.status === "Clicked Link"
                               ? "#fd7e14"
-                              : r.status === "Email Opened"
-                                ? "#ffc107"
+                              : r.status === "Scheduled"
+                                ? "#6366f1"
                                 : "#6c757d",
                         color: "#fff",
                         fontWeight: "bold",
@@ -447,12 +344,11 @@ const ResultCampaign = () => {
                       {r.status}
                     </span>
                   </td>
-                  {/* <td style={{ padding: 10, border: "1px solid #ddd" }}>{r.reported ? "✅" : "❌"}</td> */}
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={6} style={{ padding: 20, border: "1px solid #ddd", textAlign: 'center', color: '#666' }}>
+                <td colSpan={5} style={{ padding: 20, border: "1px solid #ddd", textAlign: 'center', color: '#666' }}>
                   No results yet.
                 </td>
               </tr>
