@@ -165,7 +165,7 @@ export default function Dashboard() {
               title="Risky user"
               score={graphData.emailOpened}
               grade={calculateGrade(graphData.emailOpened, graphData.emailSent)}
-              final={graphData.emailOpened}
+              final={graphData.emailSent}
               darkMode={darkMode}
             />
           ) : (
@@ -178,7 +178,7 @@ export default function Dashboard() {
               title="Compromised user"
               score={graphData.submitted_data}
               grade={calculateGrade(graphData.submitted_data, graphData.emailSent)}
-              final={graphData.submitted_data}
+              final={graphData.emailSent}
               darkMode={darkMode}
             />
           ) : (
@@ -195,7 +195,7 @@ export default function Dashboard() {
               title="Organization Score"
               score={graphData.ogScore}
               grade={calculateGrade(graphData.ogScore, graphData.emailSent)}
-              final={graphData.ogScore}
+              final={100}
               darkMode={darkMode}
             />
           ) : (
