@@ -11,7 +11,7 @@ import { useTheme } from "./context/ThemeContext";
 import { useAuth } from "./context/AuthContext";
 import QuizTemplate from "./components/Quiz_Template/QuizTemplate";
 import Campaigns from "./components/Campaign/Campaigns";
-import ResultCampaign from "./components/Campaign/ResultCampaign";
+import ResultCampaign from "./components/Result_Camapaigns/ResultCampaign";
 import Templates from "./components/Template/Templates";
 import LandingPages from "./components/Landing_page/LandingPages";
 import FullScreenEditor from "./components/Landing_page/FullScreenEditor";
@@ -40,26 +40,29 @@ import SuperAdminRoutes from "./Super_Admin/SuperAdminRoutes";
 import Database_Collection from "./components/Database/Database";
 import AdminRoute from "./components/RoleProtectedRoute";
 import Database_Docs from "./components/Database/Database_Docs";
-import Logs from "./components/Audit_Logs/Logs";
+import Logs from "./components/Audit_Logs/Logs"
 
 function AppContent() {
   const location = useLocation();
   const { darkMode } = useTheme();
-  const { loading } = useAuth(); // Add loading from auth context
+  const { loading } = useAuth();
+
   const isLoginPage = location.pathname === "/login";
   const isTraining = location.pathname === "/training";
   const isQuiz = location.pathname.startsWith("/quiz/");
-  const isDark = isLoginPage || isTraining || isQuiz ? false : darkMode;
+  const isPublic = isLoginPage || isTraining || isQuiz;
 
-  // Show loading spinner while checking authentication
-  if (loading) {
+  const isDark = isPublic ? false : darkMode;
+
+  // Only block loading on protected routes
+  if (loading && !isPublic) {
     return (
       <Box
         sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
           backgroundColor: isDark ? "#1e1e2f" : "#ffffff",
         }}
       >
@@ -85,7 +88,7 @@ function AppContent() {
 
           {/* Protected Standalone Routes */}
           <Route path="/fullscreen-editor" element={<ProtectedRoute><FullScreenEditor /></ProtectedRoute>} />
-          <Route path="/client/:clientId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
+          <Route path="/projects/:projectId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
           <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
 
           {/* Authenticated Layout Routes */}
@@ -139,8 +142,9 @@ function AppContent() {
                 </RoleProtectedRoute>
               }
             />
+
             <Route
-              path="audit-logs"
+              path="/audit-logs"
               element={
                 <RoleProtectedRoute allowRoles={["admin", "superadmin"]} fallbackPath="/dashboard">
                   <Logs />
@@ -180,3 +184,4 @@ export default function App() {
     </BrowserRouter>
   );
 }
+ 
