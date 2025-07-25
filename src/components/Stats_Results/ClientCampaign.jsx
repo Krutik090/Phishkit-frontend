@@ -10,12 +10,12 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import $ from "jquery";
 import "datatables.net";
 import "datatables.net-dt/css/dataTables.dataTables.min.css";
+import "./ClientCampaign.css"; // ✅ Custom CSS import
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const ClientCampaign = () => {
-const { id: projectId } = useParams(); 
-
+  const { id: projectId } = useParams();
   const navigate = useNavigate();
   const tableRef = useRef(null);
 
@@ -42,40 +42,41 @@ const { id: projectId } = useParams();
   const fetchClientAndCampaigns = async () => {
     try {
       setLoading(true);
-      console.log(projectId);
+
       const clientRes = await fetch(`${API_BASE_URL}/projects/${projectId}`, { credentials: "include" });
-      const text = await clientRes.text();
+      const rawText = await clientRes.text();
 
       let clientData;
       try {
-        clientData = JSON.parse(text);
+        clientData = JSON.parse(rawText);
       } catch (jsonErr) {
-        console.error("❌ Failed to parse client JSON. Raw response:", text);
-        throw new Error("Invalid client JSON format.");
+        console.error("❌ Failed to parse client JSON:", rawText);
+        throw new Error("Invalid client JSON format");
       }
 
       setClient(clientData);
 
-      if (!Array.isArray(clientData.campaigns) || clientData.campaigns.length === 0) {
+      const campaignIds = Array.isArray(clientData.campaigns) ? clientData.campaigns : [];
+      if (campaignIds.length === 0) {
         setCampaigns([]);
         return;
       }
 
-      const campaignPromises = clientData.campaigns.map((id) =>
-        fetch(`${API_BASE_URL}/campaigns/gophish/${id}`, {credentials : "include"})
-          .then((res) => {
-            if (!res.ok) throw new Error(`❌ Fetch failed for campaign ID: ${id}`);
-            return res.json();
-          })
-          .catch((err) => {
+      const campaignDetails = await Promise.all(
+        campaignIds.map(async (id) => {
+          try {
+            const res = await fetch(`${API_BASE_URL}/campaigns/gophish/${id}`, { credentials: "include" });
+            if (!res.ok) throw new Error(`Fetch failed for campaign ID: ${id}`);
+            return await res.json();
+          } catch (err) {
             console.error("Campaign fetch error:", err.message);
             return null;
-          })
+          }
+        })
       );
 
-      const campaignDetails = await Promise.all(campaignPromises);
-      const filtered = campaignDetails.filter(Boolean);
-      setCampaigns(filtered);
+      const validCampaigns = campaignDetails.filter(Boolean);
+      setCampaigns(validCampaigns);
     } catch (err) {
       console.error("❌ Failed to load client or campaigns:", err);
       setCampaigns([]);
@@ -85,8 +86,8 @@ const { id: projectId } = useParams();
   };
 
   const handleInsightsClick = () => {
-    const campaignIds = campaigns.map((c) => c.id || c._id).filter(Boolean);
-    const campaignNames = campaigns.map((c) => c.name || "Unnamed Campaign");
+    const campaignIds = campaigns.map(c => c.id || c._id).filter(Boolean);
+    const campaignNames = campaigns.map(c => c.name || "Unnamed Campaign");
     navigate(`/projects/${projectId}/insights`, { state: { campaignIds, campaignNames } });
   };
 
@@ -130,8 +131,7 @@ const { id: projectId } = useParams();
           variant="contained"
           onClick={handleInsightsClick}
           sx={{
-            background:
-              "linear-gradient(135deg, #fff, #fff) padding-box, linear-gradient(135deg, #6a11cb, #2575fc) border-box",
+            background: "linear-gradient(135deg, #fff, #fff) padding-box, linear-gradient(135deg, #6a11cb, #2575fc) border-box",
             color: "#6a11cb",
             border: "2px solid transparent",
             borderRadius: "8px",
@@ -141,8 +141,7 @@ const { id: projectId } = useParams();
             py: 1,
             boxShadow: "0 4px 10px rgba(106, 17, 203, 0.2)",
             "&:hover": {
-              background:
-                "linear-gradient(135deg, #fdfdfd, #fdfdfd) padding-box, linear-gradient(135deg, #5e0dcf, #1459f5) border-box",
+              background: "linear-gradient(135deg, #fdfdfd, #fdfdfd) padding-box, linear-gradient(135deg, #5e0dcf, #1459f5) border-box",
               boxShadow: "0 6px 12px rgba(106, 17, 203, 0.3)",
             },
           }}
@@ -156,40 +155,49 @@ const { id: projectId } = useParams();
         <Box display="flex" justifyContent="center" mt={8}>
           <CircularProgress color="secondary" />
         </Box>
+      ) : campaigns.length === 0 ? (
+        <Typography mt={4} align="center" color="textSecondary">
+          🚫 No campaigns found for this client.
+        </Typography>
       ) : (
-        <>
-          {campaigns.length === 0 ? (
-            <Typography mt={4} align="center" color="textSecondary">
-              🚫 No campaigns found for this client.
-            </Typography>
-          ) : (
-            <div className="table-container">
-              <table ref={tableRef} className="display stripe" style={{ width: "100%" }}>
-                <thead>
-                  <tr>
-                    <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Campaign Name</th>
-                    <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Status</th>
-                    <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>Emails Sent</th>
+        <div className="table-container">
+          <table ref={tableRef} className="display stripe" style={{ width: "100%" }}>
+            <thead>
+              <tr>
+                <th className="table-header">Campaign Name</th>
+                <th className="table-header">Status</th>
+                <th className="table-header">
+                  Emails Sent / Total
+                  <br />
+                  <small className="table-subtext">(Failed shown in red)</small>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {campaigns.map((campaign, idx) => {
+                const results = campaign.resultsSummary || {};
+                const { emailsSent = 0, totalUsers = 0, failedToSend = 0 } = results;
+
+                return (
+                  <tr key={campaign.id || campaign._id || idx}>
+                    <td
+                      className="clickable-cell"
+                      onClick={() => handleCampaignClick(campaign.id || campaign._id)}
+                    >
+                      {campaign.name || "Unnamed Campaign"}
+                    </td>
+                    <td className="table-cell">{campaign.status || "Unknown"}</td>
+                    <td className="table-cell">
+                      {emailsSent} / {totalUsers}
+                      <br />
+                      <span className="failed-count">Failed: {failedToSend}</span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {campaigns.map((campaign, idx) => (
-                    <tr key={campaign.id || campaign._id || idx}>
-                      <td
-                        style={{ border: "1px solid #ccc", padding: 10, color: "#ec008c", cursor: "pointer", fontWeight: 500, textAlign: "center", verticalAlign: "middle" }}
-                        onClick={() => handleCampaignClick(campaign.id || campaign._id)}
-                      >
-                        {campaign.name || "Unnamed Campaign"}
-                      </td>
-                      <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>{campaign.status || "Unknown"}</td>
-                      <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>{Array.isArray(campaign.results) ? campaign.results.length : 0}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </Box>
   );

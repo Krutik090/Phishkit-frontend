@@ -21,27 +21,32 @@ const API_BASE_URL = import.meta.env.VITE_API_URL;
 const ClientInsights = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); // ✅ Access route state
-  const campaignNames = location.state?.campaignNames || []; // ✅ Get campaign names
+  const location = useLocation();
+  const campaignIds = location.state?.campaignIds || [];
+  const campaignNames = location.state?.campaignNames || [];
 
   const [client, setClient] = useState(null);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadInsights();
+    fetchInsights();
   }, [projectId]);
 
-  const loadInsights = async () => {
+  const fetchInsights = async () => {
     try {
-      const clientRes = await fetch(`${API_BASE_URL}/projects/${projectId}`, {credentials: "include"});
+      const clientRes = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+        credentials: "include",
+      });
       const clientData = await clientRes.json();
       setClient(clientData);
 
       const allResults = [];
 
-      const campaignPromises = clientData.campaigns.map((id) =>
-        fetch(`${API_BASE_URL}/campaigns/gophish/${id}`,{credentials: "include"})
+      const campaignPromises = campaignIds.map((id) =>
+        fetch(`${API_BASE_URL}/campaigns/gophish/all/${id}`, {
+          credentials: "include",
+        })
           .then((res) => res.json())
           .catch((err) => {
             console.error("Failed to fetch campaign", id, err.message);
@@ -49,43 +54,16 @@ const ClientInsights = () => {
           })
       );
 
-      const allCampaigns = await Promise.all(campaignPromises);
-      const validCampaigns = allCampaigns.filter(Boolean);
+      const campaigns = await Promise.all(campaignPromises);
+      const validResults = campaigns.flat().filter(Boolean);
 
-      for (const campaign of validCampaigns) {
-        if (Array.isArray(campaign.results)) {
-          for (const result of campaign.results) {
-            const enriched = { ...result };
-
-            try {
-              const res = await fetch(`${API_BASE_URL}/users/email/${result.email}`);
-              if (res.ok) {
-                const user = await res.json();
-                enriched.quizStartTime = user.quizStartTime;
-                enriched.quizCompletionTime = user.quizCompletionTime;
-                enriched.trainingStartTime = user.trainingStartTime;
-                enriched.trainingEndTime = user.trainingEndTime;
-                enriched.score = user.score;
-              }
-            } catch (err) {
-              console.warn(`Failed to fetch user for ${result.email}:`, err.message);
-            }
-
-            allResults.push(enriched);
-          }
-        }
-      }
-
-      setResults(allResults);
-      setLoading(false);
+      setResults(validResults);
     } catch (err) {
       console.error("Failed to load insights:", err.message);
+    } finally {
       setLoading(false);
     }
   };
-
-  const formatDate = (dateStr) =>
-    dateStr ? new Date(dateStr).toLocaleString("en-IN") : "-";
 
   const csvData = results.map((r) => ({
     "First Name": r.first_name,
@@ -94,21 +72,25 @@ const ClientInsights = () => {
     Position: r.position,
     Status: r.status,
     Reported: r.reported ? "Yes" : "No",
-    "Quiz Start": formatDate(r.quizStartTime),
-    "Quiz End": formatDate(r.quizCompletionTime),
+    "Quiz Started": r.quizStart ? "true" : "false",
+    "Quiz Completed": r.quizEnd ? "true" : "false",
     Score: r.score ?? "-",
-    "Training Start": formatDate(r.trainingStartTime),
-    "Training End": formatDate(r.trainingEndTime),
+    "Training Started": r.trainingStart ? "true" : "false",
+    "Training Completed": r.trainingEnd ? "true" : "false",
+    "Training Tracker": r.trainingTracker ?? "-",
   }));
 
   return (
     <Box p={3}>
-      <Box display="flex" alignItems="center" mb={3} gap={2} justifyContent="space-between">
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center" gap={2}>
           <Button
             variant="outlined"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate(-1)}
             sx={{
-              background: "linear-gradient(135deg, #fff, #fff) padding-box, linear-gradient(135deg, #ec008c, #ff6a9f) border-box",
+              background:
+                "linear-gradient(135deg, #fff, #fff) padding-box, linear-gradient(135deg, #ec008c, #ff6a9f) border-box",
               color: "#ec008c",
               border: "2px solid transparent",
               borderRadius: "8px",
@@ -118,78 +100,48 @@ const ClientInsights = () => {
               py: 1,
               boxShadow: "0 4px 10px rgba(236, 0, 140, 0.2)",
               "&:hover": {
-                background: "linear-gradient(135deg, #fdfdfd, #fdfdfd) padding-box, linear-gradient(135deg, #d6007a, #ff478a) border-box",
+                background:
+                  "linear-gradient(135deg, #fdfdfd, #fdfdfd) padding-box, linear-gradient(135deg, #d6007a, #ff478a) border-box",
                 boxShadow: "0 6px 12px rgba(236, 0, 140, 0.3)",
               },
             }}
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate(-1)}
           >
             Back
           </Button>
           <Typography variant="h5" fontWeight="bold">
-            📈 Insights for Project : {client?.name}
+            📈 Insights for Project: {client?.name}
           </Typography>
         </Box>
 
-        <Box display="flex" gap={2}>
+        <CSVLink
+          data={csvData}
+          filename={`client-insights-${client?.name?.replace(/\s+/g, "_") || "unknown"}.csv`}
+          style={{ textDecoration: "none" }}
+        >
           <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate(`/client/${projectId}/insights/graphview`)}
+            variant="outlined"
+            startIcon={"⬇"}
             sx={{
               background:
-                "linear-gradient(135deg, #fff, #fff) padding-box, linear-gradient(135deg, #00c9ff, #92fe9d) border-box",
-              color: "#00c9ff",
+                "linear-gradient(135deg, #fff, #fff) padding-box, linear-gradient(135deg, #00b09b, #96c93d) border-box",
+              color: "#00b09b",
               border: "2px solid transparent",
               borderRadius: "8px",
               fontWeight: "bold",
               textTransform: "uppercase",
               px: 3,
               py: 1,
-              boxShadow: "0 4px 10px rgba(0, 201, 255, 0.2)",
+              boxShadow: "0 4px 10px rgba(0, 176, 155, 0.2)",
               "&:hover": {
                 background:
-                  "linear-gradient(135deg, #fdfdfd, #fdfdfd) padding-box, linear-gradient(135deg, #00a5d4, #77e879) border-box",
-                boxShadow: "0 6px 12px rgba(0, 201, 255, 0.3)",
+                  "linear-gradient(135deg, #fdfdfd, #fdfdfd) padding-box, linear-gradient(135deg, #009688, #8bc34a) border-box",
+                boxShadow: "0 6px 12px rgba(0, 176, 155, 0.3)",
               },
             }}
-
           >
-            Graph View
+            Export CSV
           </Button>
-
-          <CSVLink
-            data={csvData} filename={`client-insights-${client?.name?.replace(/\s+/g, "_") || "unknown"}.csv`}
-
-            style={{ textDecoration: "none" }}
-          >
-            <Button
-              variant="outlined"
-              startIcon={"⬇"}
-              sx={{
-                background:
-                  "linear-gradient(135deg, #fff, #fff) padding-box, linear-gradient(135deg, #00b09b, #96c93d) border-box",
-                color: "#00b09b",
-                border: "2px solid transparent",
-                borderRadius: "8px",
-                fontWeight: "bold",
-                textTransform: "uppercase",
-                px: 3,
-                py: 1,
-                boxShadow: "0 4px 10px rgba(0, 176, 155, 0.2)",
-                "&:hover": {
-                  background:
-                    "linear-gradient(135deg, #fdfdfd, #fdfdfd) padding-box, linear-gradient(135deg, #009688, #8bc34a) border-box",
-                  boxShadow: "0 6px 12px rgba(0, 176, 155, 0.3)",
-                },
-              }}
-            >
-              Export to CSV
-            </Button>
-          </CSVLink>
-
-        </Box>
+        </CSVLink>
       </Box>
 
       <Typography variant="h6" fontWeight="bold" mb={2}>
@@ -200,50 +152,62 @@ const ClientInsights = () => {
         <Table size="small">
           <TableHead sx={{ backgroundColor: "#ffe0ef" }}>
             <TableRow>
-              <TableCell sx={{ fontWeight: "bold", color: "#ec008c" }}>First Name</TableCell>
-              <TableCell sx={{ fontWeight: "bold", color: "#ec008c" }}>Last Name</TableCell>
-              <TableCell sx={{ fontWeight: "bold", color: "#ec008c" }}>Email</TableCell>
-              <TableCell sx={{ fontWeight: "bold", color: "#ec008c" }}>Position</TableCell>
-              <TableCell sx={{ fontWeight: "bold", color: "#ec008c" }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: "bold", color: "#ec008c" }}>Reported</TableCell>
-              <TableCell sx={{ fontWeight: "bold", color: "#ec008c" }}>Quiz Start</TableCell>
-              <TableCell sx={{ fontWeight: "bold", color: "#ec008c" }}>Quiz End</TableCell>
-              <TableCell sx={{ fontWeight: "bold", color: "#ec008c" }}>Score</TableCell>
-              <TableCell sx={{ fontWeight: "bold", color: "#ec008c" }}>Training Start</TableCell>
-              <TableCell sx={{ fontWeight: "bold", color: "#ec008c" }}>Training End</TableCell>
+              {[
+                "First Name",
+                "Last Name",
+                "Email",
+                "Position",
+                "Status",
+                "Reported",
+                "Quiz Started",
+                "Quiz Completed",
+                "Score",
+                "Training Started",
+                "Training Completed",
+                "Tracker",
+              ].map((header, idx) => (
+                <TableCell key={idx} sx={{ fontWeight: "bold", color: "#ec008c" }}>
+                  {header}
+                </TableCell>
+              ))}
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={11} align="center">Loading...</TableCell>
+                <TableCell colSpan={12} align="center">
+                  Loading...
+                </TableCell>
               </TableRow>
             ) : results.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} align="center">No results found.</TableCell>
+                <TableCell colSpan={12} align="center">
+                  No results found.
+                </TableCell>
               </TableRow>
             ) : (
-              results.map((row, idx) => (
-                <TableRow key={idx}>
-                  <TableCell>{row.first_name}</TableCell>
-                  <TableCell>{row.last_name}</TableCell>
-                  <TableCell>{row.email}</TableCell>
-                  <TableCell>{row.position}</TableCell>
+              results.map((r, i) => (
+                <TableRow key={i}>
+                  <TableCell>{r.first_name}</TableCell>
+                  <TableCell>{r.last_name}</TableCell>
+                  <TableCell>{r.email}</TableCell>
+                  <TableCell>{r.position}</TableCell>
                   <TableCell>
-                    <Chip label={row.status} color="primary" size="small" />
+                    <Chip label={r.status || "—"} color="primary" size="small" />
                   </TableCell>
                   <TableCell>
-                    {row.reported ? (
+                    {r.reported ? (
                       <Chip label="Yes" color="error" size="small" />
                     ) : (
                       <Chip label="No" variant="outlined" size="small" />
                     )}
                   </TableCell>
-                  <TableCell>{formatDate(row.quizStartTime)}</TableCell>
-                  <TableCell>{formatDate(row.quizCompletionTime)}</TableCell>
-                  <TableCell>{row.score ?? "-"}</TableCell>
-                  <TableCell>{formatDate(row.trainingStartTime)}</TableCell>
-                  <TableCell>{formatDate(row.trainingEndTime)}</TableCell>
+                  <TableCell>{r.quizStart ? "true" : "false"}</TableCell>
+                  <TableCell>{r.quizEnd ? "true" : "false"}</TableCell>
+                  <TableCell>{r.score ?? "-"}</TableCell>
+                  <TableCell>{r.trainingStart ? "true" : "false"}</TableCell>
+                  <TableCell>{r.trainingEnd ? "true" : "false"}</TableCell>
+                  <TableCell>{r.trainingTracker ?? "-"}</TableCell>
                 </TableRow>
               ))
             )}
