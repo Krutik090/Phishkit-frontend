@@ -105,6 +105,59 @@ const CampaignTimeline = ({
     }
   };
 
+  const getOSAndBrowser = (userAgent) => {
+    let os = "Unknown OS";
+    let browser = "Unknown Browser";
+    let osIcon = "💻"; // Default icon
+
+    // Detect OS
+    if (userAgent.includes("Windows NT 10.0")) {
+      os = "Windows 10";
+      osIcon = "🖥️";
+    } else if (userAgent.includes("Windows")) {
+      os = "Windows";
+      osIcon = "🖥️";
+    } else if (userAgent.includes("Macintosh") || userAgent.includes("Mac OS X")) {
+      os = "macOS";
+      osIcon = "🍎";
+    } else if (userAgent.includes("Android")) {
+      const androidMatch = userAgent.match(/Android ([^;]+)/);
+      os = androidMatch ? `Android ${androidMatch[1]}` : "Android";
+      osIcon = "📱";
+    } else if (userAgent.includes("iPhone") || userAgent.includes("iPad") || userAgent.includes("iPod")) {
+      const iOSMatch = userAgent.match(/OS (\d+_\d+)/);
+      os = iOSMatch ? `iOS ${iOSMatch[1].replace(/_/g, '.')}` : "iOS";
+      osIcon = "📱";
+    } else if (userAgent.includes("Linux")) {
+      os = "Linux";
+      osIcon = "🐧";
+    }
+
+    // Detect Browser
+    const chromeMatch = userAgent.match(/(Chrome|CriOS)\/([0-9.]+)/);
+    const firefoxMatch = userAgent.match(/Firefox\/([0-9.]+)/);
+    const safariMatch = userAgent.match(/Safari\/([0-9.]+)/);
+    const edgeMatch = userAgent.match(/Edge\/([0-9.]+)/);
+    const operaMatch = userAgent.match(/(Opera|OPR)\/([0-9.]+)/);
+    const ieMatch = userAgent.match(/MSIE ([0-9.]+)/) || userAgent.match(/Trident\/([0-9.]+).*rv:([0-9.]+)/);
+
+    if (chromeMatch && !userAgent.includes("Edge") && !userAgent.includes("OPR")) {
+      browser = `Chrome ${chromeMatch[2]}`;
+    } else if (firefoxMatch) {
+      browser = `Firefox ${firefoxMatch[1]}`;
+    } else if (safariMatch && !userAgent.includes("Chrome")) { // Safari check must be after Chrome, as Chrome's UA also contains Safari
+      browser = `Safari ${safariMatch[1]}`;
+    } else if (edgeMatch) {
+      browser = `Edge ${edgeMatch[1]}`;
+    } else if (operaMatch) {
+      browser = `Opera ${operaMatch[2]}`;
+    } else if (ieMatch) {
+      browser = `IE ${ieMatch[2] || ieMatch[1]}`;
+    }
+
+    return { os, browser, osIcon };
+  };
+
   return (
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, flexWrap: "wrap" }}>
@@ -144,13 +197,18 @@ const CampaignTimeline = ({
               try {
                 parsedDetails = JSON.parse(event.details);
               } catch (e) {
-                // If parsing fails, use the original details
+                parsedDetails = event.details; // If parsing fails, use the original details (might be a string)
               }
             }
 
             const eventConfig = getEventConfig(event.message);
             const detailsKey = `${email}-${eventIndex}`;
             const showDetails = detailsExpanded.has(detailsKey);
+
+            const { os, browser, osIcon } = parsedDetails && parsedDetails.browser && parsedDetails.browser["user-agent"]
+              ? getOSAndBrowser(parsedDetails.browser["user-agent"])
+              : { os: "N/A", browser: "N/A", osIcon: "💻" };
+
 
             return (
               <Box
@@ -227,39 +285,14 @@ const CampaignTimeline = ({
                       })}
                     </Typography>
 
-                    {/* Browser/OS Info */}
-                    {parsedDetails && parsedDetails.browser && (
+                    {/* Browser/OS Info for "Clicked Link" and "Submitted Data" */}
+                    {(event.message === "Clicked Link" || event.message === "Submitted Data") && parsedDetails && parsedDetails.browser && (
                       <Box sx={{ mb: 2 }}>
                         {parsedDetails.browser["user-agent"] && (
                           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                            <Box sx={{ fontSize: "16px" }}>
-                              {(() => {
-                                const ua = parsedDetails.browser["user-agent"];
-                                if (ua.includes("Windows")) return "🖥️";
-                                if (ua.includes("Mac")) return "🍎";
-                                if (ua.includes("Linux")) return "🐧";
-                                if (ua.includes("Android")) return "📱";
-                                if (ua.includes("iOS")) return "📱";
-                                return "💻";
-                              })()}
-                            </Box>
+                            <Box sx={{ fontSize: "16px" }}>{osIcon}</Box>
                             <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.8rem" }}>
-                              {(() => {
-                                const ua = parsedDetails.browser["user-agent"];
-                                let os = "";
-                                if (ua.includes("Windows NT 10.0")) os = "Windows 10";
-                                else if (ua.includes("Windows")) os = "Windows";
-                                else if (ua.includes("Mac")) os = "macOS";
-                                else if (ua.includes("X11; Linux x86_64")) os = "Linux x86_64";
-                                else if (ua.includes("Linux")) os = "Linux";
-                                else if (ua.includes("Android")) {
-                                  const androidMatch = ua.match(/Android ([^;]+)/);
-                                  os = androidMatch ? `Android ${androidMatch[1]}` : "Android";
-                                }
-                                else if (ua.includes("iOS")) os = "iOS";
-                                else os = "Unknown OS";
-                                return os;
-                              })()}
+                              {os}
                             </Typography>
                           </Box>
                         )}
@@ -267,22 +300,7 @@ const CampaignTimeline = ({
                           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                             <Box sx={{ fontSize: "16px" }}>🌐</Box>
                             <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.8rem" }}>
-                              {(() => {
-                                const ua = parsedDetails.browser["user-agent"];
-                                let browser = "";
-                                const chromeMatch = ua.match(/Chrome\/([^\s]+)/);
-                                const firefoxMatch = ua.match(/Firefox\/([^\s]+)/);
-                                const safariMatch = ua.match(/Safari\/([^\s]+)/);
-                                const edgeMatch = ua.match(/Edge\/([^\s]+)/);
-
-                                if (chromeMatch && !ua.includes("Edge")) browser = `Chrome ${chromeMatch[1]}`;
-                                else if (firefoxMatch) browser = `Firefox ${firefoxMatch[1]}`;
-                                else if (safariMatch && !ua.includes("Chrome")) browser = `Safari ${safariMatch[1]}`;
-                                else if (edgeMatch) browser = `Edge ${edgeMatch[1]}`;
-                                else browser = "Unknown Browser";
-
-                                return browser;
-                              })()}
+                              {browser}
                             </Typography>
                           </Box>
                         )}
@@ -356,7 +374,7 @@ const CampaignTimeline = ({
                             </Box>
                             {parsedDetails && parsedDetails.payload && (
                               Object.entries(parsedDetails.payload)
-                              .filter(([key]) => key !== "rid") 
+                              .filter(([key]) => key !== "rid")
                               .map(([key, value], idx) => (
                                 <Box
                                   key={idx}
