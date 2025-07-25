@@ -26,7 +26,7 @@ import axios from "axios";
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const { darkMode, setDarkMode } = useTheme();
-  const { user } = useAuth(); // Use AuthContext instead of separate API call
+  const { user, logout } = useAuth(); // Added logout from useAuth
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -57,7 +57,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     localStorage.setItem('adminOpen', JSON.stringify(adminOpen));
   }, [adminOpen]);
 
-  // Get user role from AuthContext
+  // Get user permissions
+  const isReadOnly = user?.isReadOnly === true;
   const isAdmin = user?.role === "admin" || user?.role === "superadmin";
   const isSuperAdmin = user?.role === "superadmin";
 
@@ -67,28 +68,28 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   const activeBg = darkMode ? primaryColor : primaryColor + "33";
   const activeText = darkMode ? "#ffffff" : primaryColor;
 
+  useEffect(() => {
+    const fetchThemeColors = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/auth/theme-color`, {
+          withCredentials: true,
+        });
+        const { primaryColor, secondaryColor } = response.data;
+
+        if (primaryColor) localStorage.setItem("primaryColor", primaryColor);
+        if (secondaryColor) localStorage.setItem("secondaryColor", secondaryColor);
+      } catch (error) {
+        console.error("Error fetching theme colors:", error);
+      }
+    };
+
+    fetchThemeColors();
+  }, []);
+
   const renderMenuItem = (item) => {
     const isActive = item.exact === false
       ? location.pathname.startsWith(item.path)
       : location.pathname === item.path;
-
-    useEffect(() => {
-      const fetchThemeColors = async () => {
-        try {
-          const response = await axios.get(`${import.meta.env.VITE_API_URL}/auth/theme-color`, {
-            withCredentials: true,
-          });
-          const { primaryColor, secondaryColor } = response.data;
-
-          if (primaryColor) localStorage.setItem("primaryColor", primaryColor);
-          if (secondaryColor) localStorage.setItem("secondaryColor", secondaryColor);
-        } catch (error) {
-          console.error("Error fetching theme colors:", error);
-        }
-      };
-
-      fetchThemeColors();
-    }, []);
 
     return (
       <Tooltip title={collapsed ? item.label : ""} placement="right" arrow key={item.label}>
@@ -234,48 +235,61 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
           msOverflowStyle: 'none', // IE and Edge
         }}
       >
+        {/* Always show Dashboard */}
         {renderMenuItem({ label: "Dashboard", icon: <FaTachometerAlt />, path: "/dashboard", exact: false })}
 
-        {(isAdmin || isSuperAdmin) &&
-          renderDropdown(
-            "Admin",
-            <FaUsers />,
-            adminOpen,
-            setAdminOpen,
-            <>
-              {renderMenuItem({ label: "Projects", icon: <FaUsers />, path: "/projects" })}
-              {renderMenuItem({ label: "User Management", icon: <FaUsers />, path: "/user-management" })}
-              {renderMenuItem({ label: "Database", icon: <FaDatabase />, path: "/database" })}
-              {renderMenuItem({ label: "Audit Logs", icon: <FaKey />, path: "/audit-logs" })}
-              {isSuperAdmin && renderMenuItem({ label: "Super Admin", icon: <FaUsers />, path: "/super-admin" })}
-            </>
-          )}
+        {/* Show Campaigns for read-only users */}
+        {isReadOnly && renderMenuItem({ label: "Campaigns", icon: <FaTable />, path: "/campaigns" })}
 
-        {renderDropdown(
-          "General",
-          <FaCog />,
-          generalOpen,
-          setGeneralOpen,
+        {/* Show full menu only if user is NOT read-only */}
+        {!isReadOnly && (
           <>
-            {renderMenuItem({ label: "Campaigns", icon: <FaTable />, path: "/campaigns" })}
-            {renderMenuItem({ label: "Templates", icon: <FaFileAlt />, path: "/templates" })}
-            {renderMenuItem({ label: "Landing Pages", icon: <FaGlobe />, path: "/landing-pages" })}
-            {renderMenuItem({ label: "Sending Profiles", icon: <FaEnvelope />, path: "/sending-profiles" })}
-            {renderMenuItem({ label: "Users & Groups", icon: <FaUsers />, path: "/users-groups" })}
+            {/* Admin Section - only for admin/superadmin */}
+            {(isAdmin || isSuperAdmin) &&
+              renderDropdown(
+                "Admin",
+                <FaUsers />,
+                adminOpen,
+                setAdminOpen,
+                <>
+                  {renderMenuItem({ label: "Projects", icon: <FaUsers />, path: "/projects" })}
+                  {renderMenuItem({ label: "User Management", icon: <FaUsers />, path: "/user-management" })}
+                  {renderMenuItem({ label: "Database", icon: <FaDatabase />, path: "/database" })}
+                  {/* {renderMenuItem({ label: "Audit Logs", icon: <FaKey />, path: "/audit-logs" })} */}
+                  {isSuperAdmin && renderMenuItem({ label: "Super Admin", icon: <FaUsers />, path: "/super-admin" })}
+                </>
+              )}
+
+            {/* General Section */}
+            {renderDropdown(
+              "General",
+              <FaCog />,
+              generalOpen,
+              setGeneralOpen,
+              <>
+                {renderMenuItem({ label: "Campaigns", icon: <FaTable />, path: "/campaigns" })}
+                {renderMenuItem({ label: "Templates", icon: <FaFileAlt />, path: "/templates" })}
+                {renderMenuItem({ label: "Landing Pages", icon: <FaGlobe />, path: "/landing-pages" })}
+                {renderMenuItem({ label: "Sending Profiles", icon: <FaEnvelope />, path: "/sending-profiles" })}
+                {renderMenuItem({ label: "Users & Groups", icon: <FaUsers />, path: "/users-groups" })}
+              </>
+            )}
+
+            {/* Extra Section */}
+            {renderDropdown(
+              "Extra",
+              <FaFileAlt />,
+              extraOpen,
+              setExtraOpen,
+              <>
+                {renderMenuItem({ label: "Quiz", icon: <QuizIcon fontSize="small" />, path: "/quizz" })}
+                {renderMenuItem({ label: "Training", icon: <FaFileAlt />, path: "/training", newTab: true })}
+              </>
+            )}
           </>
         )}
 
-        {renderDropdown(
-          "Extra",
-          <FaFileAlt />,
-          extraOpen,
-          setExtraOpen,
-          <>
-            {renderMenuItem({ label: "Quiz", icon: <QuizIcon fontSize="small" />, path: "/quizz" })}
-            {renderMenuItem({ label: "Training", icon: <FaFileAlt />, path: "/training", newTab: true })}
-          </>
-        )}
-
+        {/* Always show Settings */}
         {renderMenuItem({ label: "Settings", icon: <FaCog />, path: "/settings" })}
       </Box>
 

@@ -97,10 +97,10 @@ export default function Dashboard() {
   }, [selectedProject]);
 
   const statsData = [
-    { id: 1, value: graphData ? graphData.emailOpened : "Loading...", description: 'Users Clicked on Phishing Email', icon: '📊' },
-    { id: 2, value: graphData ? graphData.submitted_data : "Loading...", description: 'Submitted Data on Phishing Page', icon: '📈' },
-    { id: 3, value: graphData ? graphData.emailSent : "Loading...", description: 'Total Phishing email Sent', icon: '📉' },
-    { id: 4, value: graphData ? graphData.trainingCompleted : "Loading...", description: 'Completed all Trainings', icon: '🥧' }
+    { id: 1, value: graphData ? graphData.emailOpened : "0", description: 'Users Clicked on Phishing Email', icon: '📊' },
+    { id: 2, value: graphData ? graphData.submitted_data : "0", description: 'Submitted Data on Phishing Page', icon: '📈' },
+    { id: 3, value: graphData ? graphData.emailSent : "0", description: 'Total Phishing email Sent', icon: '📉' },
+    { id: 4, value: graphData ? graphData.trainingCompleted : "0", description: 'Completed all Trainings', icon: '🥧' }
   ];
 
   return (
@@ -165,11 +165,11 @@ export default function Dashboard() {
               title="Risky user"
               score={graphData.emailOpened}
               grade={calculateGrade(graphData.emailOpened, graphData.emailSent)}
-              final={graphData.emailSent}
+              final={graphData.emailOpened}
               darkMode={darkMode}
             />
           ) : (
-            <ScoreCard title="Risky user" score="Loading..." grade="Loading..." final="Loading..." darkMode={darkMode} />
+            <ScoreCard title="Risky user" score="0" grade="0" final="0" darkMode={darkMode} />
           )}
         </div>
         <div className="dashboard__col--half">
@@ -178,11 +178,11 @@ export default function Dashboard() {
               title="Compromised user"
               score={graphData.submitted_data}
               grade={calculateGrade(graphData.submitted_data, graphData.emailSent)}
-              final={graphData.emailSent}
+              final={graphData.submitted_data}
               darkMode={darkMode}
             />
           ) : (
-            <ScoreCard title="Compromised user" score="Loading..." grade="Loading..." final="Loading..." darkMode={darkMode} />
+            <ScoreCard title="Compromised user" score="0" grade="0" final="0" darkMode={darkMode} />
           )}
         </div>
       </div>
@@ -195,11 +195,11 @@ export default function Dashboard() {
               title="Organization Score"
               score={graphData.ogScore}
               grade={calculateGrade(graphData.ogScore, graphData.emailSent)}
-              final={100}
+              final={graphData.ogScore}
               darkMode={darkMode}
             />
           ) : (
-            <ScoreCard title="Organization Score" score="Loading..." grade="Loading..." final="Loading..." darkMode={darkMode} />
+            <ScoreCard title="Organization Score" score="0" grade="0" final="0" darkMode={darkMode} />
           )}
         </div>
       </div>

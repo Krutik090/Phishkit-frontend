@@ -87,9 +87,9 @@ function AppContent() {
           <Route path="/training" element={<Training />} />
 
           {/* Protected Standalone Routes */}
-          <Route path="/fullscreen-editor" element={<ProtectedRoute><FullScreenEditor /></ProtectedRoute>} />
-          <Route path="/projects/:projectId/insights/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
-          <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><GraphView /></ProtectedRoute>} />
+          <Route path="/fullscreen-editor" element={<ProtectedRoute><RoleProtectedRoute fallbackPath="/dashboard"><FullScreenEditor /></RoleProtectedRoute></ProtectedRoute>} />
+          <Route path="/projects/:projectId/insights/graphview" element={<ProtectedRoute><RoleProtectedRoute fallbackPath="/dashboard"><GraphView /></RoleProtectedRoute></ProtectedRoute>} />
+          <Route path="/campaign/:campaignId/graphview" element={<ProtectedRoute><RoleProtectedRoute fallbackPath="/dashboard"><GraphView /></RoleProtectedRoute></ProtectedRoute>} />
 
           {/* Authenticated Layout Routes */}
           <Route
@@ -101,22 +101,25 @@ function AppContent() {
             }
           >
             <Route index element={<Navigate to="/campaigns" replace />} />
+            {/* Routes accessible to read-only users */}
             <Route path="campaigns" element={<Campaigns />} />
             <Route path="campaign-results/:id" element={<ResultCampaign />} />
-            <Route path="templates" element={<Templates />} />
-            <Route path="landing-pages" element={<LandingPages />} />
-            <Route path="sending-profiles" element={<SendingProfiles />} />
-            <Route path="users-groups" element={<UsersGroups />} />
-            <Route path="projects" element={<ProjectPage />} />
-            <Route path="clients-user" element={<AdminRoute><UserManagement /></AdminRoute>} />
-            <Route path="projects/:id" element={<ClientCampaign />} />
-            <Route path="campaign/:campaignId/details" element={<CampaignDetails />} />
-            <Route path="projects/:projectId/insights" element={<ClientInsights />} />
-            <Route path="quizz" element={<Quiz />} />
-            <Route path="quizz/new" element={<NewQuiz />} />
-            <Route path="quizz/edit/:id" element={<NewQuiz />} />
-            <Route path="settings" element={<Settings />} />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="settings" element={<Settings />} />
+
+            {/* Routes NOT accessible to read-only users */}
+            <Route path="templates" element={<RoleProtectedRoute fallbackPath="/dashboard"><Templates /></RoleProtectedRoute>} />
+            <Route path="landing-pages" element={<RoleProtectedRoute fallbackPath="/dashboard"><LandingPages /></RoleProtectedRoute>} />
+            <Route path="sending-profiles" element={<RoleProtectedRoute fallbackPath="/dashboard"><SendingProfiles /></RoleProtectedRoute>} />
+            <Route path="users-groups" element={<RoleProtectedRoute fallbackPath="/dashboard"><UsersGroups /></RoleProtectedRoute>} />
+            <Route path="projects" element={<RoleProtectedRoute fallbackPath="/dashboard"><ProjectPage /></RoleProtectedRoute>} />
+            <Route path="clients-user" element={<AdminRoute><UserManagement /></AdminRoute>} />
+            <Route path="projects/:id" element={<RoleProtectedRoute fallbackPath="/dashboard"><ClientCampaign /></RoleProtectedRoute>} />
+            <Route path="campaign/:campaignId/details" element={<RoleProtectedRoute fallbackPath="/dashboard"><CampaignDetails /></RoleProtectedRoute>} />
+            <Route path="projects/:projectId/insights" element={<RoleProtectedRoute fallbackPath="/dashboard"><ClientInsights /></RoleProtectedRoute>} />
+            <Route path="quizz" element={<RoleProtectedRoute fallbackPath="/dashboard"><Quiz /></RoleProtectedRoute>} />
+            <Route path="quizz/new" element={<RoleProtectedRoute fallbackPath="/dashboard"><NewQuiz /></RoleProtectedRoute>} />
+            <Route path="quizz/edit/:id" element={<RoleProtectedRoute fallbackPath="/dashboard"><NewQuiz /></RoleProtectedRoute>} />
 
             <Route
               path="user-management"
@@ -184,4 +187,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
- 

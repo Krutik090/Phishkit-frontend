@@ -7,9 +7,11 @@ import {
     InputBase,
     IconButton,
     Box,
+    Typography,
     alpha,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import PersonIcon from "@mui/icons-material/Person";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -17,13 +19,15 @@ import { useNavigate } from "react-router-dom";
 const Navbar = () => {
     const { darkMode } = useTheme();
     const [searchQuery, setSearchQuery] = useState("");
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
     const navigate = useNavigate();
 
     const handleSearch = () => {
         console.log("Searching for:", searchQuery);
         // TODO: implement actual search logic
     };
+
+    console.log(user);
 
     const handleLogout = async () => {
         try {
@@ -42,7 +46,7 @@ const Navbar = () => {
             sx={{
                 backgroundColor: darkMode ? "#1e1e2f" : "#ffffff",
                 color: darkMode ? "#ffffff" : "#1e1e2f",
-                borderBottom: `1px solid ${darkMode ? localStorage.getItem("pirmaryColor") : localStorage.getItem("pirmaryColor")}`,
+                borderBottom: `1px solid ${darkMode ? localStorage.getItem("primaryColor") : localStorage.getItem("primaryColor")}`,
                 boxShadow: darkMode
                     ? "inset 0 -2px 4px rgba(236, 0, 140, 0.2)"
                     : "inset 0 -2px 4px rgba(236, 0, 140, 0.1)",
@@ -62,7 +66,7 @@ const Navbar = () => {
                         maxWidth: 600,
                         justifyContent: "center",
                         border: "1px solid",
-                        borderColor: darkMode ? localStorage.getItem("primaryColor") : localStorage.getItem("pirmaryColor"),
+                        borderColor: darkMode ? localStorage.getItem("primaryColor") : localStorage.getItem("primaryColor"),
                     }}
                 >
                     <InputBase
@@ -78,34 +82,72 @@ const Navbar = () => {
                     />
                     <IconButton
                         onClick={handleSearch}
-                        sx={{ color: localStorage.getItem("pirmaryColor") }}
+                        sx={{ color: localStorage.getItem("primaryColor") }}
                         aria-label="search-button"
                     >
                         <SearchIcon />
                     </IconButton>
                 </Box>
 
-                {/* 🚪 Logout Button */}
-                <Button
-                    variant="contained"
-                    size="small"
-                    onClick={handleLogout}
-                    sx={{
-                        ml: 2,
-                        minWidth: 100, // Wider button
-                        py: 1.0,        // Taller button
-                        background: "linear-gradient(to right, #8b0000, #e11d48)",
-                        color: "#ffffff",
-                        fontWeight: "bold",
-                        textTransform: "none",
-                        fontSize: '15px',
-                        "&:hover": {
-                            background: "linear-gradient(to right, #7f1d1d, #be123c)",
-                        },
-                    }}
-                >
-                    Logout
-                </Button>
+                {/* Right side: User info and Logout */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    {/* 👤 User Name Display */}
+                    {user && (
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                                px: 2,
+                                py: 1,
+                                borderRadius: 2,
+                                background: darkMode 
+                                    ? `linear-gradient(135deg, ${localStorage.getItem("primaryColor")}20, ${localStorage.getItem("secondaryColor")}20)`
+                                    : `linear-gradient(135deg, ${localStorage.getItem("primaryColor")}10, ${localStorage.getItem("secondaryColor")}10)`,
+                                border: `1px solid ${localStorage.getItem("primaryColor")}40`,
+                            }}
+                        >
+                            <PersonIcon 
+                                sx={{ 
+                                    color: localStorage.getItem("primaryColor"),
+                                    fontSize: 20 
+                                }} 
+                            />
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    color: darkMode ? "#ffffff" : "#1e1e2f",
+                                    fontWeight: "600",
+                                    fontSize: "14px",
+                                    textTransform: "capitalize",
+                                }}
+                            >
+                                {user.name}
+                            </Typography>
+                        </Box>
+                    )}
+
+                    {/* 🚪 Logout Button */}
+                    <Button
+                        variant="contained"
+                        size="small"
+                        onClick={handleLogout}
+                        sx={{
+                            minWidth: 100,
+                            py: 1.0,
+                            background: "linear-gradient(to right, #8b0000, #e11d48)",
+                            color: "#ffffff",
+                            fontWeight: "bold",
+                            textTransform: "none",
+                            fontSize: '15px',
+                            "&:hover": {
+                                background: "linear-gradient(to right, #7f1d1d, #be123c)",
+                            },
+                        }}
+                    >
+                        Logout
+                    </Button>
+                </Box>
             </Toolbar>
         </AppBar>
     );

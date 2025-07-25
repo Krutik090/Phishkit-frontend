@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
-  Box, Button, Typography, Paper, IconButton, Tooltip, Dialog,
+  Box, Button, Typography, IconButton, Tooltip, Dialog,
   DialogTitle, DialogContent, DialogContentText, DialogActions
 } from "@mui/material";
 import {
@@ -8,8 +8,9 @@ import {
   Delete as DeleteIcon,
   Visibility as VisibilityIcon,
 } from "@mui/icons-material";
-import { pink } from "@mui/material/colors";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
+import { useAuth } from "../../context/AuthContext";
 import $ from "jquery";
 import "datatables.net";
 import "datatables.net-dt/css/dataTables.dataTables.min.css";
@@ -38,6 +39,10 @@ const Campaigns = () => {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, campaign: null });
   const tableRef = useRef(null);
   const dataTableRef = useRef(null);
+  const { user } = useAuth();
+
+  // Check if user is read-only
+  const isReadOnly = user?.isReadOnly || false;
 
   useEffect(() => {
     fetchCampaigns();
@@ -71,7 +76,6 @@ const Campaigns = () => {
       const res = await fetch(`${API_BASE_URL}/campaigns`, { credentials: "include" });
       const json = await res.json();
 
-      // Normalize _id to id (optional)
       const normalized = json.map(item => ({
         ...item,
         id: item._id,
@@ -83,16 +87,55 @@ const Campaigns = () => {
     }
   };
 
-  const handleDeleteConfirm = (campaign) => setDeleteDialog({ open: true, campaign });
+  const handleDeleteConfirm = (campaign) => {
+    if (isReadOnly) {
+      toast.error("You don't have permission to delete campaigns. Please contact your administrator.", {
+        position: "top-right",
+        autoClose: 5000,
+      });
+      return;
+    }
+    setDeleteDialog({ open: true, campaign });
+  };
+
+  const handleAddCampaign = () => {
+    if (isReadOnly) {
+      toast.error("You don't have permission to create campaigns. Please contact your administrator.", {
+        position: "top-right",
+        autoClose: 5000,
+      });
+      return;
+    }
+    setFormData(emptyFormData);
+    setOpenModal(true);
+  };
+
   const cancelDelete = () => setDeleteDialog({ open: false, campaign: null });
 
   const confirmDelete = async () => {
     try {
       const id = deleteDialog.campaign._id;
-      const res = await fetch(`${API_BASE_URL}/campaigns/${id}`, { method: "DELETE", credentials: "include" });
+      const res = await fetch(`${API_BASE_URL}/campaigns/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Delete failed");
 
-      setData(prev => prev.filter(c => c._id !== id));
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+        dataTableRef.current = null;
+      }
+
+      const res2 = await fetch(`${API_BASE_URL}/campaigns`, { credentials: "include" });
+      const json = await res2.json();
+      const normalized = json.map(item => ({ ...item, id: item._id }));
+
+      setData(normalized);
+
+      setTimeout(() => {
+        initializeDataTable();
+      }, 100);
+
     } catch (err) {
       console.error("Delete failed:", err);
       alert("Delete failed");
@@ -103,18 +146,17 @@ const Campaigns = () => {
 
   const handleSaveSuccess = async () => {
     try {
-      // 🔁 Destroy old DataTable if it exists
       if (dataTableRef.current) {
         dataTableRef.current.destroy();
         dataTableRef.current = null;
       }
 
-      // 🆕 Fetch updated data
       const res = await fetch(`${API_BASE_URL}/campaigns`, { credentials: "include" });
       const json = await res.json();
-      setData(json);
+      const normalized = json.map(item => ({ ...item, id: item._id }));
 
-      // 🕒 Reinitialize DataTable after short delay
+      setData(normalized);
+
       setTimeout(() => {
         initializeDataTable();
       }, 100);
@@ -122,12 +164,10 @@ const Campaigns = () => {
       console.error("Failed to refresh campaigns after save:", err);
     } finally {
       setOpenModal(false);
-      setFormData(initialFormState());
+      setFormData(emptyFormData);
     }
   };
 
-
-  // Cleanup DataTable on component unmount
   useEffect(() => {
     return () => {
       if (dataTableRef.current) {
@@ -144,24 +184,23 @@ const Campaigns = () => {
           <Typography variant="h5" fontWeight="bold">
             📢 Campaigns
           </Typography>
-          <Button
-            variant="contained"
-            onClick={() => {
-              setFormData(emptyFormData);
-              setOpenModal(true);
-            }}
-            sx={{
-              background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
-              color: "#fff",
-              fontWeight: "bold",
-              borderRadius: "8px",
-              px: 3,
-              py: 1,
-              textTransform: "uppercase",
-            }}
-          >
-            Add Campaign
-          </Button>
+          {!isReadOnly && (
+            <Button
+              variant="contained"
+              onClick={handleAddCampaign}
+              sx={{
+                background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
+                color: "#fff",
+                fontWeight: "bold",
+                borderRadius: "8px",
+                px: 3,
+                py: 1,
+                textTransform: "uppercase",
+              }}
+            >
+              Add Campaign
+            </Button>
+          )}
         </Box>
 
         <table
@@ -176,8 +215,8 @@ const Campaigns = () => {
         >
           <thead>
             <tr>
-              {["Campaign Name", "Launch Date", "Actions"].map((h, i) => (
-                <th key={i} style={{ border: "1px solid #ccc", padding: 10 }}>
+              {["Campaign Name","Launch Date", "Actions"].map((h, i) => (
+                <th key={i} style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center"}}>
                   {h}
                 </th>
               ))}
@@ -191,38 +230,37 @@ const Campaigns = () => {
                     {row.name}
                   </Link>
                 </td>
-                {/* <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.client || "—"}</td> */}
-                {/* <td style={{ border: "1px solid #ddd", padding: 8 }}>{row.status || "—"}</td> */}
                 <td style={{ border: "1px solid #ddd", padding: 8 }}>
                   {row.launchDate ? new Date(row.launchDate).toLocaleString() : "—"}
                 </td>
-                {/* <td style={{ border: "1px solid #ddd", padding: 8 }}>
-                  {Array.isArray(row.results) ? row.results.length : 0}
-                </td> */}
                 <td style={{ border: "1px solid #ddd", padding: 8 }}>
                   <Tooltip title="View">
                     <IconButton size="small" color="primary" component={Link} to={`/campaign-results/${row._id}`}>
                       <VisibilityIcon />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Delete">
-                    <IconButton size="small" color="error" onClick={() => handleDeleteConfirm(row)}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </Tooltip>
+                  {!isReadOnly && (
+                    <Tooltip title="Delete">
+                      <IconButton size="small" color="error" onClick={() => handleDeleteConfirm(row)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        <NewCampaignModal
-          open={openModal}
-          onClose={() => setOpenModal(false)}
-          onSave={handleSaveSuccess}
-          formData={formData}
-          setFormData={setFormData}
-        />
+        {!isReadOnly && (
+          <NewCampaignModal
+            open={openModal}
+            onClose={() => setOpenModal(false)}
+            onSave={handleSaveSuccess}
+            formData={formData}
+            setFormData={setFormData}
+          />
+        )}
 
         <Dialog open={deleteDialog.open} onClose={cancelDelete}>
           <DialogTitle>Confirm Delete</DialogTitle>
