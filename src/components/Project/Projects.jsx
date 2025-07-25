@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box, Button, Typography, IconButton, Tooltip, Dialog,
-  DialogTitle, DialogContent
+  DialogTitle, DialogContent, DialogActions
 } from "@mui/material";
 import {
   UploadFile as UploadFileIcon,
   Visibility as VisibilityIcon,
+  Delete as DeleteIcon
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -22,10 +23,13 @@ const Projects = () => {
   const [projects, setProjects] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState({ name: "", certificateFile: null });
-
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+
   const tableRef = useRef(null);
+  const dataTableRef = useRef(null);
 
   useEffect(() => {
     fetchProjects();
@@ -33,12 +37,33 @@ const Projects = () => {
 
   useEffect(() => {
     if (projects.length > 0) {
-      const table = $(tableRef.current).DataTable();
-      return () => {
-        table.destroy();
-      };
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+        dataTableRef.current = null;
+      }
+
+      setTimeout(() => {
+        dataTableRef.current = $(tableRef.current).DataTable({
+          destroy: true,
+          responsive: true,
+          pageLength: 10,
+          lengthChange: true,
+          searching: true,
+          ordering: true,
+          info: true,
+          autoWidth: false,
+        });
+      }, 100);
     }
   }, [projects]);
+
+  useEffect(() => {
+    return () => {
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+      }
+    };
+  }, []);
 
   const fetchProjects = async () => {
     try {
@@ -50,7 +75,7 @@ const Projects = () => {
           try {
             const syncRes = await fetch(`${API_BASE_URL}/projects/sync-stats/${project._id}`, {
               credentials: "include",
-              method: "POST"
+              method: "POST",
             });
             if (!syncRes.ok) {
               console.warn(`Failed to sync stats for project ${project.name}`);
@@ -61,13 +86,19 @@ const Projects = () => {
         })
       );
 
-      const refreshed = await fetch(`${API_BASE_URL}/projects`,{credentials: "include"});
+      const refreshed = await fetch(`${API_BASE_URL}/projects`, { credentials: "include" });
       const updatedProjects = await refreshed.json();
-      setProjects(updatedProjects);
 
+      if (dataTableRef.current) {
+        dataTableRef.current.destroy();
+        dataTableRef.current = null;
+      }
+
+      setProjects(updatedProjects);
     } catch (error) {
       console.error("Failed to fetch projects:", error);
       setProjects([]);
+      toast.error("Failed to load projects");
     }
   };
 
@@ -86,11 +117,11 @@ const Projects = () => {
         method: "POST",
         body: formData,
       });
-      fetchProjects();
-      toast.success('Template Saved Successfully.');
+      await fetchProjects();
+      toast.success("Template Saved Successfully.");
     } catch (error) {
       console.error("Failed to upload certificate:", error);
-      toast.error('Failed to upload Certificate Template');
+      toast.error("Failed to upload Certificate Template");
     }
   };
 
@@ -98,6 +129,38 @@ const Projects = () => {
     const url = `${FILE_BASE_URL}/${path}`;
     setPreviewUrl(url);
     setPreviewDialogOpen(true);
+  };
+
+  const handleDeleteClick = (project) => {
+    setProjectToDelete(project);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!projectToDelete) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/projects/${projectToDelete._id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete");
+
+      toast.success("Project deleted successfully");
+      await fetchProjects();
+    } catch (err) {
+      console.error("Delete failed:", err);
+      toast.error("Failed to delete project");
+    } finally {
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setProjectToDelete(null);
   };
 
   return (
@@ -139,7 +202,7 @@ const Projects = () => {
               {[
                 "Project Name", "Campaigns", "Sent", "Failed", "Clicked",
                 "Submitted Data", "Quiz Started", "Quiz Completed", "Created At",
-                "Certificate", "Upload"
+                "Certificate", "Upload", "Action"
               ].map((header, idx) => (
                 <th
                   key={idx}
@@ -160,13 +223,12 @@ const Projects = () => {
               <tr key={idx}>
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>
                   {/* <Link to={`/projects/${project._id}`} style={{ color: localStorage.getItem('primaryColor'), fontWeight: "bold", textDecoration: "none" }}> */}
-                    {project.name}
+                  {project.name}
                   {/* </Link> */}
                 </td>
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{Array.isArray(project.campaigns) ? project.campaigns.join(", ") : "—"}</td>
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.emailSent ?? 0}</td>
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.emailFailed ?? 0}</td>
-                {/* <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.emailOpened ?? 0}</td> */}
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.linkClicked ?? 0}</td>
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.submitted_data ?? 0}</td>
                 <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.quizStarted ?? 0}</td>
@@ -184,7 +246,7 @@ const Projects = () => {
                     </Box>
                   ) : "N/A"}
                 </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>
+                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
                   <Tooltip title="Upload Certificate">
                     <IconButton size="small" component="label">
                       <UploadFileIcon />
@@ -194,6 +256,17 @@ const Projects = () => {
                         accept=".ppt,.pptx,.pdf"
                         onChange={(e) => handleUploadCertificate(project._id, e.target.files[0])}
                       />
+                    </IconButton>
+                  </Tooltip>
+                </td>
+                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>
+                  <Tooltip title="Delete Project">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleDeleteClick(project)}
+                    >
+                      <DeleteIcon />
                     </IconButton>
                   </Tooltip>
                 </td>
@@ -221,13 +294,45 @@ const Projects = () => {
               PowerPoint file preview is not supported.{" "}
               <a href={previewUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#ec008c" }}>
                 Click here to download and view
-              </a>
-              .
+              </a>.
             </Typography>
           ) : (
             <Typography color="error">Unsupported file format.</Typography>
           )}
         </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>🗑️ Delete Project</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the project "{projectToDelete?.name}"? 
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={handleDeleteCancel}
+            variant="outlined"
+            sx={{ textTransform: "none" }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+            sx={{ textTransform: "none" }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );
