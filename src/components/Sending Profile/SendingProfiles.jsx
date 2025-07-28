@@ -13,6 +13,7 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Visibility as VisibilityIcon, // Import view icon
 } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import $ from "jquery";
@@ -22,29 +23,50 @@ import NewSendingProfileModal from "./NewSendingProfileModal";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
+// Helper function to get a cookie by name
+const getCookie = (name) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+};
+
 const SendingProfiles = () => {
   const [profiles, setProfiles] = useState([]);
   const [openModal, setOpenModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [profileToDelete, setProfileToDelete] = useState(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false); // State for user role
   const tableRef = useRef(null);
   const dataTableRef = useRef(null);
 
   useEffect(() => {
+    // Check user role from cookies
+    try {
+      const authUserCookie = getCookie('auth_user');
+      if (authUserCookie) {
+        const userData = JSON.parse(decodeURIComponent(authUserCookie));
+        setIsSuperAdmin(userData.role === 'superadmin');
+      }
+    } catch (error) {
+      console.error("Failed to parse user auth cookie:", error);
+      setIsSuperAdmin(false);
+    }
+    
     fetchProfiles();
   }, []);
 
   useEffect(() => {
-    if (profiles.length > 0 && !dataTableRef.current) {
+    if (profiles.length > 0) {
+      if ($.fn.DataTable.isDataTable(tableRef.current)) {
+        dataTableRef.current.destroy();
+      }
       initializeDataTable();
     }
   }, [profiles]);
 
   const initializeDataTable = () => {
-    if (dataTableRef.current) {
-      dataTableRef.current.destroy();
-    }
     dataTableRef.current = $(tableRef.current).DataTable({
       destroy: true,
       responsive: true,
@@ -57,27 +79,12 @@ const SendingProfiles = () => {
     });
   };
 
-  const reloadDataTable = () => {
-    if (dataTableRef.current) {
-      dataTableRef.current.clear();
-      dataTableRef.current.rows.add($(tableRef.current).find('tbody tr'));
-      dataTableRef.current.draw();
-    }
-  };
-
   const fetchProfiles = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/sending-profiles`);
+      const res = await fetch(`${API_BASE_URL}/sending-profiles`, { credentials: 'include' });
       if (!res.ok) throw new Error("Failed to fetch profiles");
       const data = await res.json();
       setProfiles(data);
-      
-      // Reload DataTable after fetching new data
-      setTimeout(() => {
-        if (dataTableRef.current) {
-          reloadDataTable();
-        }
-      }, 100);
     } catch (err) {
       toast.error("Failed to load sending profiles.");
       console.error(err);
@@ -85,6 +92,10 @@ const SendingProfiles = () => {
   };
 
   const confirmDelete = (profile) => {
+    if (!isSuperAdmin) {
+      toast.error("You do not have permission to delete profiles.");
+      return;
+    }
     setProfileToDelete(profile);
     setDeleteDialogOpen(true);
   };
@@ -94,20 +105,12 @@ const SendingProfiles = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/sending-profiles/${profileToDelete.id}`, {
         method: "DELETE",
+        credentials: 'include',
       });
       if (!res.ok) throw new Error("Failed to delete profile");
       
-      // Update state and reload DataTable
-      setProfiles((prev) => prev.filter((p) => p.id !== profileToDelete.id));
-      
-      // Reload DataTable after state update
-      setTimeout(() => {
-        if (dataTableRef.current) {
-          reloadDataTable();
-        }
-      }, 100);
-      
       toast.success("Sending profile deleted!");
+      fetchProfiles(); // Refetch profiles to update the list
     } catch (err) {
       toast.error("Failed to delete profile.");
       console.error(err);
@@ -117,24 +120,15 @@ const SendingProfiles = () => {
     }
   };
 
-  const handleSaveSuccess = (savedProfile) => {
-    if (editingProfile) {
-      setProfiles((prev) =>
-        prev.map((p) => (p.id === savedProfile.id ? savedProfile : p))
-      );
-    } else {
-      setProfiles((prev) => [...prev, savedProfile]);
-    }
-    
-    // Reload DataTable after state update
-    setTimeout(() => {
-      if (dataTableRef.current) {
-        reloadDataTable();
-      }
-    }, 100);
-    
+  const handleSaveSuccess = () => {
+    fetchProfiles(); // Refetch all profiles to ensure data is current
     setOpenModal(false);
     setEditingProfile(null);
+  };
+
+  const handleOpenModal = (profile = null) => {
+    setEditingProfile(profile);
+    setOpenModal(true);
   };
 
   // Cleanup DataTable on component unmount
@@ -142,6 +136,7 @@ const SendingProfiles = () => {
     return () => {
       if (dataTableRef.current) {
         dataTableRef.current.destroy();
+        dataTableRef.current = null;
       }
     };
   }, []);
@@ -167,76 +162,57 @@ const SendingProfiles = () => {
         <Typography variant="h5" fontWeight="bold">
           📧 Sending Profiles
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => {
-            setEditingProfile(null);
-            setOpenModal(true);
-          }}
-          sx={{
-            background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
-            color: "#fff",
-            fontWeight: "bold",
-            borderRadius: "8px",
-            px: 3,
-            py: 1,
-            boxShadow: "0 4px 10px rgba(236, 0, 140, 0.3)",
-            "&:hover": {
+        {isSuperAdmin && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenModal(null)}
+            sx={{
               background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
-            },
-          }}
-        >
-          New Profile
-        </Button>
+              color: "#fff",
+              fontWeight: "bold",
+              borderRadius: "8px",
+            }}
+          >
+            New Profile
+          </Button>
+        )}
       </Box>
 
       {/* Table */}
       <div className="table-responsive">
-        <table
-          ref={tableRef}
-          className="display stripe"
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            textAlign: "center",
-            border: "1px solid #ddd",
-          }}
-        >
+        <table ref={tableRef} className="display stripe" style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>Name</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>From Address</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>Host</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>Ignore Cert Errors</th>
-              <th style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>Actions</th>
+              <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Name</th>
+              <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>From Address</th>
+              <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Host</th>
+              <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Ignore Cert Errors</th>
+              <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {profiles.map((profile) => (
               <tr key={profile.id}>
-                <td style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>{profile.name}</td>
-                <td style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>{profile.from_address}</td>
-                <td style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>{profile.host}</td>
-                <td style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}>{profile.ignore_cert_errors ? "Yes" : "No"}</td>
-                <td style={{ border: "1px solid #ccc", padding: 10 , textAlign: "center", verticalAlign: "middle"}}> 
-                  <IconButton
-                    size="small"
-                    color="secondary"
-                    onClick={() => {
-                      setEditingProfile(profile);
-                      setOpenModal(true);
-                    }}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => confirmDelete(profile)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+                <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>{profile.name}</td>
+                <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>{profile.from_address}</td>
+                <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>{profile.host}</td>
+                <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>{profile.ignore_cert_errors ? "Yes" : "No"}</td>
+                <td style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>
+                  {isSuperAdmin ? (
+                    <>
+                      <IconButton size="small" color="secondary" onClick={() => handleOpenModal(profile)}>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton size="small" color="error" onClick={() => confirmDelete(profile)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </>
+                  ) : (
+                    <IconButton size="small" onClick={() => handleOpenModal(profile)}>
+                      <VisibilityIcon />
+                    </IconButton>
+                  )}
                 </td>
               </tr>
             ))}
@@ -245,15 +221,17 @@ const SendingProfiles = () => {
       </div>
 
       {/* Modal */}
-      <NewSendingProfileModal
-        open={openModal}
-        handleClose={() => {
-          setOpenModal(false);
-          setEditingProfile(null);
-        }}
-        onSave={handleSaveSuccess}
-        initialData={editingProfile}
-      />
+      {openModal && (
+        <NewSendingProfileModal
+          open={openModal}
+          handleClose={() => {
+            setOpenModal(false);
+            setEditingProfile(null);
+          }}
+          onSave={handleSaveSuccess}
+          initialData={editingProfile}
+        />
+      )}
     </Box>
   );
 };

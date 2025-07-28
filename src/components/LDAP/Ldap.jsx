@@ -7,21 +7,59 @@ import {
   TextField,
   Button,
   Typography,
+  Box,
 } from "@mui/material";
 import { toast } from "react-toastify";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-const pink = localStorage.getItem("primaryColor");
+const pink = localStorage.getItem("primaryColor") || '#EC008C';
+const secondaryColor = localStorage.getItem("secondaryColor") || '#FC6767';
 
 const pinkTextFieldSx = {
   "& label.Mui-focused": { color: pink },
   "& .MuiOutlinedInput-root": {
     "&.Mui-focused fieldset": {
       borderColor: pink,
-      boxShadow: "0 0 0 0.15rem rgba(236, 0, 140, 0.25)",
+      boxShadow: `0 0 0 0.15rem ${pink}40`,
     },
+    "&:hover fieldset": { borderColor: pink },
   },
 };
+
+// Enhanced field definitions with placeholders and helper text
+const ldapFields = [
+  { 
+    label: "LDAP URL", 
+    key: "url", 
+    placeholder: "ldaps://your-domain-controller:636",
+    helperText: "The full URL to your LDAP or LDAPS server."
+  },
+  { 
+    label: "Bind DN", 
+    key: "bindDN", 
+    placeholder: "CN=ServiceUser,OU=Users,DC=example,DC=com",
+    helperText: "The Distinguished Name of the user account used to connect and search LDAP."
+  },
+  { 
+    label: "Bind Credentials", 
+    key: "bindCredentials", 
+    type: "password",
+    placeholder: "Enter password for the Bind DN user",
+    helperText: "The password for the Bind DN user account."
+  },
+  { 
+    label: "Search Base", 
+    key: "searchBase",
+    placeholder: "OU=Users,DC=example,DC=com",
+    helperText: "The Distinguished Name of the container where users will be searched."
+  },
+  { 
+    label: "Search Filter", 
+    key: "searchFilter",
+    placeholder: "(&(objectClass=user)(mail=*))",
+    helperText: "The LDAP filter to find user objects. The default usually works well."
+  },
+];
 
 const LdapConfigDialog = ({ open, onClose }) => {
   const [config, setConfig] = useState({
@@ -45,7 +83,7 @@ const LdapConfigDialog = ({ open, onClose }) => {
     setConfigExists(false);
   };
 
-  // 🔄 Load existing config on dialog open
+  // Load existing config on dialog open
   useEffect(() => {
     if (open) {
       fetch(`${API_BASE_URL}/ldap`, {
@@ -58,7 +96,7 @@ const LdapConfigDialog = ({ open, onClose }) => {
             setConfig(data);
             setConfigExists(true);
           } else {
-            resetForm(); // no config
+            resetForm();
           }
         })
         .catch((err) => {
@@ -76,9 +114,12 @@ const LdapConfigDialog = ({ open, onClose }) => {
 
   const handleTestConnection = async () => {
     try {
+      // We send the current config to the backend to test with, even if not saved.
       const res = await fetch(`${API_BASE_URL}/check`, {
-        method: "GET",
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify(config),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -120,8 +161,8 @@ const LdapConfigDialog = ({ open, onClose }) => {
         sx: {
           width: "700px",
           borderRadius: "16px",
-          border: `2px solid ${localStorage.getItem("primaryColor")}`,
-          boxShadow: `0 8px 24px ${localStorage.getItem("primaryColor")}`,
+          border: `2px solid ${pink}`,
+          boxShadow: `0 8px 24px ${pink}33`,
         },
       }}
     >
@@ -129,22 +170,19 @@ const LdapConfigDialog = ({ open, onClose }) => {
         sx={{
           fontWeight: "bold",
           color: pink,
-          borderBottom: `1px solid ${localStorage.getItem("primaryColor")}`,
-          backgroundColor: "#f5f5f5",
+          borderBottom: `1px solid #f0f0f0`,
+          backgroundColor: "#f9fafb",
         }}
       >
         🛠️ LDAP Configuration
       </DialogTitle>
 
       <DialogContent dividers sx={{ p: 4 }}>
-        {[
-          { label: "LDAP URL", key: "url" },
-          { label: "Bind DN", key: "bindDN" },
-          { label: "Bind Credentials", key: "bindCredentials", type: "password" },
-          { label: "Search Base", key: "searchBase" },
-          { label: "Search Filter", key: "searchFilter" },
-        ].map((field) => (
-          <div key={field.key} style={{ marginBottom: 16 }}>
+        <Typography variant="body1" color="textSecondary" sx={{ mb: 3 }}>
+          Configure the settings to connect to your Active Directory server via LDAP. This will enable fetching users directly into groups.
+        </Typography>
+        {ldapFields.map((field) => (
+          <Box key={field.key} sx={{ mb: 2 }}>
             <Typography variant="body2" fontWeight="500" mb={0.5}>
               {field.label}
             </Typography>
@@ -156,40 +194,22 @@ const LdapConfigDialog = ({ open, onClose }) => {
               sx={pinkTextFieldSx}
               value={config[field.key]}
               onChange={(e) => handleChange(field.key, e.target.value)}
+              placeholder={field.placeholder}
+              helperText={field.helperText}
             />
-          </div>
+          </Box>
         ))}
       </DialogContent>
 
-      <DialogActions sx={{ p: 3 }}>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          sx={{
-            color: "#374151",
-            borderColor: "#d1d5db",
-            fontWeight: "bold",
-            borderRadius: 1,
-            textTransform: "none",
-          }}
-        >
+      <DialogActions sx={{ p: 3, borderTop: '1px solid #f0f0f0' }}>
+        <Button onClick={onClose} variant="outlined">
           CANCEL
         </Button>
 
         <Button
           onClick={handleTestConnection}
-          variant="contained"
-          sx={{
-            background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
-            color: "#fff",
-            fontWeight: "bold",
-            borderRadius: 1,
-            textTransform: "none",
-            boxShadow: 1,
-            "&:hover": {
-              background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
-            },
-          }}
+          variant="outlined"
+          color="secondary"
         >
           TEST CONNECTION
         </Button>
@@ -198,15 +218,8 @@ const LdapConfigDialog = ({ open, onClose }) => {
           onClick={handleSaveConfiguration}
           variant="contained"
           sx={{
-            background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
+            background: `linear-gradient(to right, ${pink}, ${secondaryColor})`,
             color: "#fff",
-            fontWeight: "bold",
-            borderRadius: 1,
-            textTransform: "none",
-            boxShadow: 1,
-            "&:hover": {
-              background: `linear-gradient(to right,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
-            },
           }}
         >
           SAVE
