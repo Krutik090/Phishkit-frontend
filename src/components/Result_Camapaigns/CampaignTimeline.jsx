@@ -1,4 +1,5 @@
 import React from "react";
+import { useTheme } from "../../context/ThemeContext";    
 import {
   Box,
   Typography,
@@ -8,7 +9,7 @@ import {
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EmailIcon from "@mui/icons-material/Email";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import LinkIcon from "@mui/icons-material/Link"; // Corrected import
+import LinkIcon from "@mui/icons-material/Link";
 import SecurityIcon from "@mui/icons-material/Security";
 import ReportIcon from "@mui/icons-material/Report";
 
@@ -79,55 +80,33 @@ const CampaignTimeline = ({
     let osIcon = "💻";
 
     if (userAgent.includes("Windows NT 10.0")) {
-      os = "Windows (OS Version: 10)";
+      os = "Windows 10";
       osIcon = "🖥️";
     } else if (userAgent.includes("Windows")) {
       os = "Windows";
       osIcon = "🖥️";
-    } else if (userAgent.includes("Macintosh") || userAgent.includes("Mac OS X")) {
-      const macOSMatch = userAgent.match(/Mac OS X (\d+_\d+(?:_\d+)*)/);
-      os = macOSMatch ? `macOS (OS Version: ${macOSMatch[1].replace(/_/g, '.')})` : "macOS";
+    } else if (userAgent.includes("Macintosh")) {
+      os = "macOS";
       osIcon = "🍎";
     } else if (userAgent.includes("Android")) {
-      const androidMatch = userAgent.match(/Android (\d+(?:\.\d+)*)/);
-      os = androidMatch ? `Android (OS Version: ${androidMatch[1]})` : "Android";
-      osIcon = "📱";
-    } else if (userAgent.includes("iPhone") || userAgent.includes("iPad") || userAgent.includes("iPod")) {
-      const iOSMatch = userAgent.match(/OS (\d+_\d+(?:_\d+)*)/);
-      os = iOSMatch ? `iOS (OS Version: ${iOSMatch[1].replace(/_/g, '.')})` : "iOS";
+      os = "Android";
+      osIcon = "�";
+    } else if (userAgent.includes("iPhone")) {
+      os = "iOS";
       osIcon = "📱";
     } else if (userAgent.includes("Linux")) {
-      // Attempt to extract kernel version (e.g., from "Linux x86_64" or specific distro info)
-      const linuxVersionMatch = userAgent.match(/Linux ([a-zA-Z0-9._-]+)/); // Capture common Linux patterns like 'x86_64', 'Ubuntu', 'Debian' etc.
-      if (linuxVersionMatch && linuxVersionMatch[1]) {
-        // If a specific kernel version or architecture is found, use that
-        os = `Linux (OS Version: ${linuxVersionMatch[1]})`;
-      } else {
-        // If no specific version part is found, just state "Linux"
-        os = "Linux";
-      }
+      os = "Linux";
       osIcon = "🐧";
     }
 
-    const chromeMatch = userAgent.match(/(Chrome|CriOS)\/([0-9.]+)/);
-    const firefoxMatch = userAgent.match(/Firefox\/([0-9.]+)/);
-    const safariMatch = userAgent.match(/Safari\/([0-9.]+)/);
-    const edgeMatch = userAgent.match(/Edge\/([0-9.]+)/);
-    const operaMatch = userAgent.match(/(Opera|OPR)\/([0-9.]+)/);
-    const ieMatch = userAgent.match(/MSIE ([0-9.]+)/) || userAgent.match(/Trident\/([0-9.]+).*rv:([0-9.]+)/);
-
-    if (chromeMatch && !userAgent.includes("Edge") && !userAgent.includes("OPR")) {
-      browser = `Chrome (Version: ${chromeMatch[2]})`;
-    } else if (firefoxMatch) {
-      browser = `Firefox (Version: ${firefoxMatch[1]})`;
-    } else if (safariMatch && !userAgent.includes("Chrome")) {
-      browser = `Safari (Version: ${safariMatch[1]})`;
-    } else if (edgeMatch) {
-      browser = `Edge (Version: ${edgeMatch[1]})`;
-    } else if (operaMatch) {
-      browser = `Opera (Version: ${operaMatch[2]})`;
-    } else if (ieMatch) {
-      browser = `IE (Version: ${ieMatch[2] || ieMatch[1]})`;
+    if (userAgent.includes("Chrome")) {
+      browser = "Chrome";
+    } else if (userAgent.includes("Firefox")) {
+      browser = "Firefox";
+    } else if (userAgent.includes("Safari") && !userAgent.includes("Chrome")) {
+      browser = "Safari";
+    } else if (userAgent.includes("Edge")) {
+      browser = "Edge";
     }
 
     return { os, browser, osIcon };
@@ -179,9 +158,11 @@ const CampaignTimeline = ({
             const detailsKey = `${email}-${eventIndex}`;
             const showDetails = detailsExpanded.has(detailsKey);
 
-            const { os, browser, osIcon } = parsedDetails && parsedDetails.browser && parsedDetails.browser["user-agent"]
+            const { os, browser, osIcon } = parsedDetails?.browser?.["user-agent"]
               ? getOSAndBrowser(parsedDetails.browser["user-agent"])
               : { os: "N/A", browser: "N/A", osIcon: "💻" };
+              
+            const ipAddress = parsedDetails?.browser?.address;
 
             return (
               <Box
@@ -268,10 +249,18 @@ const CampaignTimeline = ({
                           </Box>
                         )}
                         {browser !== "N/A" && (
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                             <Box sx={{ fontSize: "16px" }}>🌐</Box>
                             <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.8rem" }}>
                               {browser}
+                            </Typography>
+                          </Box>
+                        )}
+                        {ipAddress && (
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Box sx={{ fontSize: "16px" }}>📍</Box>
+                            <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.8rem" }}>
+                              IP: {ipAddress}
                             </Typography>
                           </Box>
                         )}
