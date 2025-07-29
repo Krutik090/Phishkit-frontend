@@ -196,11 +196,11 @@ const CampaignDetails = () => {
         <Dialog open={quizModalOpen} onClose={() => setQuizModalOpen(false)} fullWidth maxWidth="xs">
           <DialogTitle fontWeight="bold">Quiz Details for {selectedUser.first_name}</DialogTitle>
           <DialogContent dividers>
-            <InfoRow label="Quiz Started" value={selectedUser.quizStart ? "Yes" : "No"} />
+            <InfoRow label="Quiz Started" value={selectedUser.quizStarted ? "Yes" : "No"} />
             <InfoRow label="Start Time" value={formatDateTime(selectedUser.quizStartTime)} />
             <Divider />
-            <InfoRow label="Quiz Ended" value={selectedUser.quizEnd ? "Yes" : "No"} />
-            <InfoRow label="End Time" value={formatDateTime(selectedUser.quizCompletionTime)} />
+            <InfoRow label="Quiz Ended" value={selectedUser.quizCompleted ? "Yes" : "No"} />
+            <InfoRow label="End Time" value={formatDateTime(selectedUser.quizEndTime)} />
             <Divider />
             <InfoRow label="Score" value={selectedUser.score ?? "—"} />
           </DialogContent>
@@ -215,10 +215,10 @@ const CampaignDetails = () => {
         <Dialog open={trainingModalOpen} onClose={() => setTrainingModalOpen(false)} fullWidth maxWidth="sm">
           <DialogTitle fontWeight="bold">Training Details for {selectedUser.first_name}</DialogTitle>
           <DialogContent dividers>
-            <InfoRow label="Training Started" value={selectedUser.trainingStart ? "Yes" : "No"} />
+            <InfoRow label="Training Started" value={selectedUser.trainingStarted ? "Yes" : "No"} />
             <InfoRow label="Start Time" value={formatDateTime(selectedUser.trainingStartTime)} />
             <Divider sx={{ my: 1 }} />
-            <InfoRow label="Training Ended" value={selectedUser.trainingEnd ? "Yes" : "No"} />
+            <InfoRow label="Training Ended" value={selectedUser.trainingCompleted ? "Yes" : "No"} />
             <InfoRow label="End Time" value={formatDateTime(selectedUser.trainingEndTime)} />
             <Divider sx={{ my: 1 }} />
             <Typography variant="h6" mt={2} mb={1}>Module Progress</Typography>

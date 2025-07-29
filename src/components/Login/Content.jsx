@@ -2,36 +2,39 @@ import React from 'react';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
-import ConstructionRoundedIcon from '@mui/icons-material/ConstructionRounded';
-import SettingsSuggestRoundedIcon from '@mui/icons-material/SettingsSuggestRounded';
-import ThumbUpAltRoundedIcon from '@mui/icons-material/ThumbUpAltRounded';
-import { SitemarkIcon } from './SitemarkIcon'; // ✅ Correct import from its own file
+import { SitemarkIcon } from './SitemarkIcon'; // Assuming this is your brand logo
 
+// Importing new, more relevant icons
+import MarkEmailReadRoundedIcon from '@mui/icons-material/MarkEmailReadRounded';
+import ModelTrainingRoundedIcon from '@mui/icons-material/ModelTrainingRounded';
+import AssessmentRoundedIcon from '@mui/icons-material/AssessmentRounded';
+import ShieldRoundedIcon from '@mui/icons-material/ShieldRounded';
+
+// Updated content focused on phishing awareness
 const items = [
   {
-    icon: <SettingsSuggestRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Adaptable performance',
+    icon: <MarkEmailReadRoundedIcon sx={{ color: 'text.secondary' }} />,
+    title: 'Realistic Phishing Simulations',
     description:
-      'Our product effortlessly adjusts to your needs, boosting efficiency and simplifying your tasks.',
+      'Test your team with authentic-looking phishing templates, from common scams to sophisticated spear-phishing attacks.',
   },
   {
-    icon: <ConstructionRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Built to last',
+    icon: <ModelTrainingRoundedIcon sx={{ color: 'text.secondary' }} />,
+    title: 'Automated Training Workflows',
     description:
-      'Experience unmatched durability that goes above and beyond with lasting investment.',
+      'Automatically enroll users who fall for a simulation into engaging, gamified training modules to reinforce learning.',
   },
   {
-    icon: <ThumbUpAltRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Great user experience',
+    icon: <AssessmentRoundedIcon sx={{ color: 'text.secondary' }} />,
+    title: 'Actionable Reporting & Insights',
     description:
-      'Integrate our product into your routine with an intuitive and easy-to-use interface.',
+      "Gain a clear view of your organization's security posture with detailed reports on campaign performance and user progress.",
   },
   {
-    icon: <AutoFixHighRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Innovative functionality',
+    icon: <ShieldRoundedIcon sx={{ color: 'text.secondary' }} />,
+    title: 'Strengthen Your Human Firewall',
     description:
-      'Stay ahead with features that set new standards, addressing your evolving needs better than the rest.',
+      'Empower your employees to become the first line of defense against cyber threats, reducing risk and protecting sensitive data.',
   },
 ];
 
