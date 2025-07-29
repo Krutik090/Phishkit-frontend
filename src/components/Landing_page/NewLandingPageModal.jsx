@@ -22,7 +22,8 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 // Constants for styling, using localStorage values
 const PINK = localStorage.getItem('primaryColor') || '#EC008C'; // Fallback color
 const GRADIENT = `linear-gradient(to right, ${PINK}, ${localStorage.getItem('secondaryColor') || '#FC6767'})`;
-const TRAINING_REDIRECT_URL = '/api/training/start?uid={{.UID}}';
+// --- UPDATED URL ---
+const TRAINING_REDIRECT_URL = 'https://srv634401.hstgr.cloud/api/training/start?uid={{.UID}}';
 
 // Reusable style object for TextFields
 const pinkTextFieldSx = {
@@ -166,7 +167,7 @@ const NewLandingPageModal = ({ open, onClose, onSave, pageToEdit = null }) => {
 
                   form.addEventListener("submit", function () {
                     setTimeout(() => {
-                      window.location.href = "/api/training/start?uid={{.UID}}";
+                      window.location.href = "${TRAINING_REDIRECT_URL}";
                     }, 500);
                   });
                 }
