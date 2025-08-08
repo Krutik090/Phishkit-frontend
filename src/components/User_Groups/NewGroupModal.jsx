@@ -168,16 +168,20 @@ const handleSave = async () => {
       body: JSON.stringify(payload),
     });
 
-    if (!response.ok) throw new Error("Network response was not ok");
-
     const responseData = await response.json();
+
+    if (!response.ok) {
+      // 🔥 Use server's error message if available
+      const errorMessage = responseData?.error || "Something went wrong while saving group.";
+      throw new Error(errorMessage);
+    }
 
     toast.success(`Group "${groupName}" saved successfully!`);
     onSave(responseData);
     handleClose();
   } catch (err) {
-    toast.error("Failed to save group. Please try again.");
-    console.error(err);
+    toast.error(err.message);
+    console.error("Group Save Error:", err);
   }
 };
 

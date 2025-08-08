@@ -23,6 +23,8 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import QuizIcon from "@mui/icons-material/Quiz";
 import axios from "axios";
+import DashboardIcon from '@mui/icons-material/Dashboard'; // or your icon set
+import AssessmentIcon from '@mui/icons-material/Assessment'; // Example icon for advanced stats
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const { darkMode, setDarkMode } = useTheme();
@@ -237,9 +239,11 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       >
         {/* Always show Dashboard */}
         {renderMenuItem({ label: "Dashboard", icon: <FaTachometerAlt />, path: "/dashboard", exact: false })}
+        {/* {renderMenuItem({ label: "Advance Dashboard", icon: <FaTachometerAlt />, path: "/AdvancedDashboard", exact: false })} */}
 
         {/* Show Campaigns for read-only users */}
         {isReadOnly && renderMenuItem({ label: "Campaigns", icon: <FaTable />, path: "/campaigns" })}
+        {renderMenuItem({ label: "Projects", icon: <FaUsers />, path: "/projects" })}
 
         {/* Show full menu only if user is NOT read-only */}
         {!isReadOnly && (
@@ -252,7 +256,6 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
                 adminOpen,
                 setAdminOpen,
                 <>
-                  {renderMenuItem({ label: "Projects", icon: <FaUsers />, path: "/projects" })}
                   {renderMenuItem({ label: "User Management", icon: <FaUsers />, path: "/user-management" })}
                   {renderMenuItem({ label: "Database", icon: <FaDatabase />, path: "/database" })}
                   {/* {renderMenuItem({ label: "Audit Logs", icon: <FaKey />, path: "/audit-logs" })} */}

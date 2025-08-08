@@ -15,11 +15,13 @@ import "datatables.net";
 import "datatables.net-dt/css/dataTables.dataTables.min.css";
 
 import NewProjectModal from "./NewProjectModal";
+import { useAuth } from "../../context/AuthContext"; // Adjust path if needed
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 const FILE_BASE_URL = API_BASE_URL.replace("/api", "");
 
 const Projects = () => {
+  const { user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState({ name: "", certificateFile: null });
@@ -164,12 +166,14 @@ const Projects = () => {
   };
 
   return (
-    <Box p={3}>
-      <Box>
-        <Box display="flex" justifyContent="space-between" mb={3}>
-          <Typography variant="h5" fontWeight="bold">
-            📁 Projects
-          </Typography>
+  <Box p={3}>
+    <Box>
+      <Box display="flex" justifyContent="space-between" mb={3}>
+        <Typography variant="h5" fontWeight="bold">
+          📁 Projects
+        </Typography>
+
+        {(user?.role === "admin" || user?.role === "superadmin") && (
           <Button
             variant="contained"
             onClick={handleOpenModal}
@@ -185,157 +189,159 @@ const Projects = () => {
           >
             Add Project
           </Button>
-        </Box>
-
-        <table
-          ref={tableRef}
-          className="display stripe"
-          style={{
-            width: "100%",
-            textAlign: "center",
-            borderCollapse: "collapse",
-            border: "1px solid #ddd",
-          }}
-        >
-          <thead>
-            <tr>
-              {[
-                "Project Name", "Campaigns", "Sent", "Failed", "Clicked",
-                "Submitted Data", "Quiz Started", "Quiz Completed", "Created At",
-                "Certificate", "Upload", "Action"
-              ].map((header, idx) => (
-                <th
-                  key={idx}
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "8px",
-                    textAlign: "center",
-                    verticalAlign: "middle",
-                  }}
-                >
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {projects.map((project, idx) => (
-              <tr key={idx}>
-                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>
-                  <Link to={`/projects/${project._id}`} style={{ color: localStorage.getItem('primaryColor'), fontWeight: "bold", textDecoration: "none" }}>
-                  {project.name}
-                  </Link>
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{Array.isArray(project.campaigns) ? project.campaigns.join(", ") : "—"}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.emailSent ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.emailFailed ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.linkClicked ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.submitted_data ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.quizStarted ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{project.quizCompleted ?? 0}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>{new Date(project.createdAt).toLocaleString()}</td>
-                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>
-                  {project.certificateTemplatePath ? (
-                    <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
-                      <Typography color="green">Uploaded</Typography>
-                      <Tooltip title="View">
-                        <IconButton size="small" onClick={() => handlePreview(project.certificateTemplatePath)}>
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  ) : "N/A"}
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  <Tooltip title="Upload Certificate">
-                    <IconButton size="small" component="label">
-                      <UploadFileIcon />
-                      <input
-                        hidden
-                        type="file"
-                        accept=".ppt,.pptx,.pdf"
-                        onChange={(e) => handleUploadCertificate(project._id, e.target.files[0])}
-                      />
-                    </IconButton>
-                  </Tooltip>
-                </td>
-                <td style={{ border: "1px solid #ddd", padding: "8px", textAlign: "center" }}>
-                  <Tooltip title="Delete Project">
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => handleDeleteClick(project)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Tooltip>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        )}
       </Box>
 
-      <NewProjectModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        formData={formData}
-        setFormData={setFormData}
-        refreshProjects={fetchProjects}
-      />
-
-      <Dialog open={previewDialogOpen} onClose={() => setPreviewDialogOpen(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>📄 Certificate Template Preview</DialogTitle>
-        <DialogContent dividers>
-          {previewUrl?.toLowerCase().endsWith(".pdf") ? (
-            <iframe src={previewUrl} title="PDF Preview" width="100%" height="600px" style={{ border: "none" }} />
-          ) : previewUrl?.toLowerCase().endsWith(".ppt") || previewUrl?.toLowerCase().endsWith(".pptx") ? (
-            <Typography>
-              PowerPoint file preview is not supported.{" "}
-              <a href={previewUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#ec008c" }}>
-                Click here to download and view
-              </a>.
-            </Typography>
-          ) : (
-            <Typography color="error">Unsupported file format.</Typography>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={handleDeleteCancel}
-        maxWidth="sm"
-        fullWidth
+      <table
+        ref={tableRef}
+        className="display stripe"
+        style={{
+          width: "100%",
+          textAlign: "center",
+          borderCollapse: "collapse",
+          border: "1px solid #ddd",
+        }}
       >
-        <DialogTitle>🗑️ Delete Project</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete the project "{projectToDelete?.name}"? 
-            This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button 
-            onClick={handleDeleteCancel}
-            variant="outlined"
-            sx={{ textTransform: "none" }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleDeleteConfirm}
-            variant="contained"
-            color="error"
-            sx={{ textTransform: "none" }}
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <thead>
+          <tr>
+            {[
+              "Project Name", "Campaigns", "Sent", "Failed", "Clicked",
+              "Submitted Data", "Quiz Started", "Quiz Completed", "Created At",
+              "Certificate", ...(user?.role === "admin" || user?.role === "superadmin" ? ["Upload", "Action"] : [])
+            ].map((header, idx) => (
+              <th
+                key={idx}
+                style={{
+                  border: "1px solid #ccc",
+                  padding: "8px",
+                  textAlign: "center",
+                  verticalAlign: "middle",
+                }}
+              >
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {projects.map((project, idx) => (
+            <tr key={idx}>
+              <td style={{ border: "1px solid #ddd",textAlign: "center", verticalAlign: "middle", padding: "8px" }}>
+                <Link
+                  to={`/projects/${project._id}`}
+                  style={{
+                    color: localStorage.getItem("primaryColor"),
+                    fontWeight: "bold",
+                    textDecoration: "none",
+                  }}
+                >
+                  {project.name}
+                </Link>
+              </td>
+              <td style={{ border: "1px solid #ddd",textAlign: "center", verticalAlign: "middle", padding: "8px" }}>
+                {Array.isArray(project.campaigns) ? project.campaigns.join(", ") : "—"}
+              </td>
+              <td style={{ border: "1px solid #ddd", textAlign: "center", verticalAlign: "middle", padding: "8px" }}>{project.emailSent ?? 0}</td>
+              <td style={{ border: "1px solid #ddd",textAlign: "center", verticalAlign: "middle", padding: "8px" }}>{project.emailFailed ?? 0}</td>
+              <td style={{ border: "1px solid #ddd",textAlign: "center", verticalAlign: "middle", padding: "8px" }}>{project.linkClicked ?? 0}</td>
+              <td style={{ border: "1px solid #ddd",textAlign: "center", verticalAlign: "middle", padding: "8px" }}>{project.submitted_data ?? 0}</td>
+              <td style={{ border: "1px solid #ddd",textAlign: "center", verticalAlign: "middle", padding: "8px" }}>{project.quizStarted ?? 0}</td>
+              <td style={{ border: "1px solid #ddd",textAlign: "center", verticalAlign: "middle", padding: "8px" }}>{project.quizCompleted ?? 0}</td>
+              <td style={{ border: "1px solid #ddd",textAlign: "center", verticalAlign: "middle", padding: "8px" }}>{new Date(project.createdAt).toLocaleString()}</td>
+              <td style={{ border: "1px solid #ddd",textAlign: "center", verticalAlign: "middle", padding: "8px" }}>
+                {project.certificateTemplatePath ? (
+                  <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
+                    <Typography color="green">Uploaded</Typography>
+                    <Tooltip title="View">
+                      <IconButton size="small" onClick={() => handlePreview(project.certificateTemplatePath)}>
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                ) : "N/A"}
+              </td>
+
+              {/* Only show upload and delete buttons to admin/superadmin */}
+              {(user?.role === "admin" || user?.role === "superadmin") && (
+                <>
+                  <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                    <Tooltip title="Upload Certificate">
+                      <IconButton size="small" component="label">
+                        <UploadFileIcon />
+                        <input
+                          hidden
+                          type="file"
+                          accept=".ppt,.pptx,.pdf"
+                          onChange={(e) => handleUploadCertificate(project._id, e.target.files[0])}
+                        />
+                      </IconButton>
+                    </Tooltip>
+                  </td>
+                  <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                    <Tooltip title="Delete Project">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleDeleteClick(project)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </td>
+                </>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </Box>
-  );
+
+    {/* Modal and Dialogs – unchanged */}
+    <NewProjectModal
+      open={modalOpen}
+      onClose={() => setModalOpen(false)}
+      formData={formData}
+      setFormData={setFormData}
+      refreshProjects={fetchProjects}
+    />
+
+    <Dialog open={previewDialogOpen} onClose={() => setPreviewDialogOpen(false)} maxWidth="lg" fullWidth>
+      <DialogTitle>📄 Certificate Template Preview</DialogTitle>
+      <DialogContent dividers>
+        {previewUrl?.toLowerCase().endsWith(".pdf") ? (
+          <iframe src={previewUrl} title="PDF Preview" width="100%" height="600px" style={{ border: "none" }} />
+        ) : previewUrl?.toLowerCase().endsWith(".ppt") || previewUrl?.toLowerCase().endsWith(".pptx") ? (
+          <Typography>
+            PowerPoint file preview is not supported.{" "}
+            <a href={previewUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#ec008c" }}>
+              Click here to download and view
+            </a>.
+          </Typography>
+        ) : (
+          <Typography color="error">Unsupported file format.</Typography>
+        )}
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel} maxWidth="sm" fullWidth>
+      <DialogTitle>🗑️ Delete Project</DialogTitle>
+      <DialogContent>
+        <Typography>
+          Are you sure you want to delete the project "{projectToDelete?.name}"? This action cannot be undone.
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleDeleteCancel} variant="outlined" sx={{ textTransform: "none" }}>
+          Cancel
+        </Button>
+        <Button onClick={handleDeleteConfirm} variant="contained" color="error" sx={{ textTransform: "none" }}>
+          Delete
+        </Button>
+      </DialogActions>
+    </Dialog>
+  </Box>
+);
+
 };
 
 export default Projects;
