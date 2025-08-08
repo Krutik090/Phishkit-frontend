@@ -180,7 +180,7 @@ const handleSave = async () => {
     onSave(responseData);
     handleClose();
   } catch (err) {
-    toast.error(err.message);
+    toast.warning(err.message);
     console.error("Group Save Error:", err);
   }
 };
