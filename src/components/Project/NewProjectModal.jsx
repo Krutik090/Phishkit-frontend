@@ -9,7 +9,7 @@ import {
   IconButton,
 } from "@mui/material";
 import { Close as CloseIcon, AddCircleOutline as AddCircleOutlineIcon } from "@mui/icons-material";
-import { advancedToast, toastMessages } from "../../utils/toast"; // Import advanced toast
+import { advancedToast, toastMessages } from "../../utils/toast.jsx"; // Import advanced toast
 import { useTheme } from "../../context/ThemeContext";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;

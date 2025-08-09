@@ -1,64 +1,67 @@
 import React from 'react';
-import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import { SitemarkIcon } from './SitemarkIcon'; // Assuming this is your brand logo
-
-// Importing new, more relevant icons
+import { Box, Stack, Typography, alpha } from '@mui/material';
+import { SitemarkIcon } from './SitemarkIcon';
 import MarkEmailReadRoundedIcon from '@mui/icons-material/MarkEmailReadRounded';
 import ModelTrainingRoundedIcon from '@mui/icons-material/ModelTrainingRounded';
 import AssessmentRoundedIcon from '@mui/icons-material/AssessmentRounded';
 import ShieldRoundedIcon from '@mui/icons-material/ShieldRounded';
+import { useTheme } from '../../context/ThemeContext';
 
-// Updated content focused on phishing awareness
 const items = [
   {
-    icon: <MarkEmailReadRoundedIcon sx={{ color: 'text.secondary' }} />,
+    icon: <MarkEmailReadRoundedIcon />,
     title: 'Realistic Phishing Simulations',
-    description:
-      'Test your team with authentic-looking phishing templates, from common scams to sophisticated spear-phishing attacks.',
+    description: 'Test your team with authentic-looking phishing templates, from common scams to sophisticated attacks.',
   },
   {
-    icon: <ModelTrainingRoundedIcon sx={{ color: 'text.secondary' }} />,
+    icon: <ModelTrainingRoundedIcon />,
     title: 'Automated Training Workflows',
-    description:
-      'Automatically enroll users who fall for a simulation into engaging, gamified training modules to reinforce learning.',
+    description: 'Automatically enroll users who fall for a simulation into engaging, gamified training modules.',
   },
   {
-    icon: <AssessmentRoundedIcon sx={{ color: 'text.secondary' }} />,
+    icon: <AssessmentRoundedIcon />,
     title: 'Actionable Reporting & Insights',
-    description:
-      "Gain a clear view of your organization's security posture with detailed reports on campaign performance and user progress.",
+    description: "Gain a clear view of your organization's security posture with detailed reports on performance.",
   },
   {
-    icon: <ShieldRoundedIcon sx={{ color: 'text.secondary' }} />,
+    icon: <ShieldRoundedIcon />,
     title: 'Strengthen Your Human Firewall',
-    description:
-      'Empower your employees to become the first line of defense against cyber threats, reducing risk and protecting sensitive data.',
+    description: 'Empower your employees to become the first line of defense against cyber threats.',
   },
 ];
 
 export default function Content() {
+  const { darkMode } = useTheme();
   return (
-    <Stack
-      sx={{ flexDirection: 'column', alignSelf: 'center', gap: 4, maxWidth: 450 }}
-    >
-      <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+    <Stack sx={{ gap: 4 }}>
+      <Box sx={{ display: { xs: 'none', md: 'flex' }, mb: 2 }}>
         <SitemarkIcon />
       </Box>
-      {items.map((item, index) => (
-        <Stack key={index} direction="row" sx={{ gap: 2 }}>
-          {item.icon}
-          <div>
-            <Typography gutterBottom sx={{ fontWeight: 'medium' }}>
-              {item.title}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {item.description}
-            </Typography>
-          </div>
-        </Stack>
-      ))}
+      <Typography variant="h4" fontWeight="bold">
+        Build a Resilient Organization
+      </Typography>
+      <Typography color="text.secondary">
+        Our platform empowers you to train your team, identify risks, and build a strong security culture from the inside out.
+      </Typography>
+      <Stack sx={{ gap: 3, mt: 2 }}>
+        {items.map((item, index) => (
+          <Stack key={index} direction="row" sx={{ gap: 2, alignItems: 'center' }}>
+            <Box sx={{
+                display: 'flex',
+                p: 1.5,
+                borderRadius: '50%',
+                background: darkMode ? alpha('#ec008c', 0.1) : alpha('#ec008c', 0.1),
+                color: '#ec008c'
+            }}>
+              {item.icon}
+            </Box>
+            <Box>
+              <Typography fontWeight="medium">{item.title}</Typography>
+              <Typography variant="body2" color="text.secondary">{item.description}</Typography>
+            </Box>
+          </Stack>
+        ))}
+      </Stack>
     </Stack>
   );
 }

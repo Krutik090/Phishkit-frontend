@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import {
   Box, Button, Typography, IconButton, Tooltip, Dialog,
-  DialogTitle, DialogContent, DialogActions, alpha, Paper
+  DialogTitle, DialogContent, DialogActions, alpha, Paper, DialogContentText
 } from "@mui/material";
 import {
   UploadFile as UploadFileIcon,
@@ -160,7 +160,7 @@ const Projects = () => {
       headerAlign: 'center',
       getActions: (params) => [
         <Tooltip title="Upload Certificate" key="upload">
-          <IconButton size="small" component="label">
+          <IconButton size="small" component="label" sx={{ color: darkMode ? '#66bb6a' : '#2e7d32' }}>
             <UploadFileIcon fontSize="small" />
             <input
               hidden
@@ -171,18 +171,7 @@ const Projects = () => {
           </IconButton>
         </Tooltip>,
         <Tooltip title="Delete Project" key="delete">
-          <IconButton
-            size="small"
-            sx={{
-              color: '#fff',
-              backgroundColor: '#f44336',
-              '&:hover': {
-                backgroundColor: '#d32f2f',
-              },
-              ml: 1,
-            }}
-            onClick={() => handleDeleteClick(params.row)}
-          >
+          <IconButton size="small" onClick={() => handleDeleteClick(params.row)} sx={{ color: darkMode ? '#ef5350' : '#d32f2f' }}>
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Tooltip>,
@@ -223,7 +212,7 @@ const Projects = () => {
             color: darkMode ? 'grey.100' : 'grey.900'
           }}
         >
-          <FolderIcon sx={{ color: darkMode ? 'grey.100' : 'grey.900' }} /> Projects
+          <FolderIcon /> Projects
         </Typography>
         {(user?.role === "admin" || user?.role === "superadmin") && (
           <Button
@@ -259,67 +248,34 @@ const Projects = () => {
             borderRadius: '16px',
             border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
             color: darkMode ? 'grey.300' : 'grey.800',
-
-            // FIXED: Much darker column header background for dark mode
-            '& .MuiDataGrid-columnHeaders': {
-              backgroundColor: darkMode ? '#0f0f1a' : '#f5f5f5', // Changed from #23233a to #0f0f1a (much darker)
-              color: darkMode ? '#ffffff' : '#222', // Changed to pure white for better contrast
-              borderBottom: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`, // Added border for better separation
-              '& .MuiDataGrid-columnSeparator': {
-                color: darkMode ? '#444' : '#e0e0e0',
-              }
-            },
-
-            '& .MuiDataGrid-columnHeaderTitle': {
-              fontWeight: 'bold',
-              color: darkMode ? '#ffffff' : '#222', // Changed to pure white for dark mode
-            },
-
-            // Additional styling for column header cells
-            '& .MuiDataGrid-columnHeader': {
+            '& .MuiDataGrid-columnHeaders, & .MuiDataGrid-columnHeader, & .MuiDataGrid-columnHeaderTitle': {
               backgroundColor: darkMode ? '#0f0f1a' : '#f5f5f5',
-              '&:focus': {
-                outline: 'none',
-              },
-              '&:focus-within': {
-                outline: 'none',
-              }
+              color: darkMode ? '#ffffff' : '#222',
+              borderBottom: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`,
             },
-
-            '& .MuiDataGrid-cell': {
-              borderBottom: `1px solid ${darkMode ? alpha('#fff', 0.08) : alpha('#000', 0.08)}`,
-              color: darkMode ? 'grey.200' : 'grey.800',
+            '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 'bold' },
+            '& .MuiDataGrid-iconButton, & .MuiDataGrid-menuIcon': { color: darkMode ? '#ffffff' : '#666' },
+            '& .MuiDataGrid-cell': { borderBottom: `1px solid ${darkMode ? alpha('#fff', 0.08) : alpha('#000', 0.08)}` },
+            '& .MuiDataGrid-footerContainer': { borderTop: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.15)}`, backgroundColor: darkMode ? '#1a1a2e' : '#fafafa' },
+            '& .MuiTablePagination-root, & .MuiIconButton-root': { color: darkMode ? 'grey.300' : 'grey.800' },
+            '& .MuiDataGrid-row:hover': { backgroundColor: darkMode ? alpha('#fff', 0.05) : alpha('#000', 0.05) },
+            '& .MuiDataGrid-overlay': { color: darkMode ? 'grey.300' : 'grey.800', backgroundColor: darkMode ? alpha('#1e1e2f', 0.5) : alpha('#ffffff', 0.5) },
+            '&.MuiDataGrid-root, & .MuiDataGrid-cell, & .MuiDataGrid-columnHeaders': { border: 'none' },
+            
+            // Custom Scrollbar Styling
+            '& .MuiDataGrid-virtualScroller::-webkit-scrollbar': {
+              height: '8px',
             },
-
-            '& .MuiDataGrid-footerContainer': {
-              borderTop: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.15)}`,
-              backgroundColor: darkMode ? '#1a1a2e' : '#fafafa',
+            '& .MuiDataGrid-virtualScroller::-webkit-scrollbar-track': {
+              background: darkMode ? '#2e2e42' : '#f1f1f1',
+              borderRadius: '4px',
             },
-
-            '& .MuiTablePagination-root, & .MuiIconButton-root': {
-              color: darkMode ? 'grey.300' : 'grey.800',
+            '& .MuiDataGrid-virtualScroller::-webkit-scrollbar-thumb': {
+              background: darkMode ? '#555' : '#888',
+              borderRadius: '4px',
             },
-
-            '& .MuiDataGrid-row:hover': {
-              backgroundColor: darkMode ? alpha('#fff', 0.05) : alpha('#000', 0.05),
-            },
-
-            '& .MuiDataGrid-overlay': {
-              color: darkMode ? 'grey.300' : 'grey.800',
-            },
-
-            '&.MuiDataGrid-root, & .MuiDataGrid-cell': {
-              border: 'none',
-            },
-
-            // Ensure sort icons are visible
-            '& .MuiDataGrid-sortIcon': {
-              color: darkMode ? '#ffffff' : '#666',
-            },
-
-            // Menu icon styling
-            '& .MuiDataGrid-menuIcon': {
-              color: darkMode ? '#ffffff' : '#666',
+            '& .MuiDataGrid-virtualScroller::-webkit-scrollbar-thumb:hover': {
+              background: darkMode ? '#777' : '#555',
             },
           }}
         />
@@ -340,15 +296,27 @@ const Projects = () => {
           )}
         </DialogContent>
       </Dialog>
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="sm">
-        <DialogTitle>🗑️ Confirm Deletion</DialogTitle>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        PaperProps={{
+            sx: {
+                borderRadius: '20px',
+                background: darkMode ? alpha("#1a1a2e", 0.9) : alpha("#ffffff", 0.9),
+                backdropFilter: 'blur(16px)',
+                border: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.1)}`,
+                color: darkMode ? 'grey.100' : 'grey.800',
+            }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold' }}>🗑️ Confirm Deletion</DialogTitle>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete the project "{projectToDelete?.name}"? This cannot be undone.
-          </Typography>
+          <DialogContentText sx={{ color: darkMode ? 'grey.300' : 'grey.700' }}>
+            Are you sure you want to delete the project <strong>"{projectToDelete?.name}"</strong>? This action cannot be undone.
+          </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ color: darkMode ? 'grey.400' : 'grey.600' }}>Cancel</Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">Delete</Button>
         </DialogActions>
       </Dialog>
