@@ -1,323 +1,230 @@
-import React, { useEffect, useState } from "react";
-import { Box, IconButton, Tooltip } from "@mui/material";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { Box, IconButton, Tooltip, Collapse, Avatar, Typography } from "@mui/material";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
-import {
-  FaTable,
-  FaEnvelope,
-  FaFileAlt,
-  FaGlobe,
-  FaUsers,
-  FaCog,
-  FaMoon,
-  FaSun,
-  FaChevronLeft,
-  FaChevronRight,
-  FaTachometerAlt,
-  FaChevronDown,
-  FaChevronUp,
-  FaDatabase,
-  FaKey,
-  FaSignOutAlt,
-} from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
-import QuizIcon from "@mui/icons-material/Quiz";
 import axios from "axios";
-import DashboardIcon from '@mui/icons-material/Dashboard'; // or your icon set
-import AssessmentIcon from '@mui/icons-material/Assessment'; // Example icon for advanced stats
+import {
+  FaTable, FaEnvelope, FaFileAlt, FaGlobe, FaUsers, FaCog,
+  FaTachometerAlt, FaChevronDown, FaChevronUp, FaDatabase, FaSignOutAlt,
+  FaBars
+} from "react-icons/fa";
+import QuizIcon from "@mui/icons-material/Quiz";
 
-const Sidebar = ({ collapsed, setCollapsed }) => {
-  const { darkMode, setDarkMode } = useTheme();
-  const { user, logout } = useAuth(); // Added logout from useAuth
+// --- DATA CONFIGURATION ---
+const menuConfig = [
+  { label: "Dashboard", icon: <FaTachometerAlt />, path: "/dashboard", allowedRoles: [] },
+  { label: "Projects", icon: <FaUsers />, path: "/projects", allowedRoles: [] },
+  {
+    label: "Admin",
+    icon: <FaUsers />,
+    allowedRoles: ["admin", "superadmin"],
+    children: [
+      { label: "User Management", icon: <FaUsers />, path: "/user-management", allowedRoles: ["admin", "superadmin"] },
+      { label: "Database", icon: <FaDatabase />, path: "/database", allowedRoles: ["admin", "superadmin"] },
+      { label: "Super Admin", icon: <FaUsers />, path: "/super-admin", allowedRoles: ["superadmin"] },
+    ],
+  },
+  {
+    label: "General",
+    icon: <FaCog />,
+    allowedRoles: ["admin", "superadmin", "editor"],
+    children: [
+      { label: "Campaigns", icon: <FaTable />, path: "/campaigns", allowedRoles: [] },
+      { label: "Templates", icon: <FaFileAlt />, path: "/templates", allowedRoles: [] },
+      { label: "Landing Pages", icon: <FaGlobe />, path: "/landing-pages", allowedRoles: [] },
+      { label: "Sending Profiles", icon: <FaEnvelope />, path: "/sending-profiles", allowedRoles: [] },
+      { label: "Users & Groups", icon: <FaUsers />, path: "/users-groups", allowedRoles: [] },
+    ],
+  },
+  {
+    label: "Extra",
+    icon: <FaFileAlt />,
+    allowedRoles: ["admin", "superadmin", "editor"],
+    children: [
+      { label: "Quiz", icon: <QuizIcon fontSize="small" />, path: "/quizz", allowedRoles: [] },
+      { label: "Training", icon: <FaFileAlt />, path: "/training", newTab: true, allowedRoles: [] },
+    ],
+  },
+  { label: "Settings", icon: <FaCog />, path: "/settings", allowedRoles: [] },
+];
+
+// --- STYLED COMPONENTS ---
+const SidebarMenuItem = React.memo(({ item, isSidebarOpen, isActive }) => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { darkMode } = useTheme();
 
-  // Initialize states from localStorage or default to false
-  const [generalOpen, setGeneralOpen] = useState(() => {
-    const saved = localStorage.getItem('generalOpen');
-    return saved ? JSON.parse(saved) : false;
-  });
-  const [extraOpen, setExtraOpen] = useState(() => {
-    const saved = localStorage.getItem('extraOpen');
-    return saved ? JSON.parse(saved) : false;
-  });
-  const [adminOpen, setAdminOpen] = useState(() => {
-    const saved = localStorage.getItem('adminOpen');
-    return saved ? JSON.parse(saved) : false;
-  });
+  const handleClick = useCallback(() => {
+    if (item.newTab) window.open(item.path, "_blank", "noopener,noreferrer");
+    else navigate(item.path);
+  }, [navigate, item.path, item.newTab]);
 
-  // Save states to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('generalOpen', JSON.stringify(generalOpen));
-  }, [generalOpen]);
-
-  useEffect(() => {
-    localStorage.setItem('extraOpen', JSON.stringify(extraOpen));
-  }, [extraOpen]);
-
-  useEffect(() => {
-    localStorage.setItem('adminOpen', JSON.stringify(adminOpen));
-  }, [adminOpen]);
-
-  // Get user permissions
-  const isReadOnly = user?.isReadOnly === true;
-  const isAdmin = user?.role === "admin" || user?.role === "superadmin";
-  const isSuperAdmin = user?.role === "superadmin";
-
-  const bgColor = darkMode ? "#1e1e2f" : "#ffffff";
-  const textColor = darkMode ? "#ffffffcc" : "#333333";
-  const primaryColor = localStorage.getItem("primaryColor");
-  const activeBg = darkMode ? primaryColor : primaryColor + "33";
-  const activeText = darkMode ? "#ffffff" : primaryColor;
-
-  useEffect(() => {
-    const fetchThemeColors = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/auth/theme-color`, {
-          withCredentials: true,
-        });
-        const { primaryColor, secondaryColor } = response.data;
-
-        if (primaryColor) localStorage.setItem("primaryColor", primaryColor);
-        if (secondaryColor) localStorage.setItem("secondaryColor", secondaryColor);
-      } catch (error) {
-        console.error("Error fetching theme colors:", error);
-      }
-    };
-
-    fetchThemeColors();
-  }, []);
-
-  const renderMenuItem = (item) => {
-    const isActive = item.exact === false
-      ? location.pathname.startsWith(item.path)
-      : location.pathname === item.path;
-
-    return (
-      <Tooltip title={collapsed ? item.label : ""} placement="right" arrow key={item.label}>
-        <Box
-          onClick={() => {
-            if (item.newTab) {
-              window.open(item.path, "_blank", "noopener,noreferrer");
-            } else {
-              navigate(item.path);
-            }
-          }}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: collapsed ? 0 : 1.5,
-            px: 2,
-            py: 1.5,
-            my: 1,
-            borderRadius: "10px",
-            cursor: "pointer",
-            backgroundColor: isActive ? activeBg : "transparent",
-            color: isActive ? activeText : textColor,
-            fontWeight: isActive ? "bold" : "normal",
-            position: "relative",
-            overflow: "hidden",
-            transition: "all 0.2s ease-in-out",
-            justifyContent: collapsed ? "center" : "flex-start",
-            "&::before": {
-              content: '""',
-              position: "absolute",
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: "4px",
-              backgroundColor: primaryColor,
-              transform: isActive ? "scaleY(1)" : "scaleY(0)",
-              transition: "transform 0.3s ease-in-out",
-              transformOrigin: "top",
-              borderRadius: "4px",
-            },
-            "&:hover::before": {
-              transform: "scaleY(1)",
-            },
-          }}
-        >
-          <Box sx={{ fontSize: 18 }}>{item.icon}</Box>
-          {!collapsed && <Box sx={{ fontSize: '14px' }}>{item.label}</Box>}
-        </Box>
-      </Tooltip>
-    );
-  };
-
-  const renderDropdown = (label, icon, open, setOpen, children) => (
-    <Box>
+  return (
+    <Tooltip title={!isSidebarOpen ? item.label : ""} placement="right" arrow>
       <Box
-        onClick={() => setOpen(!open)}
+        onClick={handleClick}
         sx={{
-          display: "flex",
-          alignItems: "center",
-          px: 2,
-          py: 1.5,
-          my: 1,
-          cursor: "pointer",
-          borderRadius: "10px",
-          color: textColor,
-          justifyContent: collapsed ? "center" : "space-between",
-          backgroundColor: "transparent",
-          "&:hover": {
-            backgroundColor: darkMode ? "#292940" : "#f5f5f5",
+          display: "flex", alignItems: "center", gap: 2,
+          p: 1.5, mx: 1, my: 0.5, borderRadius: '12px', cursor: "pointer",
+          color: isActive ? '#fff' : (darkMode ? 'grey.400' : 'grey.700'),
+          background: isActive 
+            ? 'linear-gradient(90deg, rgba(236,0,140,0.7) 0%, rgba(255,105,180,0.5) 100%)' 
+            : 'transparent',
+          transition: "all 0.2s ease",
+          justifyContent: isSidebarOpen ? "flex-start" : "center",
+          '&:hover': {
+            background: isActive 
+              ? 'linear-gradient(90deg, rgba(236,0,140,0.8) 0%, rgba(255,105,180,0.6) 100%)' 
+              : (darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'),
+            color: isActive ? '#fff' : (darkMode ? 'grey.200' : 'grey.900'),
           },
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Box sx={{ fontSize: 20 }}>{icon}</Box>
-          {!collapsed && <span style={{ fontSize: '14px' }}>{label}</span>}
-        </Box>
-        {!collapsed && (open ? <FaChevronUp /> : <FaChevronDown />)}
+        <Box sx={{ fontSize: 18, display: 'flex' }}>{item.icon}</Box>
+        {isSidebarOpen && <Typography variant="body2" sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{item.label}</Typography>}
       </Box>
-      {!collapsed && open && <Box sx={{ pl: 2 }}>{children}</Box>}
-    </Box>
+    </Tooltip>
   );
+});
 
-  const handleLogout = async () => {
+// --- MAIN SIDEBAR COMPONENT ---
+const Sidebar = ({ isSidebarOpen, toggleSidebar }) => {
+  const { darkMode } = useTheme();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [openMenus, setOpenMenus] = useState(() => {
     try {
-      await logout();
-      navigate("/login");
-    } catch (err) {
-      console.error("Logout failed:", err);
-      navigate("/login"); // Navigate anyway
+      return JSON.parse(localStorage.getItem('sidebarMenuState') || '{}');
+    } catch {
+      return {};
     }
-  };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sidebarMenuState', JSON.stringify(openMenus));
+  }, [openMenus]);
+
+  const handleToggleMenu = useCallback((label) => {
+    setOpenMenus(prev => ({ ...prev, [label]: !prev[label] }));
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    await logout();
+    navigate("/login");
+  }, [logout, navigate]);
+
+  const userEffectiveRoles = useMemo(() => {
+    const roles = new Set();
+    if (user?.isReadOnly) roles.add('readonly');
+    else roles.add('editor');
+    if (user?.role) roles.add(user.role);
+    return roles;
+  }, [user]);
+
+  const canView = useCallback((item) => {
+    const { allowedRoles } = item;
+    if (!allowedRoles || allowedRoles.length === 0) return true;
+    if (userEffectiveRoles.has('readonly')) {
+      return ['/dashboard', '/projects', '/campaigns', '/settings'].includes(item.path);
+    }
+    return allowedRoles.some(role => userEffectiveRoles.has(role));
+  }, [userEffectiveRoles]);
+
+  const renderMenuItems = useCallback((items) => {
+    return items.filter(canView).map((item) => {
+      const isActive = item.path && location.pathname.startsWith(item.path);
+      if (item.children) {
+        return (
+          <Box key={item.label}>
+            <Tooltip title={!isSidebarOpen ? item.label : ""} placement="right" arrow>
+              <Box onClick={() => handleToggleMenu(item.label)} sx={{
+                display: "flex", alignItems: "center", p: 1.5, mx: 1, my: 0.5,
+                cursor: "pointer", borderRadius: "12px",
+                color: darkMode ? 'grey.400' : 'grey.700',
+                justifyContent: isSidebarOpen ? "space-between" : "center",
+                '&:hover': { background: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', color: darkMode ? 'grey.200' : 'grey.900' },
+              }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Box sx={{ fontSize: 20, display: 'flex' }}>{item.icon}</Box>
+                  {isSidebarOpen && <Typography variant="body2" sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{item.label}</Typography>}
+                </Box>
+                {isSidebarOpen && (openMenus[item.label] ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />)}
+              </Box>
+            </Tooltip>
+            <Collapse in={openMenus[item.label] && isSidebarOpen} timeout="auto" unmountOnExit>
+              <Box sx={{ borderLeft: `1px solid ${darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, ml: 3, pl: 1, py: 1 }}>
+                {renderMenuItems(item.children)}
+              </Box>
+            </Collapse>
+          </Box>
+        );
+      }
+      return <SidebarMenuItem key={item.path} item={item} isSidebarOpen={isSidebarOpen} isActive={isActive} />;
+    });
+  }, [isSidebarOpen, darkMode, location.pathname, openMenus, handleToggleMenu, canView]);
 
   return (
     <Box
       sx={{
-        width: collapsed ? 80 : { xs: 70, sm: 250 },
-        minWidth: collapsed ? 80 : { xs: 70, sm: 250 },
-        height: "100vh",
-        backgroundColor: bgColor,
-        color: textColor,
-        p: 2,
+        width: isSidebarOpen ? 260 : 88,
+        height: 'calc(100vh - 32px)',
+        m: 2,
+        p: 1,
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
-        // borderRight: `1px solid ${darkMode ? "#ec008c" : "#ec008c66"}`,
-        boxShadow: darkMode
-          ? "0 0 10px rgba(236, 0, 140, 0.3)"
-          : "0 0 10px rgba(236, 0, 140, 0.1)",
         position: "fixed",
         top: 0,
         left: 0,
-        zIndex: 1000,
-        transition: "all 0.3s ease-in-out",
+        zIndex: 1201,
+        borderRadius: '24px',
+        background: darkMode ? 'rgba(30, 30, 47, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+        backdropFilter: 'blur(12px)',
+        border: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.15)',
+        transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
       {/* Header */}
-      <Box sx={{ mb: 3, display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "space-between" }}>
-        {!collapsed && (
-          <Box sx={{ fontSize: "22px", marginLeft: "25px", fontWeight: "bold", pl: 1 }}>
+      <Box sx={{ p: 1, display: "flex", alignItems: "center", justifyContent: isSidebarOpen ? "space-between" : "center" }}>
+        {isSidebarOpen && (
+          <Typography variant="h6" sx={{ fontWeight: "bold", whiteSpace: 'nowrap', ml: 1 }}>
             Tribastion
-          </Box>
+          </Typography>
         )}
-        <IconButton onClick={() => setCollapsed(!collapsed)} size="small" sx={{ color: textColor }}>
-          {collapsed ? <FaChevronRight /> : <FaChevronLeft />}
+        <IconButton onClick={toggleSidebar} size="small" sx={{ color: darkMode ? 'grey.400' : 'grey.700' }}>
+          <FaBars />
         </IconButton>
       </Box>
 
       {/* Menu */}
-      <Box
-        sx={{
-          flexGrow: 1,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          maxHeight: 'calc(100vh - 200px)',
-          margin: '0 8px',
-          // Hide scrollbar completely
-          '&::-webkit-scrollbar': {
-            display: 'none',
-          },
-          // Firefox - hide scrollbar
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none', // IE and Edge
-        }}
-      >
-        {/* Always show Dashboard */}
-        {renderMenuItem({ label: "Dashboard", icon: <FaTachometerAlt />, path: "/dashboard", exact: false })}
-        {/* {renderMenuItem({ label: "Advance Dashboard", icon: <FaTachometerAlt />, path: "/AdvancedDashboard", exact: false })} */}
-
-        {/* Show Campaigns for read-only users */}
-        {isReadOnly && renderMenuItem({ label: "Campaigns", icon: <FaTable />, path: "/campaigns" })}
-        {renderMenuItem({ label: "Projects", icon: <FaUsers />, path: "/projects" })}
-
-        {/* Show full menu only if user is NOT read-only */}
-        {!isReadOnly && (
-          <>
-            {/* Admin Section - only for admin/superadmin */}
-            {(isAdmin || isSuperAdmin) &&
-              renderDropdown(
-                "Admin",
-                <FaUsers />,
-                adminOpen,
-                setAdminOpen,
-                <>
-                  {renderMenuItem({ label: "User Management", icon: <FaUsers />, path: "/user-management" })}
-                  {renderMenuItem({ label: "Database", icon: <FaDatabase />, path: "/database" })}
-                  {/* {renderMenuItem({ label: "Audit Logs", icon: <FaKey />, path: "/audit-logs" })} */}
-                  {isSuperAdmin && renderMenuItem({ label: "Super Admin", icon: <FaUsers />, path: "/super-admin" })}
-                </>
-              )}
-
-            {/* General Section */}
-            {renderDropdown(
-              "General",
-              <FaCog />,
-              generalOpen,
-              setGeneralOpen,
-              <>
-                {renderMenuItem({ label: "Campaigns", icon: <FaTable />, path: "/campaigns" })}
-                {renderMenuItem({ label: "Templates", icon: <FaFileAlt />, path: "/templates" })}
-                {renderMenuItem({ label: "Landing Pages", icon: <FaGlobe />, path: "/landing-pages" })}
-                {renderMenuItem({ label: "Sending Profiles", icon: <FaEnvelope />, path: "/sending-profiles" })}
-                {renderMenuItem({ label: "Users & Groups", icon: <FaUsers />, path: "/users-groups" })}
-              </>
-            )}
-
-            {/* Extra Section */}
-            {renderDropdown(
-              "Extra",
-              <FaFileAlt />,
-              extraOpen,
-              setExtraOpen,
-              <>
-                {renderMenuItem({ label: "Quiz", icon: <QuizIcon fontSize="small" />, path: "/quizz" })}
-                {renderMenuItem({ label: "Training", icon: <FaFileAlt />, path: "/training", newTab: true })}
-              </>
-            )}
-          </>
-        )}
-
-        {/* Always show Settings */}
-        {renderMenuItem({ label: "Settings", icon: <FaCog />, path: "/settings" })}
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', overflowX: 'hidden', mt: 2, '&::-webkit-scrollbar': { display: 'none' } }}>
+        {renderMenuItems(menuConfig)}
       </Box>
 
-      {/* Theme Toggle */}
-      <Box
-        onClick={() => setDarkMode(!darkMode)}
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: collapsed ? 0 : 1.5,
-          px: 2,
-          py: 1.5,
-          borderRadius: "10px",
-          cursor: "pointer",
-          backgroundColor: darkMode ? "#33334d" : "#f5f5f5",
-          color: darkMode ? "#ffffff" : "#333",
-          justifyContent: collapsed ? "center" : "flex-start",
-          transition: "all 0.2s ease-in-out",
-          "&:hover": {
-            backgroundColor: darkMode ? "#44445c" : "#eaeaea",
-          },
-        }}
-      >
-        <Box sx={{ fontSize: 18 }}>{darkMode ? <FaSun /> : <FaMoon />}</Box>
-        {!collapsed && <Box>{darkMode ? "Light Mode" : "Dark Mode"}</Box>}
+      {/* Footer */}
+      <Box sx={{ p: 1 }}>
+        <Box sx={{
+          p: 1.5,
+          borderRadius: '12px',
+          background: darkMode ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.04)',
+        }}>
+          {isSidebarOpen && (
+            <Box sx={{ textAlign: 'center', mb: 1 }}>
+              <Avatar sx={{ mx: 'auto', mb: 1, background: 'linear-gradient(45deg, #ec008c, #fc6767)' }}>{user?.email?.[0].toUpperCase()}</Avatar>
+              <Typography variant="subtitle2" sx={{color: darkMode ? 'grey.200' : 'grey.900'}} noWrap>{user?.email}</Typography>
+            </Box>
+          )}
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+            <Tooltip title="Logout" placement="top">
+              <IconButton size="small" onClick={handleLogout} sx={{ color: darkMode ? 'grey.400' : 'grey.700', '&:hover': { color: '#ff4d4d' } }}>
+                <FaSignOutAlt />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
       </Box>
     </Box>
   );

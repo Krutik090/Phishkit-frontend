@@ -1,6 +1,5 @@
-/** @type {import('tailwindcss').Config} */
+// tailwind.config.js
 module.exports = {
-  content: ["./src/**/*.{js,jsx,ts,tsx}"],
   darkMode: 'class',
   theme: {
     extend: {},
@@ -8,14 +7,9 @@ module.exports = {
   plugins: [],
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-    "./src/**/*.css" // ← include .css files if you want to use @apply in them
+    "./src/**/*.{js,ts,jsx,tsx,css}", // Combined and simplified
   ],
   corePlugins: {
-  preflight: false, // disables Tailwind's CSS reset
-}
-
-
+    preflight: false,
+  }
 };
-
-
