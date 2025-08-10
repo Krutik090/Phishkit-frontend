@@ -14,7 +14,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import AdminRoute from "./components/RoleProtectedRoute";
 
-import { ThemeProvider } from "./components/Settings/Settings";
+import { ColorThemeProvider  } from "./components/Settings/Settings";
 import { ToastProvider } from "./utils/toast";
 import "./components/Dashboard/dashboard.css";
 
@@ -87,7 +87,7 @@ function AppContent() {
   }
 
   return (
-    <ThemeProvider>
+    <ColorThemeProvider>
       <ToastProvider darkMode={isDark}>
         <Box
           className={`min-h-screen ${isDark ? "text-white" : "text-black"}`}
@@ -147,7 +147,7 @@ function AppContent() {
           </Suspense>
         </Box>
       </ToastProvider>
-    </ThemeProvider>
+    </ColorThemeProvider>
   );
 }
 

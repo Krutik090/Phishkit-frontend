@@ -1,16 +1,27 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Box,
   Typography,
   Button,
   Collapse,
+  Paper,
+  alpha,
+  Chip,
 } from "@mui/material";
-import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
-import EmailIcon from "@mui/icons-material/Email";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import LinkIcon from "@mui/icons-material/Link"; // Corrected import
-import SecurityIcon from "@mui/icons-material/Security";
-import ReportIcon from "@mui/icons-material/Report";
+import {
+  RocketLaunch as RocketLaunchIcon,
+  Email as EmailIcon,
+  Visibility as VisibilityIcon,
+  Link as LinkIcon,
+  Security as SecurityIcon,
+  Report as ReportIcon,
+  Computer as ComputerIcon,
+  Smartphone as SmartphoneIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+} from "@mui/icons-material";
+import { useTheme } from "../../context/ThemeContext";
+import { advancedToast } from "../../utils/toast";
 
 const CampaignTimeline = ({
   email,
@@ -22,151 +33,184 @@ const CampaignTimeline = ({
   detailsExpanded,
   setDetailsExpanded,
 }) => {
-  let userTimeline = timeline.filter(event =>
-    event.email === email ||
-    (event.message === "Campaign Created" && event.email === "")
-  );
+  const { darkMode } = useTheme();
 
-  if (reported) {
-    const latestEventTime = userTimeline.length > 0
-      ? Math.max(...userTimeline.map(event => new Date(event.time).getTime()))
-      : new Date().getTime();
+  // ✅ Process timeline data
+  const processedTimeline = useMemo(() => {
+    let userTimeline = timeline.filter(event =>
+      event.email === email ||
+      (event.message === "Campaign Created" && event.email === "")
+    );
 
-    const reportedEvent = {
-      message: "Email Reported",
-      email: email,
-      time: new Date(latestEventTime + 60000).toISOString(),
-      details: null
-    };
+    // Add reported event if applicable
+    if (reported) {
+      const latestEventTime = userTimeline.length > 0
+        ? Math.max(...userTimeline.map(event => new Date(event.time).getTime()))
+        : new Date().getTime();
 
-    userTimeline.push(reportedEvent);
-  }
+      const reportedEvent = {
+        message: "Email Reported",
+        email: email,
+        time: new Date(latestEventTime + 60000).toISOString(),
+        details: null
+      };
 
-  userTimeline.sort((a, b) => new Date(a.time) - new Date(b.time));
+      userTimeline.push(reportedEvent);
+    }
+
+    return userTimeline.sort((a, b) => new Date(a.time) - new Date(b.time));
+  }, [timeline, email, reported]);
 
   const toggleDetails = (key) => {
     const newDetailsExpanded = new Set(detailsExpanded);
     if (newDetailsExpanded.has(key)) {
       newDetailsExpanded.delete(key);
+      advancedToast.info("Details collapsed", "Details Hidden", { icon: "📋" });
     } else {
       newDetailsExpanded.add(key);
+      advancedToast.info("Details expanded", "Details Shown", { icon: "📊" });
     }
     setDetailsExpanded(newDetailsExpanded);
   };
 
+  // ✅ Enhanced event configuration
   const getEventConfig = (message) => {
-    switch (message) {
-      case "Campaign Created":
-        return { icon: <RocketLaunchIcon sx={{ fontSize: "18px" }} />, color: "#10b981", bgColor: "#10b981" };
-      case "Email Sent":
-        return { icon: <EmailIcon sx={{ fontSize: "18px" }} />, color: "#3b82f6", bgColor: "#3b82f6" };
-      case "Email Opened":
-        return { icon: <VisibilityIcon sx={{ fontSize: "18px" }} />, color: "#8b5cf6", bgColor: "#8b5cf6" };
-      case "Clicked Link":
-        return { icon: <LinkIcon sx={{ fontSize: "18px" }} />, color: "#f59e0b", bgColor: "#f59e0b" };
-      case "Submitted Data":
-        return { icon: <SecurityIcon sx={{ fontSize: "18px" }} />, color: "#ef4444", bgColor: "#ef4444" };
-      case "Email Reported":
-        return { icon: <ReportIcon sx={{ fontSize: "18px" }} />, color: "#06b6d4", bgColor: "#06b6d4" };
-      default:
-        return { icon: <RocketLaunchIcon sx={{ fontSize: "18px" }} />, color: "#6b7280", bgColor: "#6b7280" };
-    }
+    const configs = {
+      "Campaign Created": { 
+        icon: <RocketLaunchIcon />, 
+        color: "#10b981", 
+        description: "Campaign was launched and emails prepared"
+      },
+      "Email Sent": { 
+        icon: <EmailIcon />, 
+        color: "#3b82f6", 
+        description: "Phishing email was successfully delivered"
+      },
+      "Email Opened": { 
+        icon: <VisibilityIcon />, 
+        color: "#8b5cf6", 
+        description: "Recipient opened the phishing email"
+      },
+      "Clicked Link": { 
+        icon: <LinkIcon />, 
+        color: "#f59e0b", 
+        description: "Recipient clicked the malicious link"
+      },
+      "Submitted Data": { 
+        icon: <SecurityIcon />, 
+        color: "#ef4444", 
+        description: "Recipient submitted sensitive information"
+      },
+      "Email Reported": { 
+        icon: <ReportIcon />, 
+        color: "#06b6d4", 
+        description: "Recipient reported email as suspicious"
+      },
+    };
+
+    return configs[message] || { 
+      icon: <EmailIcon />, 
+      color: "#6b7280", 
+      description: "Timeline event occurred"
+    };
   };
 
-  const getOSAndBrowser = (userAgent) => {
-    let os = "Unknown OS";
-    let browser = "Unknown Browser";
-    let osIcon = "💻";
+  // ✅ Device detection utility
+  const getDeviceInfo = (userAgent) => {
+    if (!userAgent) return { os: "Unknown", browser: "Unknown", osIcon: <ComputerIcon /> };
 
-    if (userAgent.includes("Windows NT 10.0")) {
-      os = "Windows (OS Version: 10)";
-      osIcon = "🖥️";
-    } else if (userAgent.includes("Windows")) {
+    let os = "Unknown";
+    let browser = "Unknown";
+    let osIcon = <ComputerIcon />;
+
+    // OS Detection
+    if (userAgent.includes("Windows")) {
       os = "Windows";
-      osIcon = "🖥️";
-    } else if (userAgent.includes("Macintosh") || userAgent.includes("Mac OS X")) {
-      const macOSMatch = userAgent.match(/Mac OS X (\d+_\d+(?:_\d+)*)/);
-      os = macOSMatch ? `macOS (OS Version: ${macOSMatch[1].replace(/_/g, '.')})` : "macOS";
-      osIcon = "🍎";
+      osIcon = <ComputerIcon sx={{ color: '#0078d4' }} />;
+    } else if (userAgent.includes("Mac")) {
+      os = "macOS";
+      osIcon = <ComputerIcon sx={{ color: '#000000' }} />;
     } else if (userAgent.includes("Android")) {
-      const androidMatch = userAgent.match(/Android (\d+(?:\.\d+)*)/);
-      os = androidMatch ? `Android (OS Version: ${androidMatch[1]})` : "Android";
-      osIcon = "📱";
-    } else if (userAgent.includes("iPhone") || userAgent.includes("iPad") || userAgent.includes("iPod")) {
-      const iOSMatch = userAgent.match(/OS (\d+_\d+(?:_\d+)*)/);
-      os = iOSMatch ? `iOS (OS Version: ${iOSMatch[1].replace(/_/g, '.')})` : "iOS";
-      osIcon = "📱";
+      os = "Android";
+      osIcon = <SmartphoneIcon sx={{ color: '#3ddc84' }} />;
+    } else if (userAgent.includes("iPhone") || userAgent.includes("iPad")) {
+      os = "iOS";
+      osIcon = <SmartphoneIcon sx={{ color: '#007aff' }} />;
     } else if (userAgent.includes("Linux")) {
-      // Attempt to extract kernel version (e.g., from "Linux x86_64" or specific distro info)
-      const linuxVersionMatch = userAgent.match(/Linux ([a-zA-Z0-9._-]+)/); // Capture common Linux patterns like 'x86_64', 'Ubuntu', 'Debian' etc.
-      if (linuxVersionMatch && linuxVersionMatch[1]) {
-        // If a specific kernel version or architecture is found, use that
-        os = `Linux (OS Version: ${linuxVersionMatch[1]})`;
-      } else {
-        // If no specific version part is found, just state "Linux"
-        os = "Linux";
-      }
-      osIcon = "🐧";
+      os = "Linux";
+      osIcon = <ComputerIcon sx={{ color: '#fcc624' }} />;
     }
 
-    const chromeMatch = userAgent.match(/(Chrome|CriOS)\/([0-9.]+)/);
-    const firefoxMatch = userAgent.match(/Firefox\/([0-9.]+)/);
-    const safariMatch = userAgent.match(/Safari\/([0-9.]+)/);
-    const edgeMatch = userAgent.match(/Edge\/([0-9.]+)/);
-    const operaMatch = userAgent.match(/(Opera|OPR)\/([0-9.]+)/);
-    const ieMatch = userAgent.match(/MSIE ([0-9.]+)/) || userAgent.match(/Trident\/([0-9.]+).*rv:([0-9.]+)/);
-
-    if (chromeMatch && !userAgent.includes("Edge") && !userAgent.includes("OPR")) {
-      browser = `Chrome (Version: ${chromeMatch[2]})`;
-    } else if (firefoxMatch) {
-      browser = `Firefox (Version: ${firefoxMatch[1]})`;
-    } else if (safariMatch && !userAgent.includes("Chrome")) {
-      browser = `Safari (Version: ${safariMatch[1]})`;
-    } else if (edgeMatch) {
-      browser = `Edge (Version: ${edgeMatch[1]})`;
-    } else if (operaMatch) {
-      browser = `Opera (Version: ${operaMatch[2]})`;
-    } else if (ieMatch) {
-      browser = `IE (Version: ${ieMatch[2] || ieMatch[1]})`;
+    // Browser Detection
+    if (userAgent.includes("Chrome") && !userAgent.includes("Edge")) {
+      browser = "Chrome";
+    } else if (userAgent.includes("Firefox")) {
+      browser = "Firefox";
+    } else if (userAgent.includes("Safari") && !userAgent.includes("Chrome")) {
+      browser = "Safari";
+    } else if (userAgent.includes("Edge")) {
+      browser = "Edge";
     }
 
     return { os, browser, osIcon };
   };
 
   return (
-    <Box>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, flexWrap: "wrap" }}>
-        <Typography variant="h6" sx={{ fontWeight: "600", textTransform: "capitalize" }}>
-          Timeline for {firstName?.toLowerCase()} {lastName?.toLowerCase()}
-        </Typography>
-        <Typography variant="body2" sx={{ fontStyle: "italic" }}>
-          Email: {email}
-        </Typography>
-        <Typography variant="body2" sx={{ fontStyle: "italic" }}>
-          Result ID: {resultId}
-        </Typography>
-      </Box>
-
-      {userTimeline.length > 0 ? (
-        <Box sx={{ position: "relative", maxWidth: "800px", mx: "auto" }}>
-          {/* Central Vertical Line */}
+    <Box 
+      className="campaign-timeline-container"
+      sx={{ 
+        width: '100%',
+        maxHeight: '500px', // ✅ Fixed height for scrolling
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        pr: 1, // Space for scrollbar
+      }}
+    >
+      {processedTimeline.length > 0 ? (
+        <Box sx={{ position: 'relative', pl: 5, pr: 2, py: 2 }}>
+          {/* ✅ ENHANCED: Vertical Timeline Line */}
           <Box
             sx={{
-              position: "absolute",
-              left: "50%",
-              top: "20px",
-              bottom: "20px",
-              width: "3px",
-              backgroundColor: "#e5e7eb",
-              transform: "translateX(-50%)",
-              borderRadius: "2px",
+              position: 'absolute',
+              left: '20px',
+              top: '16px',
+              bottom: '16px',
+              width: '4px',
+              background: `linear-gradient(180deg, 
+                ${alpha('#ec008c', 0.9)} 0%, 
+                ${alpha('#fc6767', 0.8)} 50%, 
+                ${alpha('#ec008c', 0.9)} 100%)`,
+              borderRadius: '3px',
+              boxShadow: `0 0 12px ${alpha('#ec008c', 0.4)}`,
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: '-8px',
+                left: '-4px',
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                background: `linear-gradient(135deg, #ec008c, #fc6767)`,
+                boxShadow: `0 0 8px ${alpha('#ec008c', 0.6)}`,
+              },
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: '-8px',
+                left: '-4px',
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                background: `linear-gradient(135deg, #ec008c, #fc6767)`,
+                boxShadow: `0 0 8px ${alpha('#ec008c', 0.6)}`,
+              },
             }}
           />
 
-          {userTimeline.map((event, eventIndex) => {
-            const isEven = eventIndex % 2 === 0;
-
+          {/* ✅ Timeline Events */}
+          {processedTimeline.map((event, eventIndex) => {
             let parsedDetails = null;
+            
             if (event.details) {
               try {
                 parsedDetails = JSON.parse(event.details);
@@ -178,248 +222,354 @@ const CampaignTimeline = ({
             const eventConfig = getEventConfig(event.message);
             const detailsKey = `${email}-${eventIndex}`;
             const showDetails = detailsExpanded.has(detailsKey);
-
-            const { os, browser, osIcon } = parsedDetails && parsedDetails.browser && parsedDetails.browser["user-agent"]
-              ? getOSAndBrowser(parsedDetails.browser["user-agent"])
-              : { os: "N/A", browser: "N/A", osIcon: "💻" };
+            const { os, browser, osIcon } = parsedDetails?.browser?.["user-agent"]
+              ? getDeviceInfo(parsedDetails.browser["user-agent"])
+              : { os: "N/A", browser: "N/A", osIcon: <ComputerIcon /> };
 
             return (
               <Box
                 key={eventIndex}
                 sx={{
-                  display: "flex",
+                  display: 'flex',
+                  alignItems: 'flex-start',
                   mb: 4,
-                  position: "relative",
-                  justifyContent: isEven ? "flex-start" : "flex-end",
+                  position: 'relative',
+                  animation: `fadeInUp 0.6s ease forwards`,
+                  animationDelay: `${eventIndex * 0.1}s`,
+                  '@keyframes fadeInUp': {
+                    '0%': {
+                      opacity: 0,
+                      transform: 'translateY(20px)',
+                    },
+                    '100%': {
+                      opacity: 1,
+                      transform: 'translateY(0)',
+                    },
+                  },
                 }}
               >
+                {/* ✅ ENHANCED: Timeline Event Dot */}
                 <Box
                   sx={{
-                    width: "45%",
-                    mr: isEven ? 2 : 0,
-                    ml: isEven ? 0 : 2,
+                    position: 'absolute',
+                    left: '-29px',
+                    top: '16px',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: `linear-gradient(135deg, ${eventConfig.color}, ${alpha(eventConfig.color, 0.8)})`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    boxShadow: `0 4px 16px ${alpha(eventConfig.color, 0.4)}, 0 0 0 4px ${darkMode ? '#1a1a2e' : '#ffffff'}, 0 0 0 6px ${alpha(eventConfig.color, 0.2)}`,
+                    border: `3px solid ${darkMode ? '#1a1a2e' : '#ffffff'}`,
+                    zIndex: 10,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'scale(1.1)',
+                      boxShadow: `0 6px 20px ${alpha(eventConfig.color, 0.6)}, 0 0 0 4px ${darkMode ? '#1a1a2e' : '#ffffff'}, 0 0 0 8px ${alpha(eventConfig.color, 0.3)}`,
+                    },
                   }}
                 >
-                  <Box
-                    sx={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "12px",
-                      p: 3,
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                      position: "relative",
-                      "&::before": {
-                        content: '""',
-                        position: "absolute",
-                        top: "20px",
-                        [isEven ? "right" : "left"]: "-8px",
-                        width: 0,
-                        height: 0,
-                        borderTop: "8px solid transparent",
-                        borderBottom: "8px solid transparent",
-                        [isEven ? "borderLeft" : "borderRight"]: "8px solid #e5e7eb",
-                      },
-                      "&::after": {
-                        content: '""',
-                        position: "absolute",
-                        top: "20px",
-                        [isEven ? "right" : "left"]: "-7px",
-                        width: 0,
-                        height: 0,
-                        borderTop: "8px solid transparent",
-                        borderBottom: "8px solid transparent",
-                        [isEven ? "borderLeft" : "borderRight"]: "8px solid #fff",
-                      },
-                    }}
-                  >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-                      <Typography variant="h6" sx={{ fontWeight: "600", color: "#1f2937" }}>
+                  {React.cloneElement(eventConfig.icon, { fontSize: 'medium' })}
+                </Box>
+
+                {/* ✅ ENHANCED: Timeline Content Card */}
+                <Paper
+                  elevation={0}
+                  sx={{
+                    flex: 1,
+                    p: 3,
+                    ml: 3,
+                    borderRadius: '16px',
+                    background: darkMode 
+                      ? `linear-gradient(135deg, ${alpha('#2d2d3e', 0.8)}, ${alpha('#1a1a2e', 0.6)})` 
+                      : `linear-gradient(135deg, ${alpha('#ffffff', 0.95)}, ${alpha('#f8f9fa', 0.9)})`,
+                    backdropFilter: 'blur(12px)',
+                    border: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.1)}`,
+                    boxShadow: darkMode 
+                      ? `0 8px 32px ${alpha('#000', 0.4)}, 0 2px 8px ${alpha(eventConfig.color, 0.2)}` 
+                      : `0 8px 32px ${alpha('#000', 0.1)}, 0 2px 8px ${alpha(eventConfig.color, 0.15)}`,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateX(8px) translateY(-2px)',
+                      boxShadow: darkMode 
+                        ? `0 12px 40px ${alpha('#000', 0.5)}, 0 4px 16px ${alpha(eventConfig.color, 0.3)}` 
+                        : `0 12px 40px ${alpha('#000', 0.15)}, 0 4px 16px ${alpha(eventConfig.color, 0.2)}`,
+                    },
+                  }}
+                >
+                  {/* Event Header */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'flex-start', 
+                    mb: 2 
+                  }}>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 'bold',
+                          color: darkMode ? '#e1e1e1' : '#333',
+                          fontSize: '1.1rem',
+                          mb: 0.5,
+                        }}
+                      >
                         {event.message}
                       </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: darkMode ? '#ccc' : '#666',
+                          fontSize: '0.9rem',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {eventConfig.description}
+                      </Typography>
                     </Box>
-
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: "#6b7280",
-                        fontSize: "0.875rem",
-                        mb: 2,
-                      }}
-                    >
-                      {new Date(event.time).toLocaleString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: 'numeric',
+                    
+                    <Chip
+                      label={new Date(event.time).toLocaleString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: '2-digit',
+                        hour: '2-digit',
                         minute: '2-digit',
-                        second: '2-digit',
                         hour12: true
                       })}
-                    </Typography>
-
-                    {(event.message === "Clicked Link" || event.message === "Submitted Data") && parsedDetails && parsedDetails.browser && (
-                      <Box sx={{ mb: 2 }}>
-                        {os !== "N/A" && (
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                            <Box sx={{ fontSize: "16px" }}>{osIcon}</Box>
-                            <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.8rem" }}>
-                              {os}
-                            </Typography>
-                          </Box>
-                        )}
-                        {browser !== "N/A" && (
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                            <Box sx={{ fontSize: "16px" }}>🌐</Box>
-                            <Typography variant="caption" sx={{ color: "#6b7280", fontSize: "0.8rem" }}>
-                              {browser}
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    )}
-
-                    {event.message === "Submitted Data" && (
-                      <Box sx={{ mt: 2, display: "flex", gap: 1, flexDirection: "column" }}>
-                        <Button
-                          variant="text"
-                          size="small"
-                          onClick={() => toggleDetails(detailsKey)}
-                          sx={{
-                            color: "#6b7280",
-                            textTransform: "none",
-                            fontSize: "0.8rem",
-                            py: 0.5,
-                            px: 1,
-                            alignSelf: "flex-start",
-                            justifyContent: "flex-start",
-                            "&:hover": {
-                              backgroundColor: "rgba(107, 114, 128, 0.1)",
-                              color: "#4b5563",
-                            },
-                          }}
-                          startIcon={
-                            <Box sx={{ fontSize: "14px" }}>
-                              {showDetails ? "▼" : "▶"}
-                            </Box>
-                          }
-                        >
-                          View Details
-                        </Button>
-
-                        <Collapse in={showDetails} timeout="auto" unmountOnExit>
-                          <Box sx={{ mt: 2, border: "1px solid #e5e7eb", borderRadius: 2, overflow: "hidden" }}>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                backgroundColor: "#f9fafb",
-                                borderBottom: "1px solid #e5e7eb",
-                              }}
-                            >
-                              <Box
-                                sx={{
-                                  flex: 1,
-                                  px: 2,
-                                  py: 1.5,
-                                  borderRight: "1px solid #e5e7eb",
-                                  fontWeight: "600",
-                                  fontSize: "0.875rem",
-                                  color: "#374151",
-                                }}
-                              >
-                                Parameter
-                              </Box>
-                              <Box
-                                sx={{
-                                  flex: 1,
-                                  px: 2,
-                                  py: 1.5,
-                                  fontWeight: "600",
-                                  fontSize: "0.875rem",
-                                  color: "#374151",
-                                }}
-                              >
-                                Value(s)
-                              </Box>
-                            </Box>
-                            {parsedDetails && parsedDetails.payload && (
-                              Object.entries(parsedDetails.payload)
-                              .filter(([key]) => key !== "rid")
-                              .map(([key, value], idx) => (
-                                <Box
-                                  key={idx}
-                                  sx={{
-                                    display: "flex",
-                                    borderBottom: idx < Object.entries(parsedDetails.payload).length - 1 ? "1px solid #e5e7eb" : "none",
-                                    "&:hover": {
-                                      backgroundColor: "#f9fafb",
-                                    },
-                                  }}
-                                >
-                                  <Box
-                                    sx={{
-                                      flex: 1,
-                                      px: 2,
-                                      py: 1.5,
-                                      borderRight: "1px solid #e5e7eb",
-                                      fontSize: "0.875rem",
-                                      backgroundColor: "#fff",
-                                      color: "#374151",
-                                    }}
-                                  >
-                                    {key}
-                                  </Box>
-                                  <Box
-                                    sx={{
-                                      flex: 1,
-                                      px: 2,
-                                      py: 1.5,
-                                      fontSize: "0.875rem",
-                                      backgroundColor: "#fff",
-                                      color: "#6b7280",
-                                      wordBreak: "break-all",
-                                    }}
-                                  >
-                                    {Array.isArray(value) ? value.join(", ") : String(value)}
-                                  </Box>
-                                </Box>
-                              ))
-                            )}
-                          </Box>
-                        </Collapse>
-                      </Box>
-                    )}
+                      size="small"
+                      sx={{
+                        backgroundColor: alpha(eventConfig.color, 0.15),
+                        color: eventConfig.color,
+                        border: `1px solid ${alpha(eventConfig.color, 0.3)}`,
+                        fontWeight: 'bold',
+                        fontSize: '0.75rem',
+                        ml: 2,
+                      }}
+                    />
                   </Box>
-                </Box>
 
-                <Box
-                  sx={{
-                    position: "absolute",
-                    left: "50%",
-                    top: "20px",
-                    transform: "translateX(-50%)",
-                    width: "48px",
-                    height: "48px",
-                    borderRadius: "50%",
-                    backgroundColor: eventConfig.bgColor,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#fff",
-                    zIndex: 2,
-                    border: "4px solid #fff",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                  }}
-                >
-                  {eventConfig.icon}
-                </Box>
+                  {/* ✅ Enhanced Device Information */}
+                  {(event.message === "Clicked Link" || event.message === "Submitted Data") && 
+                   parsedDetails?.browser && os !== "N/A" && (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
+                          fontWeight: 'bold',
+                          color: darkMode ? '#e1e1e1' : '#333',
+                          mb: 1.5,
+                          fontSize: '0.9rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                        }}
+                      >
+                        🖥️ Device Information
+                      </Typography>
+                      
+                      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 1,
+                          p: 1.5,
+                          borderRadius: '12px',
+                          background: darkMode 
+                            ? `linear-gradient(135deg, ${alpha('#fff', 0.08)}, ${alpha('#fff', 0.04)})` 
+                            : `linear-gradient(135deg, ${alpha('#000', 0.04)}, ${alpha('#000', 0.02)})`,
+                          border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
+                        }}>
+                          {React.cloneElement(osIcon, { fontSize: 'small' })}
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 'medium',
+                              color: darkMode ? '#e1e1e1' : '#333',
+                              fontSize: '0.85rem',
+                            }}
+                          >
+                            {os}
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 1,
+                          p: 1.5,
+                          borderRadius: '12px',
+                          background: darkMode 
+                            ? `linear-gradient(135deg, ${alpha('#fff', 0.08)}, ${alpha('#fff', 0.04)})` 
+                            : `linear-gradient(135deg, ${alpha('#000', 0.04)}, ${alpha('#000', 0.02)})`,
+                          border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
+                        }}>
+                          <ComputerIcon fontSize="small" sx={{ color: '#2196f3' }} />
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 'medium',
+                              color: darkMode ? '#e1e1e1' : '#333',
+                              fontSize: '0.85rem',
+                            }}
+                          >
+                            {browser}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  )}
+
+                  {/* ✅ Enhanced Submitted Data Details */}
+                  {event.message === "Submitted Data" && (
+                    <Box>
+                      <Button
+                        onClick={() => toggleDetails(detailsKey)}
+                        size="small"
+                        sx={{
+                          color: darkMode ? '#ccc' : '#666',
+                          textTransform: "none",
+                          fontSize: "0.85rem",
+                          py: 1,
+                          px: 2,
+                          borderRadius: '12px',
+                          backgroundColor: darkMode 
+                            ? alpha('#fff', 0.08) 
+                            : alpha('#000', 0.04),
+                          border: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.1)}`,
+                          transition: 'all 0.3s ease',
+                          "&:hover": {
+                            backgroundColor: alpha(eventConfig.color, 0.1),
+                            color: eventConfig.color,
+                            borderColor: eventConfig.color,
+                            transform: 'translateY(-1px)',
+                            boxShadow: `0 4px 12px ${alpha(eventConfig.color, 0.3)}`,
+                          },
+                        }}
+                        startIcon={showDetails ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      >
+                        {showDetails ? "Hide Submitted Data" : "View Submitted Data"}
+                      </Button>
+
+                      <Collapse in={showDetails}>
+                        <Paper
+                          elevation={0}
+                          sx={{ 
+                            mt: 2,
+                            p: 2.5,
+                            borderRadius: '12px',
+                            background: darkMode 
+                              ? `linear-gradient(135deg, ${alpha('#1a1a2e', 0.8)}, ${alpha('#2d2d3e', 0.4)})` 
+                              : `linear-gradient(135deg, ${alpha('#f8f9fa', 0.9)}, ${alpha('#ffffff', 0.7)})`,
+                            border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            sx={{
+                              fontWeight: 'bold',
+                              color: darkMode ? '#e1e1e1' : '#333',
+                              mb: 2,
+                              fontSize: '0.9rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
+                            🔒 Submitted Information
+                          </Typography>
+
+                          <Box sx={{ display: 'grid', gap: 1 }}>
+                            {parsedDetails?.payload && 
+                              Object.entries(parsedDetails.payload)
+                                .filter(([key]) => key !== "rid")
+                                .map(([key, value], idx) => (
+                                  <Box 
+                                    key={idx}
+                                    sx={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      p: 1.5,
+                                      borderRadius: '8px',
+                                      background: darkMode 
+                                        ? alpha('#fff', 0.05) 
+                                        : alpha('#000', 0.03),
+                                      border: `1px solid ${darkMode ? alpha('#fff', 0.08) : alpha('#000', 0.06)}`,
+                                    }}
+                                  >
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        fontWeight: 'medium',
+                                        color: darkMode ? '#ccc' : '#666',
+                                        textTransform: 'capitalize',
+                                        fontSize: '0.85rem',
+                                      }}
+                                    >
+                                      {key.replace(/([A-Z])/g, ' $1').trim()}:
+                                    </Typography>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        fontWeight: 'bold',
+                                        color: darkMode ? '#e1e1e1' : '#333',
+                                        fontSize: '0.85rem',
+                                        maxWidth: '60%',
+                                        textAlign: 'right',
+                                        wordBreak: 'break-word',
+                                      }}
+                                    >
+                                      {Array.isArray(value) ? value.join(", ") : String(value)}
+                                    </Typography>
+                                  </Box>
+                                ))
+                            }
+                          </Box>
+                        </Paper>
+                      </Collapse>
+                    </Box>
+                  )}
+                </Paper>
               </Box>
             );
           })}
         </Box>
       ) : (
-        <Typography variant="body2" sx={{ textAlign: "center", py: 4, color: "#6b7280" }}>
-          No timeline events for this email.
-        </Typography>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            m: 2,
+            borderRadius: '16px',
+            background: darkMode 
+              ? alpha("#1a1a2e", 0.4) 
+              : alpha("#f5f5f5", 0.8),
+            border: `2px dashed ${darkMode ? alpha('#fff', 0.2) : alpha('#000', 0.2)}`,
+            textAlign: 'center',
+          }}
+        >
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              color: darkMode ? '#ccc' : '#666',
+              mb: 1,
+            }}
+          >
+            📅 No Timeline Events
+          </Typography>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              color: darkMode ? '#999' : '#888',
+            }}
+          >
+            No timeline events found for this participant.
+          </Typography>
+        </Paper>
       )}
     </Box>
   );

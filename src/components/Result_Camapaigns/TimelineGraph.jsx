@@ -1,205 +1,240 @@
-import React, { useState, useRef } from "react";
-import { Box, Typography } from "@mui/material";
-import LaptopIcon from "@mui/icons-material/Laptop";
-import BrowserUpdated from "@mui/icons-material/BrowserUpdated";
+import React, { useState, useRef, useMemo } from "react";
+import { Box, Typography, Paper, alpha, Chip } from "@mui/material";
+import { useTheme } from "../../context/ThemeContext";
 
 const TimelineGraph = ({ timeline }) => {
+  const { darkMode } = useTheme();
   const [hoveredEvent, setHoveredEvent] = useState(null);
+  const [clickedEvent, setClickedEvent] = useState(null);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+  const [isHoveringTooltip, setIsHoveringTooltip] = useState(false);
   const graphRef = useRef(null);
+  const tooltipRef = useRef(null);
+
+  const sortedTimeline = useMemo(() => {
+    if (!timeline || timeline.length === 0) return [];
+    return [...timeline].sort((a, b) => new Date(a.time) - new Date(b.time));
+  }, [timeline]);
 
   if (!timeline || timeline.length === 0) {
     return (
-      <Box sx={{ textAlign: "center", py: 4 }}>
-        <Typography variant="body2" color="text.secondary">
-          No timeline events available.
+      <Paper
+        elevation={0}
+        sx={{
+          p: 4,
+          borderRadius: '12px',
+          background: darkMode 
+            ? alpha("#1a1a2e", 0.4) 
+            : alpha("#f5f5f5", 0.8),
+          border: `1px dashed ${darkMode ? alpha('#fff', 0.2) : alpha('#000', 0.2)}`,
+          textAlign: 'center',
+        }}
+      >
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            color: darkMode ? '#ccc' : '#666',
+            mb: 1,
+          }}
+        >
+          📅 No Timeline Events
         </Typography>
-      </Box>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: darkMode ? '#999' : '#888',
+          }}
+        >
+          Timeline events will appear here as the campaign progresses
+        </Typography>
+      </Paper>
     );
   }
 
-  const sortedTimeline = [...timeline].sort((a, b) => new Date(a.time) - new Date(b.time));
   const earliestEventTime = new Date(sortedTimeline[0].time);
   const latestEventTime = new Date(sortedTimeline[sortedTimeline.length - 1].time);
 
   const graphStartTime = new Date(earliestEventTime);
-  graphStartTime.setSeconds(0);
-  graphStartTime.setMilliseconds(0);
-
+  graphStartTime.setMinutes(graphStartTime.getMinutes() - 5);
+  
   const graphEndTime = new Date(latestEventTime);
-  if (graphEndTime.getSeconds() > 0 || graphEndTime.getMilliseconds() > 0) {
-    graphEndTime.setMinutes(graphEndTime.getMinutes() + 1);
-    graphEndTime.setSeconds(0);
-    graphEndTime.setMilliseconds(0);
-  }
-  graphEndTime.setSeconds(graphEndTime.getSeconds() + 30);
+  graphEndTime.setMinutes(graphEndTime.getMinutes() + 5);
 
   const totalGraphDuration = graphEndTime - graphStartTime;
 
   const getEventColor = (message) => {
-    switch (message) {
-      case "Campaign Created":
-      case "Email Sent":
-        return "#10b981"; // Original Green
-      case "Email Opened":
-        return "#f59e0b"; // Original Yellow/Amber
-      case "Clicked Link":
-        return "#f97316"; // Original Orange
-      case "Submitted Data":
-        return "#ef4444"; // Original Red
-      case "Email Reported":
-        return "#6b7280"; // Original Gray
-      default:
-        return "#6b7280"; // Original Gray
-    }
+    const eventColors = {
+      "Campaign Created": "#10b981",
+      "Email Sent": "#2196f3", 
+      "Email Opened": "#ff9800",
+      "Clicked Link": "#f97316",
+      "Submitted Data": "#ef4444",
+      "Email Reported": "#6b7280",
+    };
+    return eventColors[message] || "#6b7280";
   };
 
-  const formatDetailedTime = (timeString) => {
+  // ✅ FIXED: Compact time formatting
+  const formatCompactTime = (timeString) => {
     const date = new Date(timeString);
     return date.toLocaleString("en-US", {
-      weekday: "short",
       month: "short",
       day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit",
       hour12: true,
     });
   };
 
   const getPositionPercentage = (time) => {
     const timeAsDate = new Date(time);
-    if (totalGraphDuration === 0) return 0;
-    return ((timeAsDate - graphStartTime) / totalGraphDuration) * 100;
+    if (totalGraphDuration === 0) return 50;
+    return Math.max(5, Math.min(95, ((timeAsDate - graphStartTime) / totalGraphDuration) * 100));
+  };
+
+  // ✅ FIXED: Smart tooltip positioning
+  const getTooltipPosition = (dotPosition, containerWidth) => {
+    const tooltipWidth = 180; // Compact tooltip width
+    let x = dotPosition;
+    
+    // Keep tooltip within container bounds
+    if (x - tooltipWidth/2 < 10) {
+      x = tooltipWidth/2 + 10; // Left edge
+    } else if (x + tooltipWidth/2 > containerWidth - 10) {
+      x = containerWidth - tooltipWidth/2 - 10; // Right edge
+    }
+    
+    return { x: x - tooltipWidth/2, y: -100 }; // Position above the timeline
   };
 
   const handleMouseEnter = (timelineEvent) => {
     setHoveredEvent(timelineEvent);
     if (graphRef.current) {
-      const graphRect = graphRef.current.getBoundingClientRect();
-      const parentContainer = graphRef.current.parentElement;
-      const parentRect = parentContainer.getBoundingClientRect();
-
-      const dotPositionXPercentage = getPositionPercentage(timelineEvent.time);
-      const dotCenterYRelativeToGraph = 30;
-
-      const dotPixelXRelativeToGraph = (dotPositionXPercentage / 100) * graphRect.width;
-
-      const tooltipX = dotPixelXRelativeToGraph + (graphRect.left - parentRect.left);
-      const tooltipY = dotCenterYRelativeToGraph + (graphRect.top - parentRect.top);
-
-      setHoverPosition({
-        x: tooltipX,
-        y: tooltipY,
-      });
+      const rect = graphRef.current.getBoundingClientRect();
+      const position = getPositionPercentage(timelineEvent.time);
+      const dotX = (position / 100) * rect.width;
+      
+      const tooltipPos = getTooltipPosition(dotX, rect.width);
+      setHoverPosition(tooltipPos);
     }
   };
 
   const handleMouseLeave = () => {
-    setHoveredEvent(null);
+    setTimeout(() => {
+      if (!isHoveringTooltip && !clickedEvent) {
+        setHoveredEvent(null);
+      }
+    }, 100);
   };
 
-  const createTimeMarkers = () => {
-    const markers = [];
-    const ONE_MINUTE = 60 * 1000;
-    const TWENTY_MINUTES = 20 * ONE_MINUTE;
-    const ONE_HOUR = 60 * ONE_MINUTE;
-    const THREE_HOURS = 3 * ONE_HOUR;
+  const handleTooltipMouseEnter = () => {
+    setIsHoveringTooltip(true);
+  };
 
-    let markerInterval = ONE_MINUTE;
+  const handleTooltipMouseLeave = () => {
+    setIsHoveringTooltip(false);
+    if (!clickedEvent) {
+      setTimeout(() => {
+        if (!isHoveringTooltip) {
+          setHoveredEvent(null);
+        }
+      }, 100);
+    }
+  };
 
-    if (totalGraphDuration <= 15 * ONE_MINUTE) {
-      markerInterval = ONE_MINUTE;
-    } else if (totalGraphDuration <= 2 * ONE_HOUR) {
-      markerInterval = TWENTY_MINUTES;
-    } else if (totalGraphDuration <= 12 * ONE_HOUR) {
-      markerInterval = ONE_HOUR;
+  const handleClick = (timelineEvent, event) => {
+    event.stopPropagation();
+    if (clickedEvent === timelineEvent) {
+      setClickedEvent(null);
+      setHoveredEvent(null);
     } else {
-      markerInterval = THREE_HOURS;
+      setClickedEvent(timelineEvent);
+      setHoveredEvent(timelineEvent);
+      handleMouseEnter(timelineEvent);
     }
+  };
 
-    let currentTime = new Date(graphStartTime);
-    currentTime.setSeconds(0);
-    currentTime.setMilliseconds(0);
-
-    const intervalMinutes = markerInterval / ONE_MINUTE;
-    const currentMinutes = currentTime.getMinutes();
-    const adjustedMinutes = currentMinutes - (currentMinutes % intervalMinutes);
-    currentTime.setMinutes(adjustedMinutes);
-
-    if (currentTime.getTime() > graphStartTime.getTime() && totalGraphDuration > 0) {
-      currentTime.setTime(currentTime.getTime() - markerInterval);
+  const handleBackgroundClick = () => {
+    setClickedEvent(null);
+    if (!isHoveringTooltip) {
+      setHoveredEvent(null);
     }
+  };
 
-    while (currentTime <= graphEndTime) {
-      const position = getPositionPercentage(currentTime);
-
-      markers.push(
+  const createTimeLabels = () => {
+    const labels = [];
+    const timePoints = [0, 25, 50, 75, 100];
+    
+    timePoints.forEach((percentage) => {
+      const time = new Date(graphStartTime.getTime() + (totalGraphDuration * percentage / 100));
+      labels.push(
         <Box
-          key={currentTime.toISOString()}
+          key={percentage}
           sx={{
             position: "absolute",
-            left: `${position}%`,
+            left: `${percentage}%`,
+            bottom: "-25px",
             transform: "translateX(-50%)",
-            top: "0px",
-            zIndex: 2,
+            textAlign: "center",
           }}
         >
-          <Box
-            sx={{
-              width: "1px",
-              height: "8px",
-              backgroundColor: "#d1d5db",
-              mx: "auto",
-              mb: 0.5,
-            }}
-          />
           <Typography
             variant="caption"
             sx={{
-              fontSize: "11px",
-              color: "#111827", // Darker color
-              fontWeight: 600,
-              whiteSpace: "nowrap",
+              fontSize: "0.7rem",
+              color: darkMode ? '#ccc' : '#666',
+              fontWeight: 'medium',
             }}
           >
-            {currentTime.toLocaleTimeString("en-US", {
+            {time.toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
-              hour12: false,
+              hour12: true,
             })}
           </Typography>
-
         </Box>
       );
-      currentTime.setTime(currentTime.getTime() + markerInterval);
-    }
-    return markers;
+    });
+    
+    return labels;
   };
 
   return (
-    <Box sx={{ p: 0 }}>
-      {/* Timeline Graph */}
+    <Box 
+      sx={{ 
+        position: "relative", 
+        width: "100%", 
+        minHeight: "140px", // ✅ FIXED: Reduced height
+        pb: 3,
+      }}
+      onClick={handleBackgroundClick}
+    >
+      {/* ✅ Timeline Graph Container */}
       <Box
         ref={graphRef}
         sx={{
           position: "relative",
-          height: "100px",
+          width: "100%",
+          height: "70px", // ✅ FIXED: Reduced height
+          backgroundColor: darkMode ? alpha('#1a1a2e', 0.3) : alpha('#f8f9fa', 0.5),
+          borderRadius: '16px',
+          border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
+          overflow: 'visible',
           mb: 2,
         }}
       >
-        {/* Main Timeline Line (Dashed) */}
+        {/* Timeline Line */}
         <Box
           sx={{
             position: "absolute",
-            top: "30px",
-            left: 0,
-            right: 0,
-            height: "1px",
-            backgroundColor: "transparent",
-            backgroundImage: "repeating-linear-gradient(to right, #ccc 0, #ccc 2px, transparent 2px, transparent 6px)",
-            backgroundSize: "8px 1px",
-            zIndex: 1,
+            top: "50%",
+            left: "5%",
+            right: "5%",
+            height: "4px",
+            background: `linear-gradient(90deg, ${alpha('#ec008c', 0.2)}, ${alpha('#ec008c', 0.8)}, ${alpha('#fc6767', 0.8)}, ${alpha('#ec008c', 0.2)})`,
+            transform: "translateY(-50%)",
+            borderRadius: '3px',
+            boxShadow: `0 2px 8px ${alpha('#ec008c', 0.3)}`,
           }}
         />
 
@@ -207,128 +242,199 @@ const TimelineGraph = ({ timeline }) => {
         {sortedTimeline.map((event, index) => {
           const leftPosition = getPositionPercentage(event.time);
           const color = getEventColor(event.message);
+          const isActive = hoveredEvent === event || clickedEvent === event;
+
           return (
             <Box
-              key={index}
+              key={`${event.time}-${index}`}
               sx={{
                 position: "absolute",
                 left: `${leftPosition}%`,
-                top: "30px",
+                top: "50%",
                 transform: "translate(-50%, -50%)",
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                backgroundColor: color,
-                border: "1px solid rgba(255,255,255,0.8)",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                zIndex: 3,
+                padding: '8px',
                 cursor: "pointer",
-                transition: "all 0.2s ease",
-                "&:hover": {
-                  transform: "translate(-50%, -50%) scale(1.5)",
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                },
+                zIndex: 10,
               }}
               onMouseEnter={() => handleMouseEnter(event)}
               onMouseLeave={handleMouseLeave}
-            />
+              onClick={(e) => handleClick(event, e)}
+            >
+              <Box
+                sx={{
+                  width: isActive ? "18px" : "14px", // ✅ FIXED: Smaller dots
+                  height: isActive ? "18px" : "14px",
+                  backgroundColor: color,
+                  borderRadius: "50%",
+                  border: `2px solid ${darkMode ? '#1a1a2e' : '#ffffff'}`,
+                  transition: 'all 0.3s ease',
+                  boxShadow: isActive 
+                    ? `0 3px 12px ${alpha(color, 0.6)}, 0 0 0 3px ${alpha(color, 0.2)}` 
+                    : `0 2px 6px ${alpha(color, 0.4)}`,
+                  '&:hover': {
+                    transform: "scale(1.2)",
+                  },
+                }}
+              />
+            </Box>
           );
         })}
 
-        {/* Time Markers container - placed below the main line */}
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50px",
-            left: 0,
-            right: 0,
-            height: "50px",
-          }}
-        >
-          {createTimeMarkers()}
-        </Box>
+        {/* Time Labels */}
+        {createTimeLabels()}
       </Box>
 
-      {/* Hover Tooltip */}
-      {hoveredEvent && hoverPosition && (
-        <Box
+      {/* ✅ FIXED: Compact Tooltip */}
+      {(hoveredEvent || clickedEvent) && hoverPosition && (
+        <Paper
+          ref={tooltipRef}
+          elevation={8}
           sx={{
             position: "absolute",
-            left: hoverPosition.x,
-            top: hoverPosition.y,
-            transform: "translate(-50%, -100%) translateY(-15px)",
-            backgroundColor: "#fff",
-            color: "#333",
-            padding: "8px 12px",
-            borderRadius: "6px",
-            fontSize: "12px",
+            left: `${hoverPosition.x}px`,
+            top: `${hoverPosition.y}px`,
+            p: 1.5, // ✅ FIXED: Reduced padding
+            borderRadius: '12px',
+            background: darkMode 
+              ? `linear-gradient(135deg, ${alpha('#1a1a2e', 0.95)}, ${alpha('#2d2d3e', 0.9)})` 
+              : `linear-gradient(135deg, ${alpha('#ffffff', 0.95)}, ${alpha('#f8f9fa', 0.9)})`,
+            backdropFilter: 'blur(16px)',
+            border: `1px solid ${darkMode ? alpha('#fff', 0.2) : alpha('#000', 0.1)}`,
+            boxShadow: darkMode 
+              ? '0 8px 24px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(236, 0, 140, 0.3)' 
+              : '0 8px 24px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(236, 0, 140, 0.2)',
             zIndex: 1000,
-            pointerEvents: "none",
-            maxWidth: "250px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-            border: "1px solid #ddd",
-            "&::after": {
+            width: '180px', // ✅ FIXED: Fixed compact width
+            maxWidth: '180px',
+            // ✅ FIXED: Smaller arrow
+            '&::after': {
               content: '""',
-              position: "absolute",
-              bottom: "-8px",
-              left: "50%",
-              transform: "translateX(-50%) rotate(45deg)",
-              width: "15px",
-              height: "15px",
-              backgroundColor: "#fff",
-              borderRight: "1px solid #ddd",
-              borderBottom: "1px solid #ddd",
-              zIndex: -1,
+              position: 'absolute',
+              bottom: '-6px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '6px solid transparent',
+              borderRight: '6px solid transparent',
+              borderTop: `6px solid ${darkMode ? '#1a1a2e' : '#ffffff'}`,
             },
           }}
+          onMouseEnter={handleTooltipMouseEnter}
+          onMouseLeave={handleTooltipMouseLeave}
+          onClick={(e) => e.stopPropagation()}
         >
-          <Typography variant="caption" sx={{ fontWeight: "bold", display: "block", color: "#333" }}>
-            {formatDetailedTime(hoveredEvent.time)}
+          {/* ✅ FIXED: Compact content */}
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 'bold',
+              color: darkMode ? '#e1e1e1' : '#333',
+              mb: 1,
+              fontSize: '0.75rem',
+              display: 'block',
+            }}
+          >
+            {formatCompactTime(hoveredEvent?.time || clickedEvent?.time)}
           </Typography>
-          <Typography variant="caption" sx={{ display: "block", color: "#555" }}>
-            Event: {hoveredEvent.message}
-          </Typography>
-          {hoveredEvent.email && (
-            <Typography variant="caption" sx={{ display: "block", color: "#555" }}>
-              Email: {hoveredEvent.email}
+          
+          <Chip
+            label={hoveredEvent?.message || clickedEvent?.message}
+            size="small"
+            sx={{
+              backgroundColor: alpha(getEventColor(hoveredEvent?.message || clickedEvent?.message), 0.15),
+              color: getEventColor(hoveredEvent?.message || clickedEvent?.message),
+              border: `1px solid ${alpha(getEventColor(hoveredEvent?.message || clickedEvent?.message), 0.3)}`,
+              fontWeight: 'medium',
+              fontSize: '0.65rem',
+              height: '22px',
+              width: '100%',
+              justifyContent: 'center',
+            }}
+          />
+          
+          {/* ✅ FIXED: Compact email display */}
+          {(hoveredEvent?.email || clickedEvent?.email) && (
+            <Typography
+              variant="caption"
+              sx={{
+                color: darkMode ? '#ccc' : '#666',
+                display: 'block',
+                fontSize: '0.65rem',
+                mt: 0.5,
+                textOverflow: 'ellipsis',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              📧 {hoveredEvent?.email || clickedEvent?.email}
             </Typography>
           )}
-          {(hoveredEvent.os || hoveredEvent.browser) && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
-              {hoveredEvent.os && (
-                <Box sx={{ display: "flex", alignItems: "center", color: "#6b7280" }}>
-                  <LaptopIcon sx={{ fontSize: "0.8rem", mr: 0.5 }} />
-                  <Typography variant="caption">{hoveredEvent.os}</Typography>
-                </Box>
-              )}
-              {hoveredEvent.browser && (
-                <Box sx={{ display: "flex", alignItems: "center", color: "#6b7280" }}>
-                  <BrowserUpdated sx={{ fontSize: "0.8rem", mr: 0.5 }} />
-                  <Typography variant="caption">{hoveredEvent.browser}</Typography>
-                </Box>
-              )}
-            </Box>
-          )}
-        </Box>
+        </Paper>
       )}
 
-      {/* Legend */}
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, justifyContent: "center", mt: 2 }}>
-        {["Email Sent", "Clicked Link", "Submitted Data"].map((eventType) => (
-          <Box key={eventType} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box
+      {/* ✅ FIXED: Compact Legend */}
+      <Box sx={{ 
+        display: 'flex', 
+        flexWrap: 'wrap', 
+        gap: 1, 
+        justifyContent: 'center',
+        mt: 2,
+        pt: 1.5,
+        borderTop: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
+      }}>
+        {["Campaign Created", "Email Sent", "Email Opened", "Clicked Link", "Submitted Data", "Email Reported"].map((eventType) => {
+          const color = getEventColor(eventType);
+          const hasEvent = sortedTimeline.some(event => event.message === eventType);
+          
+          return (
+            <Chip
+              key={eventType}
+              label={eventType}
+              size="small"
               sx={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                backgroundColor: getEventColor(eventType),
+                backgroundColor: hasEvent ? alpha(color, 0.15) : alpha(color, 0.05),
+                color: hasEvent ? color : alpha(color, 0.6),
+                border: `1px solid ${alpha(color, hasEvent ? 0.4 : 0.2)}`,
+                fontWeight: hasEvent ? 'medium' : 'normal',
+                fontSize: '0.7rem',
+                height: '24px',
+                opacity: hasEvent ? 1 : 0.7,
+                '&:before': {
+                  content: '""',
+                  display: 'inline-block',
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: color,
+                  marginRight: '4px',
+                  opacity: hasEvent ? 1 : 0.5,
+                },
               }}
             />
-            <Typography variant="caption" sx={{ fontSize: "11px", color: "#374151" }}>
-              {eventType}
-            </Typography>
-          </Box>
-        ))}
+          );
+        })}
+      </Box>
+
+      {/* ✅ FIXED: Compact Timeline Stats */}
+      <Box sx={{ 
+        mt: 2,
+        p: 1.5,
+        borderRadius: '8px',
+        background: darkMode ? alpha('#1a1a2e', 0.3) : alpha('#f8f9fa', 0.5),
+        border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
+      }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: darkMode ? '#ccc' : '#666',
+            display: 'block',
+            textAlign: 'center',
+            fontSize: '0.7rem',
+          }}
+        >
+          📈 {sortedTimeline.length} events • {Math.ceil((latestEventTime - earliestEventTime) / (1000 * 60))} min duration
+        </Typography>
       </Box>
     </Box>
   );

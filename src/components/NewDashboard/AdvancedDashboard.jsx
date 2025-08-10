@@ -1,45 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
+  Paper,
   Grid,
   Typography,
-  Switch,
-  FormControlLabel,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
-  TextField,
   Button,
   Chip,
   Avatar,
   LinearProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  TablePagination,
-  Tooltip,
-  IconButton
+  alpha,
+  Stack,
+  Divider,
+  Card,
+  CardContent,
+  Skeleton,
+  IconButton,
+  Badge,
 } from '@mui/material';
 import {
   MailOutline,
   Visibility,
-  Link,
+  Link as LinkIcon,
   Description,
   Warning,
   Quiz,
   CheckCircle,
   School,
   People,
-  TrendingUp,
   Download,
-  Search
+  BarChart,
+  PieChart,
+  Timeline,
+  Assessment,
+  Person,
+  Security,
+  Speed,
+  TrendingUp,
+  TrendingDown,
+  AccessTime,
+  Refresh,
+  FilterList,
+  ShowChart,
+  NotificationsActive,
+  Campaign,
+  Analytics,
 } from '@mui/icons-material';
 import { useTheme } from '../../context/ThemeContext';
 import {
@@ -53,9 +61,11 @@ import {
   ArcElement,
   LineElement,
   PointElement,
-  Filler
+  Filler,
+  RadialLinearScale,
 } from 'chart.js';
-import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import { Bar, Doughnut, Line, Radar, PolarArea } from 'react-chartjs-2';
+import { advancedToast } from '../../utils/toast';
 
 // Register Chart.js components
 ChartJS.register(
@@ -68,686 +78,756 @@ ChartJS.register(
   ArcElement,
   LineElement,
   PointElement,
-  Filler
+  Filler,
+  RadialLinearScale
 );
 
 const AdvancedDashboard = () => {
   const { darkMode } = useTheme();
-  
-  // State Management
-  const [dashboardData, setDashboardData] = useState(null);
-  const [userDetails, setUserDetails] = useState([]);
-  const [trainingModules, setTrainingModules] = useState([]);
-  const [quizAnalytics, setQuizAnalytics] = useState([]);
-  const [timelineData, setTimelineData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [showTable, setShowTable] = useState(false);
   const [selectedProject, setSelectedProject] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredUsers, setFilteredUsers] = useState([]);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Theme colors based on your existing theme context
-  const primaryColor = localStorage.getItem("primaryColor") || "#1976d2";
-  const secondaryColor = localStorage.getItem("secondaryColor") || "#dc004e";
-  
+  const primaryColor = localStorage.getItem('primaryColor') || '#ec008c';
+
   const colors = {
     primary: primaryColor,
-    success: '#2e7d32',
-    warning: '#ed6c02',
-    danger: '#d32f2f',
-    info: '#0288d1',
-    dark: '#424242'
+    success: '#4caf50',
+    warning: '#ff9800',
+    danger: '#f44336',
+    info: '#2196f3',
+    purple: '#9c27b0',
+    teal: '#009688',
+    indigo: '#3f51b5',
   };
 
-  const theme = {
-    palette: {
-      mode: darkMode ? 'dark' : 'light',
-      background: {
-        default: darkMode ? '#1e1e2f' : '#f5f5f5',
-        paper: darkMode ? '#2d2d44' : '#ffffff'
-      },
-      text: {
-        primary: darkMode ? '#ffffff' : '#333333',
-        secondary: darkMode ? '#ffffffcc' : '#666666'
-      }
+  // ✅ Dummy Data for Dashboard
+  const dummyDashboardData = {
+    totalCampaigns: 24,
+    emailSent: 15420,
+    emailOpened: 8932,
+    linkClicked: 3456,
+    submitted_data: 1234,
+    emailReported: 789,
+    quizStarted: 6789,
+    quizCompleted: 5432,
+    quizPassed: 4321,
+    trainingStarted: 7890,
+    trainingCompleted: 6543,
+    securityScore: 78,
+    totalUsers: 9876,
+    activeCampaigns: 8,
+    pendingAlerts: 12,
+    timeline: {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+      emailsSent: [2100, 2400, 2200, 2800, 3200, 2900, 3100],
+      linksClicked: [450, 520, 480, 620, 720, 650, 680],
+      dataSubmitted: [120, 180, 150, 220, 280, 240, 260],
+    },
+    risks: {
+      phishingSusceptibility: 65,
+      passwordSecurity: 78,
+      emailSecurity: 82,
+      socialEngineering: 58,
+      deviceSecurity: 75,
+      trainingCompliance: 88,
     }
   };
 
-  // Fetch dashboard data
-  const fetchDashboardData = async (projectName = 'All') => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/graph/graph-data?projectName=${projectName}`, {
-        credentials: 'include'
-      });
-      const data = await response.json();
-      setDashboardData(data);
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-    }
-    setLoading(false);
-  };
-
-  // Fetch user details
-  const fetchUserDetails = async (projectName = 'All') => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/graph/user-details?projectName=${projectName}`, {
-        credentials: 'include'
-      });
-      const data = await response.json();
-      setUserDetails(data.users || []);
-      setFilteredUsers(data.users || []);
-    } catch (error) {
-      console.error('Failed to fetch user details:', error);
-    }
-  };
-
-  // Fetch training analytics
-  const fetchTrainingAnalytics = async (projectName = 'All') => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/graph/training-analytics?projectName=${projectName}`, {
-        credentials: 'include'
-      });
-      const data = await response.json();
-      setTrainingModules(data.modules || []);
-    } catch (error) {
-      console.error('Failed to fetch training analytics:', error);
-    }
-  };
-
-  // Fetch timeline data
-  const fetchTimelineData = async (projectName = 'All') => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/graph/timeline-data?projectName=${projectName}`, {
-        credentials: 'include'
-      });
-      const data = await response.json();
-      setTimelineData(data.timeline || []);
-    } catch (error) {
-      console.error('Failed to fetch timeline data:', error);
-    }
-  };
-
-  // Initialize data
-  useEffect(() => {
-    fetchDashboardData(selectedProject);
-    fetchUserDetails(selectedProject);
-    fetchTrainingAnalytics(selectedProject);
-    fetchTimelineData(selectedProject);
-  }, [selectedProject]);
-
-  // Filter users based on search term
-  useEffect(() => {
-    if (searchTerm) {
-      const filtered = userDetails.filter(user =>
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.last_name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredUsers(filtered);
-    } else {
-      setFilteredUsers(userDetails);
-    }
-    setPage(0); // Reset page when filtering
-  }, [searchTerm, userDetails]);
-
-  // KPI Cards data
-  const getKpiCards = () => {
-    if (!dashboardData) return [];
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    advancedToast.info(
+      "Refreshing dashboard data...",
+      "Refreshing",
+      { icon: "🔄" }
+    );
     
-    return [
-      {
-        title: 'Emails Sent',
-        value: dashboardData.emailSent || 0,
-        icon: <MailOutline />,
-        color: colors.primary
-      },
-      {
-        title: 'Emails Opened',
-        value: dashboardData.emailOpened || 0,
-        icon: <Visibility />,
-        color: colors.success,
-        percentage: dashboardData.emailSent ? ((dashboardData.emailOpened / dashboardData.emailSent) * 100).toFixed(1) : 0
-      },
-      {
-        title: 'Links Clicked',
-        value: dashboardData.linkClicked || 0,
-        icon: <Link />,
-        color: colors.warning,
-        percentage: dashboardData.emailOpened ? ((dashboardData.linkClicked / dashboardData.emailOpened) * 100).toFixed(1) : 0
-      },
-      {
-        title: 'Data Submitted',
-        value: dashboardData.submitted_data || 0,
-        icon: <Description />,
-        color: colors.danger
-      },
-      {
-        title: 'Phished Users',
-        value: dashboardData.phishedUsers || 0,
-        icon: <Warning />,
-        color: colors.danger
-      },
-      {
-        title: 'Quiz Started',
-        value: dashboardData.quizStarted || 0,
-        icon: <Quiz />,
-        color: colors.info
-      },
-      {
-        title: 'Quiz Completed',
-        value: dashboardData.quizCompleted || 0,
-        icon: <CheckCircle />,
-        color: colors.success,
-        percentage: dashboardData.quizStarted ? ((dashboardData.quizCompleted / dashboardData.quizStarted) * 100).toFixed(1) : 0
-      },
-      {
-        title: 'Training Completed',
-        value: dashboardData.trainingCompleted || 0,
-        icon: <School />,
-        color: colors.success,
-        percentage: dashboardData.trainingStarted ? ((dashboardData.trainingCompleted / dashboardData.trainingStarted) * 100).toFixed(1) : 0
-      }
-    ];
+    // Simulate API call
+    setTimeout(() => {
+      setRefreshing(false);
+      advancedToast.success(
+        "Dashboard data refreshed successfully!",
+        "Dashboard Updated",
+        { icon: "✅" }
+      );
+    }, 2000);
   };
 
-  // Chart configurations with theme awareness
-  const getChartOptions = (title) => ({
+  // ✅ Enhanced KPI Cards with dummy data
+  const kpiCards = useMemo(() => [
+    {
+      title: 'Total Campaigns',
+      value: dummyDashboardData.totalCampaigns,
+      icon: <Assessment />,
+      color: colors.primary,
+      trend: '+12%',
+      description: 'Active campaigns'
+    },
+    {
+      title: 'Emails Sent',
+      value: dummyDashboardData.emailSent.toLocaleString(),
+      icon: <MailOutline />,
+      color: colors.info,
+      trend: '+8%',
+      description: 'Total delivered'
+    },
+    {
+      title: 'Engagement Rate',
+      value: `${((dummyDashboardData.emailOpened / dummyDashboardData.emailSent) * 100).toFixed(1)}%`,
+      icon: <Visibility />,
+      color: colors.success,
+      trend: '-2%',
+      description: 'Email opens'
+    },
+    {
+      title: 'Click-through Rate',
+      value: `${((dummyDashboardData.linkClicked / dummyDashboardData.emailOpened) * 100).toFixed(1)}%`,
+      icon: <LinkIcon />,
+      color: colors.warning,
+      trend: '+5%',
+      description: 'Link clicks'
+    },
+    {
+      title: 'Susceptibility Rate',
+      value: `${((dummyDashboardData.submitted_data / dummyDashboardData.emailSent) * 100).toFixed(1)}%`,
+      icon: <Security />,
+      color: colors.danger,
+      trend: '-15%',
+      description: 'Data submitted'
+    },
+    {
+      title: 'Training Completion',
+      value: `${((dummyDashboardData.trainingCompleted / dummyDashboardData.trainingStarted) * 100).toFixed(1)}%`,
+      icon: <School />,
+      color: colors.success,
+      trend: '+23%',
+      description: 'Training done'
+    },
+    {
+      title: 'Quiz Pass Rate',
+      value: `${((dummyDashboardData.quizPassed / dummyDashboardData.quizCompleted) * 100).toFixed(1)}%`,
+      icon: <Quiz />,
+      color: colors.purple,
+      trend: '+18%',
+      description: 'Quiz success'
+    },
+    {
+      title: 'Security Score',
+      value: dummyDashboardData.securityScore,
+      icon: <Speed />,
+      color: colors.teal,
+      trend: '+7%',
+      description: 'Overall rating'
+    },
+  ], [colors]);
+
+  // ✅ Chart Data with dummy data
+  const funnelChartData = {
+    labels: ['Emails Sent', 'Emails Opened', 'Links Clicked', 'Data Submitted', 'Reported'],
+    datasets: [{
+      label: 'Campaign Funnel',
+      data: [
+        dummyDashboardData.emailSent,
+        dummyDashboardData.emailOpened,
+        dummyDashboardData.linkClicked,
+        dummyDashboardData.submitted_data,
+        dummyDashboardData.emailReported
+      ],
+      backgroundColor: [colors.info, colors.success, colors.warning, colors.danger, colors.purple],
+      borderColor: darkMode ? '#1a1a2e' : '#ffffff',
+      borderWidth: 2,
+    }]
+  };
+
+  const timelineChartData = {
+    labels: dummyDashboardData.timeline.labels,
+    datasets: [
+      {
+        label: 'Emails Sent',
+        data: dummyDashboardData.timeline.emailsSent,
+        borderColor: colors.primary,
+        backgroundColor: alpha(colors.primary, 0.1),
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: colors.primary,
+      },
+      {
+        label: 'Links Clicked',
+        data: dummyDashboardData.timeline.linksClicked,
+        borderColor: colors.warning,
+        backgroundColor: alpha(colors.warning, 0.1),
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: colors.warning,
+      },
+      {
+        label: 'Data Submitted',
+        data: dummyDashboardData.timeline.dataSubmitted,
+        borderColor: colors.danger,
+        backgroundColor: alpha(colors.danger, 0.1),
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: colors.danger,
+      }
+    ]
+  };
+
+  const riskRadarData = {
+    labels: ['Phishing Susceptibility', 'Password Security', 'Email Security', 'Social Engineering', 'Device Security', 'Training Compliance'],
+    datasets: [{
+      label: 'Organization Risk Profile',
+      data: [
+        dummyDashboardData.risks.phishingSusceptibility,
+        dummyDashboardData.risks.passwordSecurity,
+        dummyDashboardData.risks.emailSecurity,
+        dummyDashboardData.risks.socialEngineering,
+        dummyDashboardData.risks.deviceSecurity,
+        dummyDashboardData.risks.trainingCompliance,
+      ],
+      backgroundColor: alpha(colors.danger, 0.2),
+      borderColor: colors.danger,
+      borderWidth: 2,
+      pointBackgroundColor: colors.danger,
+      pointBorderColor: '#fff',
+      pointHoverBackgroundColor: '#fff',
+      pointHoverBorderColor: colors.danger
+    }]
+  };
+
+  const completionDonutData = {
+    labels: ['Quiz Completed', 'Training Completed', 'Pending'],
+    datasets: [{
+      data: [
+        dummyDashboardData.quizCompleted,
+        dummyDashboardData.trainingCompleted,
+        dummyDashboardData.totalUsers - dummyDashboardData.quizCompleted - dummyDashboardData.trainingCompleted
+      ],
+      backgroundColor: [colors.success, colors.info, colors.warning],
+      borderColor: darkMode ? '#1a1a2e' : '#ffffff',
+      borderWidth: 3,
+      hoverOffset: 10,
+    }]
+  };
+
+  const chartOptions = useMemo(() => ({
     responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: darkMode ? '#e1e1e1' : '#333',
+          usePointStyle: true,
+          padding: 20,
+        }
+      },
+      tooltip: {
+        backgroundColor: darkMode ? alpha('#1a1a2e', 0.9) : alpha('#ffffff', 0.9),
+        titleColor: darkMode ? '#e1e1e1' : '#333',
+        bodyColor: darkMode ? '#ccc' : '#666',
+        borderColor: darkMode ? alpha('#fff', 0.2) : alpha('#000', 0.2),
+        borderWidth: 1,
+        cornerRadius: 8,
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: darkMode ? '#ccc' : '#666' },
+        grid: { 
+          color: darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1),
+          drawBorder: false,
+        }
+      },
+      y: {
+        ticks: { color: darkMode ? '#ccc' : '#666' },
+        grid: { 
+          color: darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1),
+          drawBorder: false,
+        }
+      }
+    }
+  }), [darkMode]);
+
+  const radarOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top',
         labels: {
-          color: theme.palette.text.primary
+          color: darkMode ? '#e1e1e1' : '#333',
+          usePointStyle: true,
         }
-      },
-      title: {
-        display: true,
-        text: title,
-        color: theme.palette.text.primary
       }
     },
     scales: {
-      x: {
-        ticks: {
-          color: theme.palette.text.secondary
+      r: {
+        angleLines: {
+          color: darkMode ? alpha('#fff', 0.2) : alpha('#000', 0.2)
         },
         grid: {
-          color: darkMode ? '#444' : '#e0e0e0'
-        }
-      },
-      y: {
-        beginAtZero: true,
+          color: darkMode ? alpha('#fff', 0.2) : alpha('#000', 0.2)
+        },
+        pointLabels: {
+          color: darkMode ? '#ccc' : '#666',
+          font: { size: 12 }
+        },
         ticks: {
-          color: theme.palette.text.secondary
+          color: darkMode ? '#999' : '#888',
+          backdropColor: 'transparent'
         },
-        grid: {
-          color: darkMode ? '#444' : '#e0e0e0'
-        }
+        min: 0,
+        max: 100,
       }
     }
-  });
-
-  // Campaign Funnel Chart
-  const getCampaignFunnelChart = () => {
-    if (!dashboardData) return null;
-
-    const data = {
-      labels: ['Emails Sent', 'Emails Opened', 'Links Clicked', 'Data Submitted'],
-      datasets: [{
-        label: 'Campaign Funnel',
-        data: [
-          dashboardData.emailSent || 0,
-          dashboardData.emailOpened || 0,
-          dashboardData.linkClicked || 0,
-          dashboardData.submitted_data || 0
-        ],
-        backgroundColor: [colors.primary, colors.success, colors.warning, colors.danger],
-        borderWidth: 2,
-        borderColor: theme.palette.background.paper
-      }]
-    };
-
-    return <Bar data={data} options={getChartOptions('Campaign Conversion Funnel')} />;
-  };
-
-  // Training Progress Chart
-  const getTrainingProgressChart = () => {
-    if (!trainingModules || trainingModules.length === 0) return null;
-
-    const data = {
-      labels: trainingModules.map(module => module.name),
-      datasets: [{
-        label: 'Completed',
-        data: trainingModules.map(module => module.completed),
-        backgroundColor: colors.success,
-      }, {
-        label: 'Total',
-        data: trainingModules.map(module => module.total),
-        backgroundColor: colors.primary,
-      }]
-    };
-
-    return <Bar data={data} options={getChartOptions('Training Module Progress')} />;
-  };
-
-  // Quiz Performance Doughnut Chart
-  const getQuizPerformanceChart = () => {
-    if (!dashboardData) return null;
-
-    const data = {
-      labels: ['Completed', 'Started but not completed'],
-      datasets: [{
-        data: [
-          dashboardData.quizCompleted || 0,
-          (dashboardData.quizStarted || 0) - (dashboardData.quizCompleted || 0)
-        ],
-        backgroundColor: [colors.success, colors.warning],
-        borderWidth: 2,
-        borderColor: theme.palette.background.paper
-      }]
-    };
-
-    const options = {
-      responsive: true,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            color: theme.palette.text.primary
-          }
-        },
-        title: {
-          display: true,
-          text: 'Quiz Completion Status',
-          color: theme.palette.text.primary
-        }
-      }
-    };
-
-    return <Doughnut data={data} options={options} />;
-  };
-
-  // Activity Timeline Chart
-  const getActivityTimelineChart = () => {
-    if (!timelineData || timelineData.length === 0) return null;
-
-    const data = {
-      labels: timelineData.map(item => item.date),
-      datasets: [{
-        label: 'Emails Sent',
-        data: timelineData.map(item => item.emailsSent || 0),
-        borderColor: colors.primary,
-        backgroundColor: colors.primary + '20',
-        fill: false
-      }, {
-        label: 'Emails Opened',
-        data: timelineData.map(item => item.emailsOpened || 0),
-        borderColor: colors.success,
-        backgroundColor: colors.success + '20',
-        fill: false
-      }, {
-        label: 'Links Clicked',
-        data: timelineData.map(item => item.linksClicked || 0),
-        borderColor: colors.warning,
-        backgroundColor: colors.warning + '20',
-        fill: false
-      }]
-    };
-
-    return <Line data={data} options={getChartOptions('Activity Timeline')} />;
-  };
-
-  // Export data
-  const exportData = (format) => {
-    if (format === 'csv') {
-      const headers = ['Email', 'Email Opened', 'Link Clicked', 'Data Submitted', 'Quiz Score', 'Training Progress', 'Risk Level'];
-      const csvContent = [
-        headers.join(','),
-        ...filteredUsers.map(user => [
-          user.email,
-          user.emailOpened ? 'Yes' : 'No',
-          user.linkClicked ? 'Yes' : 'No',
-          user.dataSubmitted ? 'Yes' : 'No',
-          user.quizScore || 'N/A',
-          `${user.trainingModules || 0}/${user.totalModules || 3}`,
-          user.riskLevel || 'Low'
-        ].join(','))
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `phishing-campaign-data-${new Date().toISOString().split('T')[0]}.csv`;
-      link.click();
-      window.URL.revokeObjectURL(url);
-    }
-  };
-
-  // Handle pagination
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  // Get risk level color
-  const getRiskLevelColor = (risk) => {
-    switch (risk) {
-      case 'High': return colors.danger;
-      case 'Medium': return colors.warning;
-      case 'Low': return colors.success;
-      default: return colors.info;
-    }
-  };
+  }), [darkMode]);
 
   return (
-    <Box 
-      sx={{ 
-        p: 3,
-        backgroundColor: theme.palette.background.default,
-        minHeight: '100vh',
-        color: theme.palette.text.primary
-      }}
-    >
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Grid container justifyContent="space-between" alignItems="center">
-          <Grid item>
-            <Typography variant="h4" component="h1" sx={{ color: primaryColor, fontWeight: 'bold' }}>
-              Phishing Campaign Analytics Dashboard
+    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+      {/* ✅ Enhanced Header */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          mb: 4,
+          borderRadius: '20px',
+          backgroundColor: darkMode ? alpha('#1e1e2f', 0.8) : alpha('#ffffff', 0.9),
+          backdropFilter: 'blur(16px)',
+          border: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.1)}`,
+          boxShadow: darkMode 
+            ? '0 8px 32px rgba(0, 0, 0, 0.3)' 
+            : '0 8px 32px rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={6}>
+            <Typography 
+              variant="h4" 
+              fontWeight="bold" 
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 2,
+                background: `linear-gradient(135deg, ${colors.primary}, ${colors.info})`,
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                mb: 1,
+              }}
+            >
+              <Assessment sx={{ fontSize: '2rem', color: colors.primary }} />
+              Advanced Analytics Dashboard
             </Typography>
-            <Typography variant="subtitle1" sx={{ color: theme.palette.text.secondary, mt: 1 }}>
-              Comprehensive security awareness training analytics
+            <Typography 
+              variant="body1" 
+              sx={{ color: darkMode ? '#ccc' : '#666' }}
+            >
+              Comprehensive security awareness analytics and insights
             </Typography>
           </Grid>
-          <Grid item>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <FormControl size="small" sx={{ minWidth: 150 }}>
+          
+          <Grid item xs={12} md={6}>
+            <Stack direction="row" spacing={2} justifyContent={{ xs: 'flex-start', md: 'flex-end' }}>
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel>Time Range</InputLabel>
+                <Select
+                  value={selectedTimeRange}
+                  onChange={(e) => setSelectedTimeRange(e.target.value)}
+                  label="Time Range"
+                >
+                  <MenuItem value="24h">Last 24 hours</MenuItem>
+                  <MenuItem value="7d">Last 7 days</MenuItem>
+                  <MenuItem value="30d">Last 30 days</MenuItem>
+                  <MenuItem value="90d">Last 3 months</MenuItem>
+                </Select>
+              </FormControl>
+              
+              <FormControl size="small" sx={{ minWidth: 140 }}>
                 <InputLabel>Project</InputLabel>
                 <Select
                   value={selectedProject}
                   onChange={(e) => setSelectedProject(e.target.value)}
                   label="Project"
-                  sx={{ 
-                    backgroundColor: theme.palette.background.paper,
-                    color: theme.palette.text.primary
-                  }}
                 >
                   <MenuItem value="All">All Projects</MenuItem>
+                  <MenuItem value="Project Alpha">Project Alpha</MenuItem>
+                  <MenuItem value="Project Beta">Project Beta</MenuItem>
+                  <MenuItem value="Project Gamma">Project Gamma</MenuItem>
                 </Select>
               </FormControl>
+              
               <Button
-                variant="outlined"
-                startIcon={<Download />}
-                onClick={() => exportData('csv')}
-                sx={{ 
-                  borderColor: primaryColor, 
-                  color: primaryColor,
+                onClick={handleRefresh}
+                disabled={refreshing}
+                startIcon={<Refresh />}
+                sx={{
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  background: `linear-gradient(135deg, ${colors.primary}, ${colors.info})`,
+                  color: '#fff',
                   '&:hover': {
-                    borderColor: primaryColor,
-                    backgroundColor: primaryColor + '10'
-                  }
+                    background: `linear-gradient(135deg, ${colors.info}, ${colors.primary})`,
+                  },
                 }}
               >
-                Export CSV
+                Refresh
               </Button>
-            </Box>
+            </Stack>
           </Grid>
         </Grid>
-      </Box>
+      </Paper>
 
-      {/* KPI Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        {getKpiCards().map((kpi, index) => (
+      {/* ✅ Enhanced KPI Cards Grid */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {kpiCards.map((kpi, index) => (
           <Grid item xs={12} sm={6} md={3} key={index}>
-            <Card 
-              sx={{ 
-                backgroundColor: theme.palette.background.paper,
-                transition: 'transform 0.2s',
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                borderRadius: '16px',
+                backgroundColor: darkMode ? alpha('#1e1e2f', 0.7) : alpha('#ffffff', 0.8),
+                backdropFilter: 'blur(12px)',
+                border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
+                height: '140px',
+                transition: 'all 0.3s ease',
                 '&:hover': {
                   transform: 'translateY(-4px)',
-                  boxShadow: darkMode ? '0 8px 25px rgba(0,0,0,0.3)' : '0 8px 25px rgba(0,0,0,0.1)'
-                }
+                  boxShadow: darkMode 
+                    ? `0 8px 32px rgba(0, 0, 0, 0.4), 0 4px 16px ${alpha(kpi.color, 0.3)}` 
+                    : `0 8px 32px rgba(0, 0, 0, 0.1), 0 4px 16px ${alpha(kpi.color, 0.2)}`,
+                },
               }}
             >
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant="h4" sx={{ color: kpi.color, fontWeight: 'bold' }}>
-                      {kpi.value}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                      {kpi.title}
-                    </Typography>
-                    {kpi.percentage && (
-                      <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                        {kpi.percentage}%
-                      </Typography>
-                    )}
-                  </Box>
-                  <Box sx={{ color: kpi.color }}>
-                    {kpi.icon}
-                  </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <Box>
+                  <Typography variant="body2" sx={{ color: darkMode ? '#ccc' : '#666', mb: 1 }}>
+                    {kpi.title}
+                  </Typography>
+                  <Typography variant="h4" fontWeight="bold" sx={{ color: darkMode ? '#e1e1e1' : '#333' }}>
+                    {kpi.value}
+                  </Typography>
                 </Box>
-              </CardContent>
-            </Card>
+                <Avatar
+                  sx={{
+                    bgcolor: alpha(kpi.color, 0.15),
+                    color: kpi.color,
+                    width: 48,
+                    height: 48,
+                  }}
+                >
+                  {kpi.icon}
+                </Avatar>
+              </Box>
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="caption" sx={{ color: darkMode ? '#999' : '#777' }}>
+                  {kpi.description}
+                </Typography>
+                <Chip
+                  label={kpi.trend}
+                  size="small"
+                  icon={kpi.trend.startsWith('+') ? <TrendingUp /> : <TrendingDown />}
+                  sx={{
+                    backgroundColor: kpi.trend.startsWith('+') 
+                      ? alpha(colors.success, 0.1) 
+                      : alpha(colors.danger, 0.1),
+                    color: kpi.trend.startsWith('+') ? colors.success : colors.danger,
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                  }}
+                />
+              </Box>
+            </Paper>
           </Grid>
         ))}
       </Grid>
 
-      {/* Charts Section */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} lg={6}>
-          <Card sx={{ backgroundColor: theme.palette.background.paper, height: '400px' }}>
-            <CardContent sx={{ height: '100%' }}>
-              <Box sx={{ height: '350px' }}>
-                {getCampaignFunnelChart()}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} lg={6}>
-          <Card sx={{ backgroundColor: theme.palette.background.paper, height: '400px' }}>
-            <CardContent sx={{ height: '100%' }}>
-              <Box sx={{ height: '350px' }}>
-                {getQuizPerformanceChart()}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} lg={6}>
-          <Card sx={{ backgroundColor: theme.palette.background.paper, height: '400px' }}>
-            <CardContent sx={{ height: '100%' }}>
-              <Box sx={{ height: '350px' }}>
-                {getTrainingProgressChart()}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} lg={6}>
-          <Card sx={{ backgroundColor: theme.palette.background.paper, height: '400px' }}>
-            <CardContent sx={{ height: '100%' }}>
-              <Box sx={{ height: '350px' }}>
-                {getActivityTimelineChart()}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Table Toggle */}
-      <Card sx={{ backgroundColor: theme.palette.background.paper, mb: showTable ? 3 : 0 }}>
-        <CardContent>
-          <Grid container justifyContent="space-between" alignItems="center">
-            <Grid item>
-              <Typography variant="h6">Detailed User Activity</Typography>
-              <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                Individual user performance and risk assessment
-              </Typography>
-            </Grid>
-            <Grid item>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                {showTable && (
-                  <TextField
-                    size="small"
-                    placeholder="Search users..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{
-                      startAdornment: <Search sx={{ color: theme.palette.text.secondary, mr: 1 }} />
-                    }}
-                    sx={{ width: 250 }}
-                  />
-                )}
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={showTable}
-                      onChange={(e) => setShowTable(e.target.checked)}
-                      sx={{
-                        '& .MuiSwitch-switchBase.Mui-checked': {
-                          color: primaryColor,
-                        },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                          backgroundColor: primaryColor,
-                        },
-                      }}
-                    />
-                  }
-                  label="Show Details"
-                />
-              </Box>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      {/* User Details Table */}
-      {showTable && (
-        <Card sx={{ backgroundColor: theme.palette.background.paper }}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: darkMode ? '#333' : '#f5f5f5' }}>
-                  <TableCell>User</TableCell>
-                  <TableCell>Email Status</TableCell>
-                  <TableCell>Link Clicked</TableCell>
-                  <TableCell>Data Submitted</TableCell>
-                  <TableCell>Quiz Score</TableCell>
-                  <TableCell>Training Progress</TableCell>
-                  <TableCell>Risk Level</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredUsers
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((user) => (
-                    <TableRow key={user.id} hover>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Avatar sx={{ width: 32, height: 32 }}>
-                            <People />
-                          </Avatar>
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                              {user.first_name && user.last_name 
-                                ? `${user.first_name} ${user.last_name}` 
-                                : user.email}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                              {user.email}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={user.emailOpened ? 'Opened' : 'Not Opened'}
-                          color={user.emailOpened ? 'success' : 'default'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={user.linkClicked ? 'Yes' : 'No'}
-                          color={user.linkClicked ? 'warning' : 'default'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={user.dataSubmitted ? 'Yes' : 'No'}
-                          color={user.dataSubmitted ? 'error' : 'default'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {user.quizScore ? `${user.quizScore}%` : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ width: '100%', mr: 1 }}>
-                          <LinearProgress
-                            variant="determinate"
-                            value={user.trainingModules && user.totalModules 
-                              ? (user.trainingModules / user.totalModules) * 100 
-                              : 0}
-                            sx={{
-                              height: 8,
-                              borderRadius: 5,
-                              backgroundColor: darkMode ? '#555' : '#e0e0e0',
-                              '& .MuiLinearProgress-bar': {
-                                backgroundColor: colors.success
-                              }
-                            }}
-                          />
-                          <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
-                            {user.trainingModules || 0} / {user.totalModules || 3} modules
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={user.riskLevel || 'Low'}
-                          sx={{
-                            backgroundColor: getRiskLevelColor(user.riskLevel) + '20',
-                            color: getRiskLevelColor(user.riskLevel),
-                            fontWeight: 'bold'
-                          }}
-                          size="small"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25]}
-            component="div"
-            count={filteredUsers.length}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
+      {/* ✅ Main Charts Grid */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Campaign Funnel Chart */}
+        <Grid item xs={12} lg={4}>
+          <Paper
+            elevation={0}
             sx={{
-              borderTop: `1px solid ${darkMode ? '#444' : '#e0e0e0'}`,
-              '& .MuiTablePagination-toolbar': {
-                color: theme.palette.text.primary
-              }
+              borderRadius: '16px',
+              height: 400,
+              p: 3,
+              backgroundColor: darkMode ? alpha('#1e1e2f', 0.7) : alpha('#ffffff', 0.8),
+              backdropFilter: 'blur(12px)',
+              border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
             }}
-          />
-        </Card>
-      )}
+          >
+            <Typography 
+              variant="h6" 
+              fontWeight="bold"
+              sx={{ 
+                mb: 3, 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                color: darkMode ? '#e1e1e1' : '#333',
+              }}
+            >
+              <BarChart sx={{ color: colors.primary }} />
+              Campaign Funnel Analysis
+            </Typography>
+            <Bar data={funnelChartData} options={chartOptions} />
+          </Paper>
+        </Grid>
+
+        {/* Timeline Chart */}
+        <Grid item xs={12} lg={8}>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: '16px',
+              height: 400,
+              p: 3,
+              backgroundColor: darkMode ? alpha('#1e1e2f', 0.7) : alpha('#ffffff', 0.8),
+              backdropFilter: 'blur(12px)',
+              border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
+            }}
+          >
+            <Typography 
+              variant="h6" 
+              fontWeight="bold"
+              sx={{ 
+                mb: 3, 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                color: darkMode ? '#e1e1e1' : '#333',
+              }}
+            >
+              <Timeline sx={{ color: colors.info }} />
+              Campaign Activity Timeline
+            </Typography>
+            <Line data={timelineChartData} options={chartOptions} />
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* ✅ Advanced Analytics Grid */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Risk Assessment Radar */}
+        <Grid item xs={12} md={6}>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: '16px',
+              height: 400,
+              p: 3,
+              backgroundColor: darkMode ? alpha('#1e1e2f', 0.7) : alpha('#ffffff', 0.8),
+              backdropFilter: 'blur(12px)',
+              border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
+            }}
+          >
+            <Typography 
+              variant="h6" 
+              fontWeight="bold"
+              sx={{ 
+                mb: 3, 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                color: darkMode ? '#e1e1e1' : '#333',
+              }}
+            >
+              <Security sx={{ color: colors.danger }} />
+              Security Risk Assessment
+            </Typography>
+            <Radar data={riskRadarData} options={radarOptions} />
+          </Paper>
+        </Grid>
+
+        {/* Completion Rates Doughnut */}
+        <Grid item xs={12} md={6}>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: '16px',
+              height: 400,
+              p: 3,
+              backgroundColor: darkMode ? alpha('#1e1e2f', 0.7) : alpha('#ffffff', 0.8),
+              backdropFilter: 'blur(12px)',
+              border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
+            }}
+          >
+            <Typography 
+              variant="h6" 
+              fontWeight="bold"
+              sx={{ 
+                mb: 3, 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                color: darkMode ? '#e1e1e1' : '#333',
+              }}
+            >
+              <PieChart sx={{ color: colors.success }} />
+              Training & Quiz Completion
+            </Typography>
+            <Doughnut data={completionDonutData} options={{
+              ...chartOptions,
+              plugins: {
+                ...chartOptions.plugins,
+                legend: {
+                  position: 'right',
+                  labels: {
+                    color: darkMode ? '#e1e1e1' : '#333',
+                    usePointStyle: true,
+                    padding: 20,
+                  }
+                }
+              },
+              scales: {},
+            }} />
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* ✅ Required Action Widgets Grid - MAINTAINED AS REQUESTED */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: '16px',
+              height: 200,
+              p: 3,
+              backgroundColor: darkMode ? alpha('#1e1e2f', 0.7) : alpha('#ffffff', 0.8),
+              backdropFilter: 'blur(12px)',
+              border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: `0 8px 32px ${alpha(colors.danger, 0.2)}`,
+              },
+            }}
+          >
+            <Badge badgeContent={12} color="error">
+              <Warning sx={{ fontSize: 48, color: colors.danger, mb: 2 }} />
+            </Badge>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 1, color: darkMode ? '#e1e1e1' : '#333' }}>
+              Security Alerts
+            </Typography>
+            <Typography variant="body2" sx={{ color: darkMode ? '#ccc' : '#666', mb: 2 }}>
+              Monitor critical security incidents and threats
+            </Typography>
+            <Button 
+              variant="contained" 
+              sx={{ 
+                backgroundColor: colors.danger,
+                '&:hover': { backgroundColor: alpha(colors.danger, 0.8) },
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 'bold',
+              }}
+              onClick={() => advancedToast.info("Opening security alerts...", "Security Alerts", { icon: "🚨" })}
+            >
+              View Alerts
+            </Button>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: '16px',
+              height: 200,
+              p: 3,
+              backgroundColor: darkMode ? alpha('#1e1e2f', 0.7) : alpha('#ffffff', 0.8),
+              backdropFilter: 'blur(12px)',
+              border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: `0 8px 32px ${alpha(colors.primary, 0.2)}`,
+              },
+            }}
+          >
+            <ShowChart sx={{ fontSize: 48, color: colors.primary, mb: 2 }} />
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 1, color: darkMode ? '#e1e1e1' : '#333' }}>
+              Advanced Reports
+            </Typography>
+            <Typography variant="body2" sx={{ color: darkMode ? '#ccc' : '#666', mb: 2 }}>
+              Generate detailed analytics and compliance reports
+            </Typography>
+            <Button 
+              variant="contained" 
+              sx={{ 
+                backgroundColor: colors.primary,
+                '&:hover': { backgroundColor: alpha(colors.primary, 0.8) },
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 'bold',
+              }}
+              onClick={() => advancedToast.info("Generating advanced report...", "Report Generator", { icon: "📊" })}
+            >
+              Generate Report
+            </Button>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: '16px',
+              height: 200,
+              p: 3,
+              backgroundColor: darkMode ? alpha('#1e1e2f', 0.7) : alpha('#ffffff', 0.8),
+              backdropFilter: 'blur(12px)',
+              border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: `0 8px 32px ${alpha(colors.info, 0.2)}`,
+              },
+            }}
+          >
+            <People sx={{ fontSize: 48, color: colors.info, mb: 2 }} />
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 1, color: darkMode ? '#e1e1e1' : '#333' }}>
+              User Management
+            </Typography>
+            <Typography variant="body2" sx={{ color: darkMode ? '#ccc' : '#666', mb: 2 }}>
+              Manage users, roles, and training assignments
+            </Typography>
+            <Button 
+              variant="contained" 
+              sx={{ 
+                backgroundColor: colors.info,
+                '&:hover': { backgroundColor: alpha(colors.info, 0.8) },
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 'bold',
+              }}
+              onClick={() => advancedToast.info("Opening user management...", "User Management", { icon: "👥" })}
+            >
+              Manage Users
+            </Button>
+          </Paper>
+        </Grid>
+      </Grid>
     </Box>
   );
 };
