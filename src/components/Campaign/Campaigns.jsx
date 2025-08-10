@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Box, Paper, Button, Typography, IconButton, Tooltip, Dialog,
   DialogTitle, DialogContent, DialogContentText, DialogActions, alpha
@@ -13,26 +13,16 @@ import {
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
-import { advancedToast } from "../../utils/toast"; // Import advanced toast
-import $ from "jquery";
-import "datatables.net";
-import "datatables.net-dt/css/dataTables.dataTables.min.css";
+import { advancedToast } from "../../utils/toast";
+import { DataGrid } from '@mui/x-data-grid';
 import dayjs from "dayjs";
 import NewCampaignModal from "./NewCampaignModal";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const emptyFormData = {
-  id: null,
-  name: "",
-  template: "",
-  landingPage: "",
-  url: "",
-  schedule: "",
-  sendingProfile: "",
-  groups: [],
-  quiz: "",
-  client: "",
+  id: null, name: "", template: "", landingPage: "", url: "",
+  schedule: "", sendingProfile: "", groups: [], quiz: "", client: "",
 };
 
 const Campaigns = () => {
@@ -41,67 +31,31 @@ const Campaigns = () => {
   const [formData, setFormData] = useState(emptyFormData);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, campaign: null });
   const [loading, setLoading] = useState(true);
-  const tableRef = useRef(null);
-  const dataTableRef = useRef(null);
   const { user } = useAuth();
   const { darkMode } = useTheme();
   const isReadOnly = user?.isReadOnly || false;
-
-  useEffect(() => {
-    fetchCampaigns();
-  }, []);
 
   const fetchCampaigns = async () => {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/campaigns`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch campaigns");
-      
       const json = await res.json();
-      const normalized = json.map(item => ({ ...item, id: item._id }));
-
-      // Destroy old DataTable before updating data
-      if (dataTableRef.current) {
-        dataTableRef.current.destroy();
-        dataTableRef.current = null;
-      }
-
-      setData(normalized);
+      setData(json.map(item => ({ ...item, id: item._id })));
     } catch (err) {
-      console.error("Failed to fetch campaigns:", err);
-      advancedToast.error(
-        "Failed to load campaigns. Please try again.",
-        "Load Failed",
-        { icon: "📢" }
-      );
+      advancedToast.error("Failed to load campaigns. Please try again.", "Load Failed");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (data.length > 0 && !dataTableRef.current) {
-      dataTableRef.current = $(tableRef.current).DataTable({
-        destroy: true,
-        responsive: true,
-        pageLength: 10,
-        lengthChange: true,
-        searching: true,
-        ordering: true,
-        info: true,
-        autoWidth: false,
-      });
-    }
-  }, [data]);
+    fetchCampaigns();
+  }, []);
 
   const handleAddCampaign = () => {
     if (isReadOnly) {
-      advancedToast.warning(
-        "You don't have permission to create campaigns.",
-        "Access Denied",
-        { icon: "🔒" }
-      );
-      return;
+      return advancedToast.warning("You don't have permission to create campaigns.", "Access Denied");
     }
     setFormData(emptyFormData);
     setOpenModal(true);
@@ -109,28 +63,12 @@ const Campaigns = () => {
 
   const handleCloneCampaign = async (campaign) => {
     if (isReadOnly) {
-      advancedToast.warning(
-        "You don't have permission to clone campaigns.",
-        "Access Denied",
-        { icon: "🔒" }
-      );
-      return;
+      return advancedToast.warning("You don't have permission to clone campaigns.", "Access Denied");
     }
-
     try {
-      const loadingId = advancedToast.info(
-        `Preparing to clone "${campaign.name}"...`,
-        "Cloning Campaign",
-        { icon: "⏳", autoClose: false }
-      );
-
       const res = await fetch(`${API_BASE_URL}/campaigns/${campaign._id}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch campaign details.");
-      
       const details = await res.json();
-
-      advancedToast.dismissById(loadingId);
-
       const clonedFormData = {
         name: `${details.name} - Clone`,
         template: details.templateName || "",
@@ -142,74 +80,36 @@ const Campaigns = () => {
         project: details.projectId?._id || "",
         quiz: null,
       };
-
       setFormData(clonedFormData);
       setOpenModal(true);
-
-      advancedToast.success(
-        "Campaign data loaded for cloning.",
-        "Ready to Clone",
-        { icon: "📋" }
-      );
+      advancedToast.success("Campaign data loaded for cloning.", "Ready to Clone");
     } catch (err) {
-      console.error("Clone failed:", err);
-      advancedToast.error(
-        err.message || "Could not prepare the cloned campaign.",
-        "Clone Failed",
-        { icon: "❌" }
-      );
+      advancedToast.error(err.message || "Could not prepare the cloned campaign.", "Clone Failed");
     }
   };
 
   const handleDeleteConfirm = (campaign) => {
     if (isReadOnly) {
-      advancedToast.warning(
-        "You don't have permission to delete campaigns.",
-        "Access Denied",
-        { icon: "🔒" }
-      );
-      return;
+      return advancedToast.warning("You don't have permission to delete campaigns.", "Access Denied");
     }
     setDeleteDialog({ open: true, campaign });
   };
 
-  const cancelDelete = () => setDeleteDialog({ open: false, campaign: null });
-
   const confirmDelete = async () => {
     if (!deleteDialog.campaign) return;
-    
     try {
-      const id = deleteDialog.campaign._id;
-      const loadingId = advancedToast.info(
-        `Deleting "${deleteDialog.campaign.name}"...`,
-        "Processing",
-        { icon: "⏳", autoClose: false }
-      );
-
-      const res = await fetch(`${API_BASE_URL}/campaigns/${id}`, {
+      const { _id, name } = deleteDialog.campaign;
+      const res = await fetch(`${API_BASE_URL}/campaigns/${_id}`, {
         method: "DELETE",
         credentials: "include",
       });
-
-      advancedToast.dismissById(loadingId);
-
       if (!res.ok) throw new Error("Delete failed");
-
-      advancedToast.success(
-        `Campaign "${deleteDialog.campaign.name}" deleted successfully!`,
-        "Campaign Deleted",
-        { icon: "🗑️" }
-      );
-      
+      advancedToast.success(`Campaign "${name}" deleted successfully!`, "Campaign Deleted");
       fetchCampaigns();
     } catch (err) {
-      advancedToast.error(
-        "Failed to delete campaign. Please try again.",
-        "Delete Failed",
-        { icon: "❌" }
-      );
+      advancedToast.error("Failed to delete campaign. Please try again.", "Delete Failed");
     } finally {
-      cancelDelete();
+      setDeleteDialog({ open: false, campaign: null });
     }
   };
 
@@ -217,127 +117,60 @@ const Campaigns = () => {
     setOpenModal(false);
     setFormData(emptyFormData);
     fetchCampaigns();
-    advancedToast.success(
-      "Campaign saved successfully!",
-      "Campaign Created",
-      { icon: "🎉" }
-    );
+    advancedToast.success("Campaign saved successfully!", "Campaign Created");
   };
 
-  useEffect(() => {
-    return () => {
-      if (dataTableRef.current) {
-        dataTableRef.current.destroy();
-        dataTableRef.current = null;
-      }
-    };
-  }, []);
+  const columns = useMemo(() => [
+    {
+      field: 'name',
+      headerName: 'Campaign Name',
+      minWidth: 200,
+      flex: 1,
+      renderCell: (params) => (
+        <Link to={`/campaign-results/${params.row.id}`} style={{ textDecoration: 'none', color: '#ec008c', fontWeight: 'bold' }}>
+          {params.value}
+        </Link>
+      )
+    },
+    { 
+        field: 'launchDate', 
+        headerName: 'Launch Date', 
+        width: 200,
+        type: 'dateTime',
+        valueGetter: (value) => value ? new Date(value) : null,
+    },
+    { field: 'launchedBy.name', headerName: 'Launched By', width: 180, valueGetter: (value, row) => row.launchedBy?.name || '—' },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      type: 'actions',
+      width: 150,
+      align: 'center',
+      headerAlign: 'center',
+      getActions: (params) => [
+        <Tooltip title="View Results" key="view">
+          <IconButton size="small" component={Link} to={`/campaign-results/${params.id}`}>
+            <VisibilityIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>,
+        ...(!isReadOnly ? [
+          <Tooltip title="Clone Campaign" key="clone">
+            <IconButton size="small" onClick={() => handleCloneCampaign(params.row)} sx={{ color: darkMode ? '#66bb6a' : '#2e7d32' }}>
+              <CloneIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>,
+          <Tooltip title="Delete Campaign" key="delete">
+            <IconButton size="small" onClick={() => handleDeleteConfirm(params.row)} sx={{ color: darkMode ? '#ef5350' : '#d32f2f' }}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        ] : [])
+      ]
+    }
+  ], [darkMode, isReadOnly]);
 
   return (
     <Box p={3}>
-      {/* Custom CSS for DataTables Dark Mode */}
-      <style>
-        {`
-          /* Dark mode styles for DataTables */
-          ${darkMode ? `
-            .dataTables_wrapper {
-              color: #e1e1e1 !important;
-            }
-            
-            .dataTables_wrapper .dataTables_length,
-            .dataTables_wrapper .dataTables_filter,
-            .dataTables_wrapper .dataTables_info,
-            .dataTables_wrapper .dataTables_processing,
-            .dataTables_wrapper .dataTables_paginate {
-              color: #e1e1e1 !important;
-            }
-            
-            .dataTables_wrapper .dataTables_length label,
-            .dataTables_wrapper .dataTables_filter label {
-              color: #e1e1e1 !important;
-            }
-            
-            .dataTables_wrapper .dataTables_length select,
-            .dataTables_wrapper .dataTables_filter input {
-              background-color: rgba(255, 255, 255, 0.1) !important;
-              color: #e1e1e1 !important;
-              border: 1px solid rgba(255, 255, 255, 0.2) !important;
-              border-radius: 8px !important;
-              padding: 4px 8px !important;
-            }
-            
-            .dataTables_wrapper .dataTables_length select:focus,
-            .dataTables_wrapper .dataTables_filter input:focus {
-              border-color: #ec008c !important;
-              outline: none !important;
-            }
-            
-            .dataTables_wrapper .dataTables_paginate .paginate_button {
-              color: #e1e1e1 !important;
-              background: rgba(255, 255, 255, 0.1) !important;
-              border: 1px solid rgba(255, 255, 255, 0.2) !important;
-              border-radius: 6px !important;
-              margin: 0 2px !important;
-            }
-            
-            .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-              background: rgba(236, 0, 140, 0.2) !important;
-              border-color: #ec008c !important;
-              color: #fff !important;
-            }
-            
-            .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-              background: linear-gradient(135deg, #ec008c, #fc6767) !important;
-              border-color: #ec008c !important;
-              color: #fff !important;
-            }
-            
-            .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
-              color: #666 !important;
-              background: rgba(255, 255, 255, 0.05) !important;
-              border-color: rgba(255, 255, 255, 0.1) !important;
-            }
-            
-            table.dataTable thead th,
-            table.dataTable thead td {
-              background-color: #0f0f1a !important;
-              color: #ffffff !important;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
-            }
-            
-            table.dataTable tbody th,
-            table.dataTable tbody td {
-              background-color: rgba(30, 30, 47, 0.6) !important;
-              color: #e1e1e1 !important;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-            }
-            
-            table.dataTable.stripe tbody tr.odd,
-            table.dataTable.display tbody tr.odd {
-              background-color: rgba(30, 30, 47, 0.8) !important;
-            }
-            
-            table.dataTable.stripe tbody tr.even,
-            table.dataTable.display tbody tr.even {
-              background-color: rgba(30, 30, 47, 0.6) !important;
-            }
-            
-            table.dataTable.hover tbody tr:hover,
-            table.dataTable.display tbody tr:hover {
-              background-color: rgba(236, 0, 140, 0.1) !important;
-            }
-            
-            table.dataTable {
-              border-collapse: separate !important;
-              border-spacing: 0 !important;
-              border-radius: 12px !important;
-              overflow: hidden !important;
-            }
-          ` : ''}
-        `}
-      </style>
-
-      {/* Header Section */}
       <Paper
         elevation={0}
         sx={{
@@ -359,11 +192,10 @@ const Campaigns = () => {
             display: 'flex',
             alignItems: 'center',
             gap: 1.5,
-            color: darkMode ? 'grey.100' : 'grey.900'
+            color: darkMode ? 'grey.100' : 'grey.900' // Corrected color
           }}
         >
-          <CampaignIcon sx={{ color: darkMode ? 'grey.100' : 'grey.900' }} />
-          Campaigns
+          <CampaignIcon sx={{ color: darkMode ? 'grey.100' : 'grey.900' }} /> Campaigns
         </Typography>
         {!isReadOnly && (
           <Button
@@ -372,12 +204,7 @@ const Campaigns = () => {
             onClick={handleAddCampaign}
             sx={{
               background: `linear-gradient(135deg, #ec008c, #fc6767)`,
-              color: "#fff",
-              fontWeight: "bold",
-              borderRadius: "12px",
-              textTransform: "none",
-              px: 3,
-              py: 1,
+              color: "#fff", fontWeight: "bold", borderRadius: "12px",
             }}
           >
             Add Campaign
@@ -385,128 +212,42 @@ const Campaigns = () => {
         )}
       </Paper>
 
-      {/* Table Wrapper */}
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '16px',
-          backgroundColor: darkMode ? alpha('#1e1e2f', 0.8) : alpha('#ffffff', 0.8),
-          backdropFilter: 'blur(12px)',
-          border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
-          overflow: 'hidden',
-        }}
-      >
-        <table
-          ref={tableRef}
-          className="display stripe"
-          style={{
-            width: "100%",
-            textAlign: "center",
-            borderCollapse: "collapse",
-            border: "none",
-            backgroundColor: "transparent",
-            color: darkMode ? "#e1e1e1" : "#333",
+      <Box sx={{ width: '100%' }}>
+        <DataGrid
+          rows={data}
+          columns={columns}
+          loading={loading}
+          autoHeight
+          checkboxSelection={false}
+          disableRowSelectionOnClick
+          initialState={{
+            pagination: { paginationModel: { pageSize: 10 } },
+            sorting: { sortModel: [{ field: 'launchDate', sort: 'desc' }] },
           }}
-        >
-          <thead>
-            <tr>
-              {["Campaign Name", "Launch Date", "Launched By", "Actions"].map((h, i) => (
-                <th key={i} style={{ 
-                  border: "none", 
-                  padding: 16, 
-                  textAlign: "center",
-                  backgroundColor: darkMode ? '#0f0f1a' : '#f5f5f5',
-                  color: darkMode ? '#ffffff' : '#222',
-                  fontWeight: 'bold'
-                }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((row) => (
-              <tr key={row._id} style={{
-                borderBottom: darkMode
-                  ? `1px solid ${alpha('#fff', 0.08)}`
-                  : `1px solid ${alpha('#000', 0.08)}`,
-              }}>
-                <td style={{ border: "none", padding: 12 }}>
-                  <Link 
-                    to={`/campaign-results/${row._id}`} 
-                    style={{ 
-                      color: '#ec008c', 
-                      fontWeight: "bold", 
-                      textDecoration: "none",
-                      '&:hover': {
-                        textDecoration: 'underline'
-                      }
-                    }}
-                  >
-                    {row.name}
-                  </Link>
-                </td>
-                <td style={{ border: "none", padding: 12, color: darkMode ? '#ccc' : '#555' }}>
-                  {row.launchDate ? new Date(row.launchDate).toLocaleString() : "—"}
-                </td>
-                <td style={{ border: "none", padding: 12, color: darkMode ? '#ccc' : '#555' }}>
-                  {row.launchedBy?.name || "—"}
-                </td>
-                <td style={{ border: "none", padding: 12 }}>
-                  <Tooltip title="View Campaign">
-                    <IconButton 
-                      size="small" 
-                      component={Link} 
-                      to={`/campaign-results/${row._id}`}
-                      sx={{ 
-                        color: '#ec008c',
-                        '&:hover': { backgroundColor: alpha('#ec008c', 0.1) }
-                      }}
-                    >
-                      <VisibilityIcon />
-                    </IconButton>
-                  </Tooltip>
-                  {!isReadOnly && (
-                    <>
-                      <Tooltip title="Clone Campaign">
-                        <IconButton 
-                          size="small" 
-                          onClick={() => handleCloneCampaign(row)}
-                          sx={{ 
-                            ml: 1,
-                            color: '#4ade80',
-                            '&:hover': { backgroundColor: alpha('#4ade80', 0.1) }
-                          }}
-                        >
-                          <CloneIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete Campaign">
-                        <IconButton 
-                          size="small" 
-                          onClick={() => handleDeleteConfirm(row)}
-                          sx={{
-                            ml: 1,
-                            color: '#fff',
-                            backgroundColor: '#f44336',
-                            '&:hover': {
-                              backgroundColor: '#d32f2f',
-                            },
-                          }}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Paper>
+          pageSizeOptions={[5, 10, 25]}
+          sx={{
+            '--DataGrid-containerBackground': darkMode ? '#1e1e2f' : '#ffffff',
+            backgroundColor: 'var(--DataGrid-containerBackground)',
+            borderRadius: '16px',
+            border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
+            color: darkMode ? 'grey.300' : 'grey.800',
+            '& .MuiDataGrid-columnHeaders, & .MuiDataGrid-columnHeader, & .MuiDataGrid-columnHeaderTitle': {
+              backgroundColor: darkMode ? '#0f0f1a' : '#f5f5f5',
+              color: darkMode ? '#ffffff' : '#222',
+              borderBottom: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`,
+            },
+            '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 'bold' },
+            '& .MuiDataGrid-iconButton, & .MuiDataGrid-menuIcon': { color: darkMode ? '#ffffff' : '#666' },
+            '& .MuiDataGrid-cell': { borderBottom: `1px solid ${darkMode ? alpha('#fff', 0.08) : alpha('#000', 0.08)}` },
+            '& .MuiDataGrid-footerContainer': { borderTop: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.15)}`, backgroundColor: darkMode ? '#1a1a2e' : '#fafafa' },
+            '& .MuiTablePagination-root, & .MuiIconButton-root': { color: darkMode ? 'grey.300' : 'grey.800' },
+            '& .MuiDataGrid-row:hover': { backgroundColor: darkMode ? alpha('#fff', 0.05) : alpha('#000', 0.05) },
+            '& .MuiDataGrid-overlay': { color: darkMode ? 'grey.300' : 'grey.800', backgroundColor: darkMode ? alpha('#1e1e2f', 0.5) : alpha('#ffffff', 0.5) },
+            '&.MuiDataGrid-root, & .MuiDataGrid-cell, & .MuiDataGrid-columnHeaders': { border: 'none' },
+          }}
+        />
+      </Box>
 
-      {/* New Campaign Modal */}
       {!isReadOnly && (
         <NewCampaignModal
           open={openModal}
@@ -517,49 +258,28 @@ const Campaigns = () => {
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog 
-        open={deleteDialog.open} 
-        onClose={cancelDelete}
-        maxWidth="sm"
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, campaign: null })}
         PaperProps={{
-          sx: {
-            borderRadius: '16px',
-            backgroundColor: darkMode ? alpha('#1e1e2f', 0.95) : alpha('#ffffff', 0.95),
-            backdropFilter: 'blur(12px)',
-          }
+            sx: {
+                borderRadius: '20px',
+                background: darkMode ? alpha("#1a1a2e", 0.9) : alpha("#ffffff", 0.9),
+                backdropFilter: 'blur(16px)',
+                border: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.1)}`,
+                color: darkMode ? 'grey.100' : 'grey.800',
+            }
         }}
       >
-        <DialogTitle sx={{ color: darkMode ? '#e1e1e1' : '#333' }}>
-          🗑️ Confirm Deletion
-        </DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>🗑️ Confirm Deletion</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: darkMode ? '#ccc' : '#666' }}>
-            Are you sure you want to delete{" "}
-            <strong style={{ color: darkMode ? '#e1e1e1' : '#333' }}>
-              {deleteDialog.campaign?.name}
-            </strong>
-            ? This action cannot be undone.
+          <DialogContentText sx={{ color: darkMode ? 'grey.300' : 'grey.700' }}>
+            Are you sure you want to delete <strong>{deleteDialog.campaign?.name}</strong>?
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button 
-            onClick={cancelDelete}
-            sx={{ 
-              color: darkMode ? '#ccc' : '#666',
-              '&:hover': { backgroundColor: alpha('#ccc', 0.1) }
-            }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={confirmDelete} 
-            color="error" 
-            variant="contained"
-            sx={{ borderRadius: '8px' }}
-          >
-            Delete
-          </Button>
+          <Button onClick={() => setDeleteDialog({ open: false, campaign: null })} sx={{ color: darkMode ? 'grey.400' : 'grey.600' }}>Cancel</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">Delete</Button>
         </DialogActions>
       </Dialog>
     </Box>

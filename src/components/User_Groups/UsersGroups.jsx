@@ -1,83 +1,56 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Box,
+  Paper,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
+  Typography,
   IconButton,
   Tooltip,
-  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  alpha,
 } from "@mui/material";
 import {
   Add as AddIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
+  Group as GroupIcon,
+  Upload as UploadIcon,
 } from "@mui/icons-material";
+import { DataGrid } from '@mui/x-data-grid';
 import { toast } from "react-toastify";
-import $ from "jquery";
-import "datatables.net";
-import "datatables.net-dt/css/dataTables.dataTables.min.css";
+import { useTheme } from "../../context/ThemeContext";
 import NewGroupModal from "./NewGroupModal";
 import LdapConfigDialog from "../LDAP/Ldap";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const UsersGroups = () => {
-  const tableRef = useRef();
-  const dataTable = useRef(null);
   const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [modalMode, setModalMode] = useState("create");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [ldapDialogOpen, setLdapDialogOpen] = useState(false);
-
-  const initializeDataTable = () => {
-    if (dataTable.current) {
-      dataTable.current.destroy();
-    }
-
-    if (groups.length > 0) {
-      dataTable.current = $(tableRef.current).DataTable({
-        destroy: true,
-        responsive: true,
-        pageLength: 10,
-        lengthChange: true,
-        searching: true,
-        ordering: true,
-        info: true,
-        autoWidth: false,
-      });
-    }
-  };
-
-  const reloadDataTable = () => {
-    if (dataTable.current) {
-      dataTable.current.clear();
-      dataTable.current.rows.add($(tableRef.current).find('tbody tr'));
-      dataTable.current.draw();
-    }
-  };
+  const { darkMode } = useTheme();
 
   const fetchGroups = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/groups`, {
-        credentials: "include",
-      });
+      const res = await fetch(`${API_BASE_URL}/groups`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch groups");
       const data = await res.json();
       setGroups(data);
-
-      // Reload DataTable after fetching new data
-      setTimeout(() => {
-        if (dataTable.current) {
-          reloadDataTable();
-        }
-      }, 100);
     } catch (err) {
       console.error("Failed to fetch groups:", err);
+      toast.error("Failed to load groups.");
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -85,47 +58,24 @@ const UsersGroups = () => {
     fetchGroups();
   }, []);
 
-  useEffect(() => {
-    if (groups.length > 0 && !dataTable.current) {
-      initializeDataTable();
+  const handleDeleteGroup = async () => {
+    if (!groupToDelete) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/groups/${groupToDelete._id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error((await res.json()).message || "Failed to delete group");
+      toast.success("Group deleted successfully!");
+      fetchGroups();
+    } catch (err) {
+      console.error("Failed to delete group:", err);
+      toast.error(err.message || "Failed to delete group. Please try again.");
+    } finally {
+        setDeleteDialogOpen(false);
+        setGroupToDelete(null);
     }
-  }, [groups]);
-
-const handleDeleteGroup = async () => {
-  if (!groupToDelete) return;
-
-  try {
-    console.log("Deleting group:", groupToDelete._id || groupToDelete.id);
-
-    const res = await fetch(`${API_BASE_URL}/groups/${groupToDelete._id}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
-
-    if (!res.ok) {
-      const errData = await res.json();
-      throw new Error(errData.message || "Failed to delete group");
-    }
-
-    toast.success("Group deleted successfully!");
-
-    setGroups((prev) =>
-      prev.filter((g) => g._id !== groupToDelete._id)
-    );
-
-    setTimeout(() => {
-      if (dataTable.current) {
-        reloadDataTable();
-      }
-    }, 100);
-
-    setDeleteDialogOpen(false);
-    setGroupToDelete(null);
-  } catch (err) {
-    console.error("Failed to delete group:", err);
-    toast.error(err.message || "Failed to delete group. Please try again.");
-  }
-};
+  };
 
   const handleNewGroup = () => {
     setSelectedGroup(null);
@@ -134,146 +84,124 @@ const handleDeleteGroup = async () => {
   };
 
   const handleEditGroup = (group) => {
-    const normalizedGroup = {
-      ...group,
-      id: group.id || group._id, // 👈 ensures id is present
-    };
-    setSelectedGroup(normalizedGroup);
+    setSelectedGroup({ ...group, id: group._id });
     setModalMode("edit");
     setOpenModal(true);
   };
 
   const handleSaveSuccess = () => {
-    // Fetch fresh data and reload DataTable
     fetchGroups();
     setOpenModal(false);
   };
 
-  // Cleanup DataTable on component unmount
-  useEffect(() => {
-    return () => {
-      if (dataTable.current) {
-        dataTable.current.destroy();
-      }
-    };
-  }, []);
+  const columns = useMemo(() => [
+    { field: 'name', headerName: 'Name', minWidth: 200, flex: 1 },
+    { 
+        field: 'targets', 
+        headerName: '# of Members', 
+        width: 150, 
+        type: 'number',
+        align: 'center',
+        headerAlign: 'center',
+        valueGetter: (value) => value?.length || 0 
+    },
+    {
+        field: 'actions',
+        headerName: 'Actions',
+        type: 'actions',
+        width: 120,
+        align: 'center',
+        headerAlign: 'center',
+        getActions: (params) => [
+            <Tooltip title="Edit Group" key="edit">
+                <IconButton size="small" onClick={() => handleEditGroup(params.row)} sx={{ color: darkMode ? '#66bb6a' : '#2e7d32' }}>
+                    <EditIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>,
+            <Tooltip title="Delete Group" key="delete">
+                <IconButton size="small" onClick={() => setGroupToDelete(params.row)} sx={{ color: darkMode ? '#ef5350' : '#d32f2f' }}>
+                    <DeleteIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>,
+        ],
+    }
+  ], [darkMode]);
 
   return (
     <Box p={3}>
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Confirm Deletion</DialogTitle>
-        <DialogContent>
-          Are you sure you want to delete the group <strong>{groupToDelete?.name}</strong>?
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDeleteGroup} color="error" variant="contained">
-            Yes, Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* LDAP Config Dialog */}
-      <LdapConfigDialog open={ldapDialogOpen} onClose={() => setLdapDialogOpen(false)} />
-
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold">
-          👥 Users & Groups
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          mb: 3,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          borderRadius: '16px',
+          backgroundColor: darkMode ? alpha('#1e1e2f', 0.7) : alpha('#ffffff', 0.7),
+          backdropFilter: 'blur(12px)',
+          border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
+        }}
+      >
+        <Typography variant="h5" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: darkMode ? 'grey.100' : 'grey.900' }}>
+          <GroupIcon /> Users & Groups
         </Typography>
         <Box display="flex" gap={2}>
-          <Button variant="outlined" onClick={() => setLdapDialogOpen(true)}
-            sx={{
-              background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
-              color: "#fff",
-              fontWeight: "bold",
-              borderRadius: "8px",
-              px: 3,
-              py: 1,
-              boxShadow: `0 4px 10px ${localStorage.getItem("primaryColor")}`,
-              "&:hover": {
-                background: `linear-gradient(135deg, ${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
-              },
-            }}>
-            Upload LDAP Config
+          <Button variant="outlined" startIcon={<UploadIcon />} onClick={() => setLdapDialogOpen(true)}>
+            LDAP Config
           </Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleNewGroup}
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleNewGroup}
             sx={{
-              background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
+              background: `linear-gradient(135deg, #ec008c, #fc6767)`,
               color: "#fff",
               fontWeight: "bold",
-              borderRadius: "8px",
-              px: 3,
-              py: 1,
-              boxShadow: `0 4px 10px ${localStorage.getItem("primaryColor")}`,
-              "&:hover": {
-                background: `linear-gradient(135deg,${localStorage.getItem("primaryColor")}, ${localStorage.getItem('secondaryColor')})`,
-              },
+              borderRadius: "12px",
             }}
           >
             New Group
           </Button>
         </Box>
+      </Paper>
+
+      <Box sx={{ width: '100%' }}>
+        <DataGrid
+          rows={groups.map(g => ({ ...g, id: g._id }))}
+          columns={columns}
+          loading={loading}
+          autoHeight
+          checkboxSelection={false}
+          disableRowSelectionOnClick
+          initialState={{
+            pagination: { paginationModel: { pageSize: 10 } },
+            sorting: { sortModel: [{ field: 'name', sort: 'asc' }] },
+          }}
+          pageSizeOptions={[5, 10, 25]}
+          sx={{
+            '--DataGrid-containerBackground': darkMode ? '#1e1e2f' : '#ffffff',
+            backgroundColor: 'var(--DataGrid-containerBackground)',
+            borderRadius: '16px',
+            border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
+            color: darkMode ? 'grey.300' : 'grey.800',
+            '& .MuiDataGrid-columnHeaders, & .MuiDataGrid-columnHeader, & .MuiDataGrid-columnHeaderTitle': {
+              backgroundColor: darkMode ? '#0f0f1a' : '#f5f5f5',
+              color: darkMode ? '#ffffff' : '#222',
+              borderBottom: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`,
+            },
+            '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 'bold' },
+            '& .MuiDataGrid-iconButton, & .MuiDataGrid-menuIcon': { color: darkMode ? '#ffffff' : '#666' },
+            '& .MuiDataGrid-cell': { borderBottom: `1px solid ${darkMode ? alpha('#fff', 0.08) : alpha('#000', 0.08)}` },
+            '& .MuiDataGrid-footerContainer': { borderTop: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.15)}`, backgroundColor: darkMode ? '#1a1a2e' : '#fafafa' },
+            '& .MuiTablePagination-root, & .MuiIconButton-root': { color: darkMode ? 'grey.300' : 'grey.800' },
+            '& .MuiDataGrid-row:hover': { backgroundColor: darkMode ? alpha('#fff', 0.05) : alpha('#000', 0.05) },
+            '& .MuiDataGrid-overlay': { color: darkMode ? 'grey.300' : 'grey.800', backgroundColor: darkMode ? alpha('#1e1e2f', 0.5) : alpha('#ffffff', 0.5) },
+            '&.MuiDataGrid-root, & .MuiDataGrid-cell, & .MuiDataGrid-columnHeaders': { border: 'none' },
+          }}
+        />
       </Box>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table
-          ref={tableRef}
-          className="display stripe"
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            textAlign: "center",
-            border: "1px solid #ddd",
-          }}
-        >
-          <thead>
-            <tr>
-              {["Name", "# of Members", "Actions"].map((h, i) => (
-                <th key={i} style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {groups.map((group, idx) => (
-              <tr key={idx}>
-                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{group.name}</td>
-                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
-                  {group.targets?.length || 0}
-                </td>
-                {/* <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
-                  {new Date(group.modified_date).toLocaleString()}
-                </td> */}
-                <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
-                  <Tooltip title="Edit">
-                    <IconButton color="secondary" size="small" onClick={() => handleEditGroup(group)}>
-                      <EditIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Delete">
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => {
-                        setGroupToDelete(group);
-                        setDeleteDialogOpen(true);
-                      }}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Tooltip>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Modal */}
       <NewGroupModal
         open={openModal}
         handleClose={() => setOpenModal(false)}
@@ -281,6 +209,33 @@ const handleDeleteGroup = async () => {
         groupData={selectedGroup}
         onSave={handleSaveSuccess}
       />
+      
+      <LdapConfigDialog open={ldapDialogOpen} onClose={() => setLdapDialogOpen(false)} />
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        PaperProps={{
+            sx: {
+                borderRadius: '20px',
+                background: darkMode ? alpha("#1a1a2e", 0.9) : alpha("#ffffff", 0.9),
+                backdropFilter: 'blur(16px)',
+                border: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.1)}`,
+                color: darkMode ? 'grey.100' : 'grey.800',
+            }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold' }}>🗑️ Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: darkMode ? 'grey.300' : 'grey.700' }}>
+            Are you sure you want to delete the group <strong>{groupToDelete?.name}</strong>?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ color: darkMode ? 'grey.400' : 'grey.600' }}>Cancel</Button>
+          <Button onClick={handleDeleteGroup} color="error" variant="contained">Yes, Delete</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
