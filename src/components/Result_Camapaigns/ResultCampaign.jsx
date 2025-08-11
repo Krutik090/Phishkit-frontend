@@ -80,25 +80,65 @@ const CampaignResults = () => {
       return;
     }
 
-    const headers = ["First Name", "Last Name", "Email", "Position", "Status", "Reported"];
-    const rows = campaign.results.map((r) => [
-      r.first_name,
-      r.last_name,
-      r.email,
-      r.position || "",
-      r.status,
-      r.reported ? "Yes" : "No",
-    ]);
+    // ✅ Define new CSV headers
+    const headers = [
+      "First Name",
+      "Last Name",
+      "Email",
+      "Position",
+      "Status",
+      "Reported",
+      "Email Sent Timestamp",
+      "Clicked Link",
+      "Clicked Link Timestamp",
+      "Submitted Data",
+      "Submitted Data Timestamp",
+      "Reported Timestamp"
+    ];
 
+    // ✅ Map results to rows
+    const rows = campaign.results.map((r) => {
+      // Ensure safe access and formatting
+      const safeDate = (d) => {
+        if (!d) return "";
+        const dt = new Date(d);
+        return isNaN(dt) ? "" : dt.toLocaleString();
+      };
+
+      // Determine booleans
+      const clickedLink = ["Clicked Link", "Submitted Data"].includes(r.status) || !!r.clicked_link;
+      const submittedData = r.status === "Submitted Data" || !!r.submitted_data;
+
+      return [
+        r.first_name || "",
+        r.last_name || "",
+        r.email || "",
+        r.position || "",
+        r.status || "",
+        r.reported ? "Yes" : "No",
+        safeDate(r.email_sent_time || r.sentAt || r.createdAt),
+        clickedLink ? "Yes" : "No",
+        safeDate(r.clicked_link_time || r.linkClickedAt),
+        submittedData ? "Yes" : "No",
+        safeDate(r.submitted_data_time || r.dataSubmittedAt),
+        safeDate(r.reported_time || r.reportedAt)
+      ];
+    });
+
+    // ✅ Join into CSV
     const csvContent = [headers, ...rows]
       .map((row) => row.map((cell) => `"${cell}"`).join(","))
       .join("\n");
 
+    // ✅ Create downloadable file
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `${campaign.name.replace(/\s+/g, "_")}_results.csv`);
+    link.setAttribute(
+      "download",
+      `${campaign.name.replace(/\s+/g, "_")}_results.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -112,7 +152,7 @@ const CampaignResults = () => {
 
   const handleDeleteCampaign = async () => {
     setOpenDeleteConfirm(false);
-    
+
     if (isReadOnly) {
       advancedToast.error(
         "You don't have permission to delete campaigns.",
@@ -129,9 +169,9 @@ const CampaignResults = () => {
     );
 
     const success = await deleteCampaign();
-    
+
     advancedToast.dismissById(loadingId);
-    
+
     if (success) {
       advancedToast.success(
         "Campaign deleted successfully!",
@@ -190,21 +230,21 @@ const CampaignResults = () => {
 
   if (loading) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         minHeight: '60vh',
         flexDirection: 'column',
         gap: 2
       }}>
-        <CircularProgress 
-          sx={{ color: '#ec008c' }} 
-          size={48} 
+        <CircularProgress
+          sx={{ color: '#ec008c' }}
+          size={48}
         />
-        <Typography 
-          variant="h6" 
-          sx={{ 
+        <Typography
+          variant="h6"
+          sx={{
             color: darkMode ? '#ccc' : '#666',
           }}
         >
@@ -222,17 +262,17 @@ const CampaignResults = () => {
           p: 6,
           m: 3,
           borderRadius: '16px',
-          background: darkMode 
-            ? alpha("#1a1a2e", 0.6) 
+          background: darkMode
+            ? alpha("#1a1a2e", 0.6)
             : alpha("#ffffff", 0.8),
           backdropFilter: 'blur(12px)',
           border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
           textAlign: 'center',
         }}
       >
-        <Typography 
-          variant="h5" 
-          sx={{ 
+        <Typography
+          variant="h5"
+          sx={{
             color: '#f44336',
             mb: 2,
             fontWeight: 'bold',
@@ -240,9 +280,9 @@ const CampaignResults = () => {
         >
           ❌ Error Loading Campaign
         </Typography>
-        <Typography 
-          variant="body1" 
-          sx={{ 
+        <Typography
+          variant="body1"
+          sx={{
             color: darkMode ? '#ccc' : '#666',
             mb: 3,
           }}
@@ -280,17 +320,17 @@ const CampaignResults = () => {
           p: 6,
           m: 3,
           borderRadius: '16px',
-          background: darkMode 
-            ? alpha("#1a1a2e", 0.6) 
+          background: darkMode
+            ? alpha("#1a1a2e", 0.6)
             : alpha("#ffffff", 0.8),
           backdropFilter: 'blur(12px)',
           border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
           textAlign: 'center',
         }}
       >
-        <Typography 
-          variant="h5" 
-          sx={{ 
+        <Typography
+          variant="h5"
+          sx={{
             color: darkMode ? '#e1e1e1' : '#333',
             mb: 2,
             fontWeight: 'bold',
@@ -298,9 +338,9 @@ const CampaignResults = () => {
         >
           Campaign Not Found
         </Typography>
-        <Typography 
-          variant="body1" 
-          sx={{ 
+        <Typography
+          variant="body1"
+          sx={{
             color: darkMode ? '#ccc' : '#666',
             mb: 3,
           }}
@@ -336,10 +376,10 @@ const CampaignResults = () => {
       {/* ✅ Global Styles for Enhanced UI */}
       <style jsx global>{`
         .campaign-results-container {
-          background: ${darkMode 
-            ? 'linear-gradient(135deg, #0c0c0c, #1a1a2e)' 
-            : 'linear-gradient(135deg, #f8f9fa, #ffffff)'
-          };
+          background: ${darkMode
+          ? 'linear-gradient(135deg, #0c0c0c, #1a1a2e)'
+          : 'linear-gradient(135deg, #f8f9fa, #ffffff)'
+        };
           min-height: 100vh;
         }
       `}</style>
@@ -352,19 +392,19 @@ const CampaignResults = () => {
             p: 3,
             mb: 4,
             borderRadius: '20px',
-            background: darkMode 
-              ? `linear-gradient(135deg, ${alpha('#1a1a2e', 0.9)}, ${alpha('#2d2d3e', 0.7)})` 
+            background: darkMode
+              ? `linear-gradient(135deg, ${alpha('#1a1a2e', 0.9)}, ${alpha('#2d2d3e', 0.7)})`
               : `linear-gradient(135deg, ${alpha('#ffffff', 0.95)}, ${alpha('#f8f9fa', 0.9)})`,
             backdropFilter: 'blur(16px)',
             border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
-            boxShadow: darkMode 
-              ? '0 12px 40px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(236, 0, 140, 0.2)' 
+            boxShadow: darkMode
+              ? '0 12px 40px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(236, 0, 140, 0.2)'
               : '0 12px 40px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(236, 0, 140, 0.1)',
           }}
         >
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: { xs: 'wrap', md: 'nowrap' },
             gap: 2,
@@ -402,9 +442,9 @@ const CampaignResults = () => {
                   >
                     <CampaignIcon sx={{ color: '#fff', fontSize: '1.5rem' }} />
                   </Box>
-                  <Typography 
-                    variant="h5" 
-                    sx={{ 
+                  <Typography
+                    variant="h5"
+                    sx={{
                       fontWeight: 'bold',
                       color: darkMode ? '#e1e1e1' : '#333',
                     }}
@@ -412,9 +452,9 @@ const CampaignResults = () => {
                     {campaign.name}
                   </Typography>
                 </Box>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
+                <Typography
+                  variant="body2"
+                  sx={{
                     color: darkMode ? '#ccc' : '#666',
                     ml: 6,
                   }}
@@ -496,8 +536,8 @@ const CampaignResults = () => {
           sx={{
             mb: 4,
             borderRadius: '20px',
-            background: darkMode 
-              ? alpha("#1a1a2e", 0.6) 
+            background: darkMode
+              ? alpha("#1a1a2e", 0.6)
               : alpha("#ffffff", 0.8),
             backdropFilter: 'blur(12px)',
             border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
@@ -505,9 +545,9 @@ const CampaignResults = () => {
           }}
         >
           <Box sx={{ p: 3 }}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
+            <Typography
+              variant="h6"
+              sx={{
                 color: darkMode ? '#e1e1e1' : '#333',
                 fontWeight: 'bold',
                 mb: 3,
@@ -525,35 +565,35 @@ const CampaignResults = () => {
         {/* ✅ Enhanced Progress Metrics */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {[
-            { 
-              label: 'Emails Sent', 
-              value: emailsSent, 
-              total: totalSent, 
-              color: '#2196f3', 
+            {
+              label: 'Emails Sent',
+              value: emailsSent,
+              total: totalSent,
+              color: '#2196f3',
               icon: <EmailIcon />,
               description: 'Total emails delivered'
             },
-            { 
-              label: 'Clicked Link', 
-              value: clickedLink, 
-              total: totalSent, 
-              color: '#ff9800', 
+            {
+              label: 'Clicked Link',
+              value: clickedLink,
+              total: totalSent,
+              color: '#ff9800',
               icon: <TrendingUpIcon />,
               description: 'Users who clicked the link'
             },
-            { 
-              label: 'Submitted Data', 
-              value: submittedData, 
-              total: totalSent, 
-              color: '#f44336', 
+            {
+              label: 'Submitted Data',
+              value: submittedData,
+              total: totalSent,
+              color: '#f44336',
               icon: <PeopleIcon />,
               description: 'Users who submitted data'
             },
-            { 
-              label: 'Reported Email', 
-              value: emailReported, 
-              total: totalSent, 
-              color: '#4caf50', 
+            {
+              label: 'Reported Email',
+              value: emailReported,
+              total: totalSent,
+              color: '#4caf50',
               icon: <ReportIcon />,
               description: 'Users who reported phishing'
             },
@@ -563,27 +603,27 @@ const CampaignResults = () => {
                 elevation={0}
                 sx={{
                   borderRadius: '16px',
-                  background: darkMode 
-                    ? alpha("#1a1a2e", 0.6) 
+                  background: darkMode
+                    ? alpha("#1a1a2e", 0.6)
                     : alpha("#ffffff", 0.8),
                   backdropFilter: 'blur(12px)',
                   border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
                   transition: 'all 0.3s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: darkMode 
-                      ? `0 8px 32px rgba(0, 0, 0, 0.4), 0 4px 16px ${alpha(metric.color, 0.3)}` 
+                    boxShadow: darkMode
+                      ? `0 8px 32px rgba(0, 0, 0, 0.4), 0 4px 16px ${alpha(metric.color, 0.3)}`
                       : `0 8px 32px rgba(0, 0, 0, 0.1), 0 4px 16px ${alpha(metric.color, 0.2)}`,
                   },
                 }}
               >
                 <CardContent sx={{ p: 3, textAlign: 'center' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                    <CircularProgressWithLabel 
-                      value={metric.value} 
-                      total={metric.total} 
-                      color={metric.color} 
-                      label={metric.label} 
+                    <CircularProgressWithLabel
+                      value={metric.value}
+                      total={metric.total}
+                      color={metric.color}
+                      label={metric.label}
                     />
                   </Box>
                   <Box
@@ -604,9 +644,9 @@ const CampaignResults = () => {
                     >
                       {metric.icon}
                     </Box>
-                    <Typography 
-                      variant="h6" 
-                      sx={{ 
+                    <Typography
+                      variant="h6"
+                      sx={{
                         fontWeight: 'bold',
                         color: darkMode ? '#e1e1e1' : '#333',
                       }}
@@ -614,9 +654,9 @@ const CampaignResults = () => {
                       {metric.value}
                     </Typography>
                   </Box>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
+                  <Typography
+                    variant="body2"
+                    sx={{
                       color: darkMode ? '#ccc' : '#666',
                       fontSize: '0.8rem',
                     }}
@@ -636,30 +676,30 @@ const CampaignResults = () => {
             p: 3,
             mb: 3,
             borderRadius: '16px',
-            background: darkMode 
-              ? alpha("#1a1a2e", 0.6) 
+            background: darkMode
+              ? alpha("#1a1a2e", 0.6)
               : alpha("#ffffff", 0.8),
             backdropFilter: 'blur(12px)',
             border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
           }}
         >
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: { xs: 'wrap', md: 'nowrap' },
             gap: 2,
           }}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
+            <Typography
+              variant="h6"
+              sx={{
                 color: darkMode ? '#e1e1e1' : '#333',
                 fontWeight: 'bold',
               }}
             >
               📋 Detailed Results
             </Typography>
-            
+
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <TextField
                 placeholder="Search participants..."
@@ -695,8 +735,8 @@ const CampaignResults = () => {
           elevation={0}
           sx={{
             borderRadius: '16px',
-            background: darkMode 
-              ? alpha("#1a1a2e", 0.6) 
+            background: darkMode
+              ? alpha("#1a1a2e", 0.6)
               : alpha("#ffffff", 0.8),
             backdropFilter: 'blur(12px)',
             border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
