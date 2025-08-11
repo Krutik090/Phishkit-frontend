@@ -80,7 +80,22 @@ const CampaignResults = () => {
       return;
     }
 
-    // ✅ Define new CSV headers
+    const formatDate = (d) => {
+      if (!d) return "";
+      const dt = new Date(d);
+      return isNaN(dt) ? "" : dt.toLocaleString();
+    };
+
+    // Step 1: Find all distinct event types across all participants (preserve order in timeline)
+    const eventOrder = [];
+    (campaign.timeline || []).forEach(ev => {
+      const name = ev.message?.trim();
+      if (name && !eventOrder.includes(name)) {
+        eventOrder.push(name);
+      }
+    });
+
+    // Step 2: Build CSV headers
     const headers = [
       "First Name",
       "Last Name",
@@ -88,26 +103,21 @@ const CampaignResults = () => {
       "Position",
       "Status",
       "Reported",
-      "Email Sent Timestamp",
-      "Clicked Link",
-      "Clicked Link Timestamp",
-      "Submitted Data",
-      "Submitted Data Timestamp",
-      "Reported Timestamp"
+      ...eventOrder // each event name becomes a header
     ];
 
-    // ✅ Map results to rows
+    // Step 3: Map each participant to a CSV row
     const rows = campaign.results.map((r) => {
-      // Ensure safe access and formatting
-      const safeDate = (d) => {
-        if (!d) return "";
-        const dt = new Date(d);
-        return isNaN(dt) ? "" : dt.toLocaleString();
-      };
+      // relevant timeline for this user
+      const userTimeline = (campaign.timeline || [])
+        .filter(t => t.email === r.email || (!t.email && t.message === "Campaign Created"))
+        .sort((a, b) => new Date(a.time) - new Date(b.time));
 
-      // Determine booleans
-      const clickedLink = ["Clicked Link", "Submitted Data"].includes(r.status) || !!r.clicked_link;
-      const submittedData = r.status === "Submitted Data" || !!r.submitted_data;
+      // Map event name → time for this user
+      const eventTimeMap = {};
+      userTimeline.forEach(e => {
+        eventTimeMap[e.message.trim()] = formatDate(e.time);
+      });
 
       return [
         r.first_name || "",
@@ -116,21 +126,18 @@ const CampaignResults = () => {
         r.position || "",
         r.status || "",
         r.reported ? "Yes" : "No",
-        safeDate(r.email_sent_time || r.sentAt || r.createdAt),
-        clickedLink ? "Yes" : "No",
-        safeDate(r.clicked_link_time || r.linkClickedAt),
-        submittedData ? "Yes" : "No",
-        safeDate(r.submitted_data_time || r.dataSubmittedAt),
-        safeDate(r.reported_time || r.reportedAt)
+        ...eventOrder.map(evName => eventTimeMap[evName] || "")
       ];
     });
 
-    // ✅ Join into CSV
+    // Step 4: Generate CSV string
     const csvContent = [headers, ...rows]
-      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .map(row =>
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+      )
       .join("\n");
 
-    // ✅ Create downloadable file
+    // Step 5: Trigger download
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -149,6 +156,8 @@ const CampaignResults = () => {
       { icon: "📊" }
     );
   };
+
+
 
   const handleDeleteCampaign = async () => {
     setOpenDeleteConfirm(false);
