@@ -70,92 +70,106 @@ const CampaignResults = () => {
     setPage(0);
   };
 
-  const exportToCSV = () => {
-    if (!campaign?.results || campaign.results.length === 0) {
-      advancedToast.warning(
-        "No data available to export.",
-        "Export Failed",
-        { icon: "⚠️" }
-      );
-      return;
-    }
-
-    const formatDate = (d) => {
-      if (!d) return "";
-      const dt = new Date(d);
-      return isNaN(dt) ? "" : dt.toLocaleString();
-    };
-
-    // Step 1: Find all distinct event types across all participants (preserve order in timeline)
-    const eventOrder = [];
-    (campaign.timeline || []).forEach(ev => {
-      const name = ev.message?.trim();
-      if (name && !eventOrder.includes(name)) {
-        eventOrder.push(name);
-      }
-    });
-
-    // Step 2: Build CSV headers
-    const headers = [
-      "First Name",
-      "Last Name",
-      "Email",
-      "Position",
-      "Status",
-      "Reported",
-      ...eventOrder // each event name becomes a header
-    ];
-
-    // Step 3: Map each participant to a CSV row
-    const rows = campaign.results.map((r) => {
-      // relevant timeline for this user
-      const userTimeline = (campaign.timeline || [])
-        .filter(t => t.email === r.email || (!t.email && t.message === "Campaign Created"))
-        .sort((a, b) => new Date(a.time) - new Date(b.time));
-
-      // Map event name → time for this user
-      const eventTimeMap = {};
-      userTimeline.forEach(e => {
-        eventTimeMap[e.message.trim()] = formatDate(e.time);
-      });
-
-      return [
-        r.first_name || "",
-        r.last_name || "",
-        r.email || "",
-        r.position || "",
-        r.status || "",
-        r.reported ? "Yes" : "No",
-        ...eventOrder.map(evName => eventTimeMap[evName] || "")
-      ];
-    });
-
-    // Step 4: Generate CSV string
-    const csvContent = [headers, ...rows]
-      .map(row =>
-        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")
-      )
-      .join("\n");
-
-    // Step 5: Trigger download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute(
-      "download",
-      `${campaign.name.replace(/\s+/g, "_")}_results.csv`
+ const exportToCSV = () => {
+  if (!campaign?.results || campaign.results.length === 0) {
+    advancedToast.warning(
+      "No data available to export.",
+      "Export Failed",
+      { icon: "⚠️" }
     );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    return;
+  }
 
-    advancedToast.success(
-      "Campaign results exported successfully!",
-      "Export Complete",
-      { icon: "📊" }
-    );
+  const formatDate = (d) => {
+    if (!d) return "";
+    const dt = new Date(d);
+    return isNaN(dt) ? "" : dt.toLocaleString();
   };
+
+  // Build sequence headers dynamically using the longest timeline found
+  let maxEvents = 0;
+  const allEventSequences = {};
+
+  campaign.results.forEach((r) => {
+    // Filter and sort timeline for this user
+    const userTimeline = (campaign.timeline || [])
+      .filter(t => t.email === r.email || (!t.email && t.message === "Campaign Created"))
+      .sort((a, b) => new Date(a.time) - new Date(b.time));
+
+    // Save user's ordered events
+    allEventSequences[r.email] = userTimeline.map(ev => ev.message?.trim() || "");
+
+    // Track the longest sequence among all
+    if (userTimeline.length > maxEvents) {
+      maxEvents = userTimeline.length;
+    }
+  });
+
+  // Build headers: static participant info + dynamic event headers
+  const headers = [
+    "First Name",
+    "Last Name",
+    "Email",
+    "Position",
+    "Status",
+    "Reported",
+    ...Array.from({ length: maxEvents }, (_, i) => `Event ${i + 1} Name`),
+    ...Array.from({ length: maxEvents }, (_, i) => `Event ${i + 1} Time`)
+  ];
+
+  // Build rows
+  const rows = campaign.results.map((r) => {
+    // Get ordered timeline for this user
+    const userTimeline = (campaign.timeline || [])
+      .filter(t => t.email === r.email || (!t.email && t.message === "Campaign Created"))
+      .sort((a, b) => new Date(a.time) - new Date(b.time));
+
+    const eventNames = userTimeline.map(ev => ev.message?.trim() || "");
+    const eventTimes = userTimeline.map(ev => formatDate(ev.time));
+
+    // Pad to max length so every row has the same number of columns
+    while (eventNames.length < maxEvents) eventNames.push("");
+    while (eventTimes.length < maxEvents) eventTimes.push("");
+
+    return [
+      r.first_name || "",
+      r.last_name || "",
+      r.email || "",
+      r.position || "",
+      r.status || "",
+      r.reported ? "Yes" : "No",
+      ...eventNames,
+      ...eventTimes
+    ];
+  });
+
+  // Convert to CSV
+  const csvContent = [headers, ...rows]
+    .map(row =>
+      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+    )
+    .join("\n");
+
+  // Trigger browser download
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute(
+    "download",
+    `${campaign.name.replace(/\s+/g, "_")}_results.csv`
+  );
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  advancedToast.success(
+    "Campaign results exported successfully!",
+    "Export Complete",
+    { icon: "📊" }
+  );
+};
+
 
 
 
