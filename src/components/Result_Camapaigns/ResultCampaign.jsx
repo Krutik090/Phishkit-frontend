@@ -70,7 +70,7 @@ const CampaignResults = () => {
     setPage(0);
   };
 
- const exportToCSV = () => {
+const exportToCSV = () => {
   if (!campaign?.results || campaign.results.length === 0) {
     advancedToast.warning(
       "No data available to export.",
@@ -86,50 +86,67 @@ const CampaignResults = () => {
     return isNaN(dt) ? "" : dt.toLocaleString();
   };
 
-  // Build sequence headers dynamically using the longest timeline found
   let maxEvents = 0;
-  const allEventSequences = {};
+  const allUserTimelines = {};
 
+  // Step 1: Collect timelines for each user & find the longest sequence
   campaign.results.forEach((r) => {
-    // Filter and sort timeline for this user
     const userTimeline = (campaign.timeline || [])
-      .filter(t => t.email === r.email || (!t.email && t.message === "Campaign Created"))
+      .filter(
+        (t) =>
+          t.email === r.email ||
+          (!t.email && t.message === "Campaign Created")
+      )
       .sort((a, b) => new Date(a.time) - new Date(b.time));
 
-    // Save user's ordered events
-    allEventSequences[r.email] = userTimeline.map(ev => ev.message?.trim() || "");
+    allUserTimelines[r.email] = userTimeline.map((ev) => ({
+      name: ev.message?.trim() || "",
+      time: formatDate(ev.time),
+    }));
 
-    // Track the longest sequence among all
     if (userTimeline.length > maxEvents) {
       maxEvents = userTimeline.length;
     }
   });
 
-  // Build headers: static participant info + dynamic event headers
-  const headers = [
+  // Step 2: Use the longest user's event name list as headers for timeline columns
+  let headerEvents = [];
+  for (const email in allUserTimelines) {
+    if (allUserTimelines[email].length === maxEvents) {
+      headerEvents = allUserTimelines[email].map((ev) => ev.name);
+      break;
+    }
+  }
+
+  // Step 3: Fixed participant metadata columns
+  const fixedHeaders = [
     "First Name",
     "Last Name",
     "Email",
     "Position",
     "Status",
     "Reported",
-    ...Array.from({ length: maxEvents }, (_, i) => `Event ${i + 1} Name`),
-    ...Array.from({ length: maxEvents }, (_, i) => `Event ${i + 1} Time`)
+    "Send Date",
+    "IP",
+    "Quiz Started",
+    "Quiz Start Time",
+    "Quiz Completed",
+    "Quiz Completion Time",
+    "Quiz Score",
+    "Training Started",
+    "Training Start Time",
+    "Training Completed",
+    "Training End Time",
+    "Training Tracker"
   ];
 
-  // Build rows
+  // Final CSV header: fixed participant info + dynamic event names
+  const headers = [...fixedHeaders, ...headerEvents];
+
+  // Step 4: Build rows
   const rows = campaign.results.map((r) => {
-    // Get ordered timeline for this user
-    const userTimeline = (campaign.timeline || [])
-      .filter(t => t.email === r.email || (!t.email && t.message === "Campaign Created"))
-      .sort((a, b) => new Date(a.time) - new Date(b.time));
-
-    const eventNames = userTimeline.map(ev => ev.message?.trim() || "");
-    const eventTimes = userTimeline.map(ev => formatDate(ev.time));
-
-    // Pad to max length so every row has the same number of columns
-    while (eventNames.length < maxEvents) eventNames.push("");
-    while (eventTimes.length < maxEvents) eventTimes.push("");
+    const timeline = allUserTimelines[r.email] || [];
+    const timesInOrder = headerEvents.map((_, idx) => timeline[idx]?.time || "");
 
     return [
       r.first_name || "",
@@ -138,19 +155,30 @@ const CampaignResults = () => {
       r.position || "",
       r.status || "",
       r.reported ? "Yes" : "No",
-      ...eventNames,
-      ...eventTimes
+      formatDate(r.send_date),
+      r.ip || "",
+      r.quizStarted ? "Yes" : "No",
+      formatDate(r.quizStartTime),
+      r.quizCompleted ? "Yes" : "No",
+      formatDate(r.quizCompletionTime),
+      r.score ?? "",
+      r.trainingStarted ? "Yes" : "No",
+      formatDate(r.trainingStartTime),
+      r.trainingCompleted ? "Yes" : "No",
+      formatDate(r.trainingEndTime),
+      r.trainingTracker ?? "",
+      ...timesInOrder
     ];
   });
 
-  // Convert to CSV
+  // Step 5: Convert to CSV string
   const csvContent = [headers, ...rows]
-    .map(row =>
-      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+    .map((row) =>
+      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
     )
     .join("\n");
 
-  // Trigger browser download
+  // Step 6: Trigger browser download
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -169,6 +197,7 @@ const CampaignResults = () => {
     { icon: "📊" }
   );
 };
+
 
 
 
