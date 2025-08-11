@@ -9,45 +9,6 @@ html, body, #root {
   width: 100%;
   font-family: 'Segoe UI', sans-serif;
   overflow: hidden;
-}
-body.dark .dataTables_wrapper {
-  color: #e0e0e0;
+  overflow-y: auto;
 }
 
-body.dark table.dataTable {
-  background-color: #1e1e2f;
-  color: #e0e0e0;
-}
-
-body.dark table.dataTable thead {
-  background-color: #282a36;
-  color: #ffffff;
-}
-
-
-body.dark table.dataTable tbody tr {
-  background-color: #1e1e2f;
-}
-
-body.dark table.dataTable tbody tr:nth-child(even) {
-  background-color: #252739;
-}
-
-body.dark .dataTables_filter input {
-  background-color: #2e3148;
-  color: #ffffff;
-  border: 1px solid #44475a;
-}
-
-body.dark .dataTables_length select {
-  background-color: #2e3148;
-  color: #ffffff;
-  border: 1px solid #44475a;
-}
-
-
-/* Data Table */
-
-.custom-datatable th {
-  font-weight: bold;
-}

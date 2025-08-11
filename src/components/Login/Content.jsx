@@ -1,61 +1,67 @@
 import React from 'react';
-import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
-import ConstructionRoundedIcon from '@mui/icons-material/ConstructionRounded';
-import SettingsSuggestRoundedIcon from '@mui/icons-material/SettingsSuggestRounded';
-import ThumbUpAltRoundedIcon from '@mui/icons-material/ThumbUpAltRounded';
-import { SitemarkIcon } from './SitemarkIcon'; // ✅ Correct import from its own file
+import { Box, Stack, Typography, alpha } from '@mui/material';
+import { SitemarkIcon } from './SitemarkIcon';
+import MarkEmailReadRoundedIcon from '@mui/icons-material/MarkEmailReadRounded';
+import ModelTrainingRoundedIcon from '@mui/icons-material/ModelTrainingRounded';
+import AssessmentRoundedIcon from '@mui/icons-material/AssessmentRounded';
+import ShieldRoundedIcon from '@mui/icons-material/ShieldRounded';
+import { useTheme } from '../../context/ThemeContext';
 
 const items = [
   {
-    icon: <SettingsSuggestRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Adaptable performance',
-    description:
-      'Our product effortlessly adjusts to your needs, boosting efficiency and simplifying your tasks.',
+    icon: <MarkEmailReadRoundedIcon />,
+    title: 'Realistic Phishing Simulations',
+    description: 'Test your team with authentic-looking phishing templates, from common scams to sophisticated attacks.',
   },
   {
-    icon: <ConstructionRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Built to last',
-    description:
-      'Experience unmatched durability that goes above and beyond with lasting investment.',
+    icon: <ModelTrainingRoundedIcon />,
+    title: 'Automated Training Workflows',
+    description: 'Automatically enroll users who fall for a simulation into engaging, gamified training modules.',
   },
   {
-    icon: <ThumbUpAltRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Great user experience',
-    description:
-      'Integrate our product into your routine with an intuitive and easy-to-use interface.',
+    icon: <AssessmentRoundedIcon />,
+    title: 'Actionable Reporting & Insights',
+    description: "Gain a clear view of your organization's security posture with detailed reports on performance.",
   },
   {
-    icon: <AutoFixHighRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Innovative functionality',
-    description:
-      'Stay ahead with features that set new standards, addressing your evolving needs better than the rest.',
+    icon: <ShieldRoundedIcon />,
+    title: 'Strengthen Your Human Firewall',
+    description: 'Empower your employees to become the first line of defense against cyber threats.',
   },
 ];
 
 export default function Content() {
+  const { darkMode } = useTheme();
   return (
-    <Stack
-      sx={{ flexDirection: 'column', alignSelf: 'center', gap: 4, maxWidth: 450 }}
-    >
-      <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+    <Stack sx={{ gap: 4 }}>
+      <Box sx={{ display: { xs: 'none', md: 'flex' }, mb: 2 }}>
         <SitemarkIcon />
       </Box>
-      {items.map((item, index) => (
-        <Stack key={index} direction="row" sx={{ gap: 2 }}>
-          {item.icon}
-          <div>
-            <Typography gutterBottom sx={{ fontWeight: 'medium' }}>
-              {item.title}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {item.description}
-            </Typography>
-          </div>
-        </Stack>
-      ))}
+      <Typography variant="h4" fontWeight="bold">
+        Build a Resilient Organization
+      </Typography>
+      <Typography color="text.secondary">
+        Our platform empowers you to train your team, identify risks, and build a strong security culture from the inside out.
+      </Typography>
+      <Stack sx={{ gap: 3, mt: 2 }}>
+        {items.map((item, index) => (
+          <Stack key={index} direction="row" sx={{ gap: 2, alignItems: 'center' }}>
+            <Box sx={{
+                display: 'flex',
+                p: 1.5,
+                borderRadius: '50%',
+                background: darkMode ? alpha('#ec008c', 0.1) : alpha('#ec008c', 0.1),
+                color: '#ec008c'
+            }}>
+              {item.icon}
+            </Box>
+            <Box>
+              <Typography fontWeight="medium">{item.title}</Typography>
+              <Typography variant="body2" color="text.secondary">{item.description}</Typography>
+            </Box>
+          </Stack>
+        ))}
+      </Stack>
     </Stack>
   );
 }

@@ -1,74 +1,88 @@
-// Layout.jsx
-import React, { useEffect, useState } from "react";
-import { Box } from "@mui/material";
-import Sidebar from "./Sidebar";
-import Navbar from "./Navbar"; // 👈 import the new navbar
+import React, { useState, useCallback, useEffect } from "react";
+import { Box, useMediaQuery, useTheme as useMuiTheme } from "@mui/material";
 import { Outlet } from "react-router-dom";
+import Sidebar from "./Sidebar";
+import Navbar from "./Navbar";
 import { useTheme } from "../../context/ThemeContext";
 import SupportChatBot from "../chatbot/SupportChatBot";
 
-const Layout = () => {
-  const [collapsed, setCollapsed] = useState(false);
-  const { darkMode } = useTheme();
+// Constants for the new sidebar design, including its margins
+const SIDEBAR_WIDTH_EXPANDED = 260 + 32; // 260px width + 16px margin on each side
+const SIDEBAR_WIDTH_COLLAPSED = 88 + 32; // 88px width + 16px margin on each side
 
-  const handleLogout = () => {
-    // Replace this with your actual logout logic
-    console.log("User logged out");
-    // Example: localStorage.clear(); navigate("/login");
-  };
+const Layout = () => {
+  const { darkMode } = useTheme();
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
+  const [isSidebarOpen, setSidebarOpen] = useState(!isMobile);
 
   useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 600) {
-        setCollapsed(true);
-      } else {
-        setCollapsed(false);
-      }
-    };
+    setSidebarOpen(!isMobile);
+  }, [isMobile]);
 
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+  const handleToggleSidebar = useCallback(() => {
+    setSidebarOpen(prev => !prev);
   }, []);
 
-  const sidebarWidth = collapsed ? 80 : 250;
+  const sidebarWidth = isSidebarOpen ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED;
 
   return (
     <Box
-      className={`min-h-screen ${darkMode ? "text-white" : "text-black"}`}
       sx={{
-        backgroundColor: darkMode ? "#1e1e2f" : "#ffffff",
-        display: "flex",
+        display: 'flex',
+        minHeight: '100vh',
+        // A subtle gradient background for a more premium feel
+        background: darkMode 
+          ? 'linear-gradient(180deg, #101021 0%, #18182c 100%)' 
+          : '#f7f7f9',
       }}
     >
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      <Sidebar 
+        isSidebarOpen={isSidebarOpen} 
+        toggleSidebar={handleToggleSidebar}
+      />
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          height: "100vh",
-          overflowY: "auto",
-          overflowX: "hidden",
-          ml: `${sidebarWidth}px`,
-          transition: "margin-left 0.3s ease",
-          display: "flex",
-          flexDirection: "column",
-          backgroundColor: darkMode ? "#2e2e42" : "#fdfbff",
-          color: darkMode ? "#ffffff" : "#1e1e2f",
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          // The marginLeft is now calculated to perfectly align with the floating sidebar
+          marginLeft: {
+            xs: `${SIDEBAR_WIDTH_COLLAPSED}px`,
+            sm: `${sidebarWidth}px`
+          },
+          transition: muiTheme.transitions.create('margin', {
+            easing: muiTheme.transitions.easing.sharp,
+            duration: muiTheme.transitions.duration.enteringScreen,
+          }),
         }}
       >
-        <Navbar onLogout={handleLogout} />
+        <Navbar />
 
         <Box
           sx={{
             flexGrow: 1,
-            p: { xs: 1, sm: 2, md: 3 },
-            pb: 10,
-            borderLeft: `1px solid ${darkMode ? "#ec008c" : "#ec008c33"}`,
-            boxShadow: darkMode
-              ? "inset 0 0 6px rgba(236, 0, 140, 0.2)"
-              : "inset 0 0 6px rgba(236, 0, 140, 0.1)",
+            p: { xs: 2, sm: 3 },
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            // Custom scrollbar styling for a modern look
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: 'transparent',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: darkMode ? '#444' : '#ccc',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              background: darkMode ? '#666' : '#aaa',
+            }
           }}
         >
           <Outlet />

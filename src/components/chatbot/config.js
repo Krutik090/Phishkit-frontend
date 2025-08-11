@@ -5,14 +5,7 @@ const config = {
     createChatBotMessage("Hi! Ask me anything about the PhishKit.")
   ],
   botName: "PhishKit AI",
-  customStyles: {
-    botMessageBox: {
-      backgroundColor: localStorage.getItem('primaryColor'),
-    },
-    chatButton: {
-      backgroundColor: localStorage.getItem('primaryColor'),
-    },
-  },
+
 };
 
 export default config;

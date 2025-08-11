@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Box,
-  Typography,
   Button,
+  Typography,
   IconButton,
   Tooltip,
   Dialog,
@@ -10,158 +10,50 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Select,
-  MenuItem,
-  FormControl,
+  Switch,
+  alpha,
+  Paper,
+  Avatar
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
+  SupervisorAccount as SupervisorAccountIcon,
+  Add as AddIcon,
 } from "@mui/icons-material";
-import $ from "jquery";
-import "datatables.net";
-import "datatables.net-dt/css/dataTables.dataTables.min.css";
-
-import NewUserModel from "./NewUserModel";
+import { DataGrid } from '@mui/x-data-grid';
 import { useTheme } from "../../context/ThemeContext";
+import { advancedToast } from "../../utils/toast";
+import NewUserModel from "./NewUserModel";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-// Dummy data for development
-const DUMMY_USERS = [
-  {
-    id: 1,
-    name: "John Doe",
-    email: "john.doe@example.com",
-    role: "User",
-    permission: "Launch"
-  },
-  {
-    id: 2,
-    name: "Jane Smith",
-    email: "jane.smith@company.com",
-    role: "Maintenance User",
-    permission: "Read Only"
-  },
-  {
-    id: 3,
-    name: "Mike Johnson",
-    email: "mike.johnson@tech.com",
-    role: "User",
-    permission: "Launch"
-  },
-  {
-    id: 4,
-    name: "Sarah Wilson",
-    email: "sarah.wilson@domain.com",
-    role: "Maintenance User",
-    permission: "Launch"
-  },
-  {
-    id: 5,
-    name: "David Brown",
-    email: "david.brown@email.com",
-    role: "User",
-    permission: "Read Only"
-  },
-  {
-    id: 6,
-    name: "Emily Davis",
-    email: "emily.davis@service.com",
-    role: "Maintenance User",
-    permission: "Launch"
-  },
-  {
-    id: 7,
-    name: "Alex Rodriguez",
-    email: "alex.rodriguez@corp.com",
-    role: "User",
-    permission: "Read Only"
-  },
-  {
-    id: 8,
-    name: "Lisa Anderson",
-    email: "lisa.anderson@business.com",
-    role: "Maintenance User",
-    permission: "Launch"
-  },
-  {
-    id: 9,
-    name: "Chris Taylor",
-    email: "chris.taylor@organization.com",
-    role: "User",
-    permission: "Launch"
-  },
-  {
-    id: 10,
-    name: "Amanda White",
-    email: "amanda.white@platform.com",
-    role: "User",
-    permission: "Read Only"
-  },
-  {
-    id: 11,
-    name: "Robert Martinez",
-    email: "robert.martinez@systems.com",
-    role: "Maintenance User",
-    permission: "Launch"
-  },
-  {
-    id: 12,
-    name: "Jessica Lee",
-    email: "jessica.lee@solutions.com",
-    role: "User",
-    permission: "Read Only"
-  }
-];
-
 const UserManagement = () => {
-  const [users, setUsers] = useState(DUMMY_USERS); // Initialize with dummy data
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
-
-  const tableRef = useRef(null);
-  const dataTable = useRef(null);
-
   const { darkMode } = useTheme();
 
-
-  useEffect(() => {
-    // Comment out fetchUsers() to use dummy data
-    // fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    if (dataTable.current) {
-      dataTable.current.destroy();
-    }
-
-    if (users.length > 0 && tableRef.current) {
-      dataTable.current = $(tableRef.current).DataTable({
-        pageLength: 10,
-        searching: true,
-        ordering: true,
-        lengthChange: true,
-        destroy: true,
-        columnDefs: [
-          { targets: [2, 3, 4], orderable: false }, // Disable sorting for Role, Permission, and Actions columns
-        ],
-      });
-    }
-  }, [users]);
-
   const fetchUsers = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/users`);
+      const res = await fetch(`${API_BASE_URL}/superadmin/users-under-admin`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch user list");
       const data = await res.json();
       setUsers(data);
     } catch (err) {
-      console.error("Failed to fetch users:", err);
-      // Fallback to dummy data if API fails
-      setUsers(DUMMY_USERS);
+      advancedToast.error(
+        "Could not load the user list. Please try again later.",
+        "Load Failed", { icon: "❌" }
+      );
+    } finally {
+        setLoading(false);
     }
   };
+
+  useEffect(() => { fetchUsers(); }, []);
 
   const handleOpenModal = () => {
     setSelectedUser(null);
@@ -180,253 +72,171 @@ const UserManagement = () => {
   };
 
   const confirmDelete = async () => {
+    if (!deleteDialog.user) return;
+    const { _id, name } = deleteDialog.user;
     try {
-      const id = deleteDialog.user.id;
-      const res = await fetch(`${API_BASE_URL}/auth/users/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error();
-      setUsers((prev) => prev.filter((u) => u.id !== id));
+      const res = await fetch(`${API_BASE_URL}/superadmin/${_id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("Failed to delete user");
+      setUsers((prev) => prev.filter((u) => u._id !== _id));
+      advancedToast.success(`User "${name}" deleted successfully.`, "User Removed", { icon: "🗑️" });
     } catch (err) {
-      console.error("Failed to delete user:", err);
-      // For dummy data, still remove from local state
-      const id = deleteDialog.user.id;
-      setUsers((prev) => prev.filter((u) => u.id !== id));
+      advancedToast.error(err.message || "An error occurred while deleting the user.", "Delete Failed", { icon: "❌" });
     } finally {
       setDeleteDialog({ open: false, user: null });
     }
   };
 
-  const handleRoleChange = async (userId, newRole) => {
+  const handleReadOnlyToggle = async (user) => {
+    const newStatus = !user.isReadOnly;
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/users/${userId}/role`, {
+      const res = await fetch(`${API_BASE_URL}/superadmin/${user._id}/readonly`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ role: newRole }),
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ isReadOnly: newStatus }),
       });
-
-      if (!res.ok) throw new Error();
-
-      // Update local state
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, role: newRole } : user
-        )
-      );
+      if (!res.ok) throw new Error("Failed to update");
+      fetchUsers();
+      advancedToast.success(`Read-only ${newStatus ? "enabled" : "disabled"} for ${user.name}.`, "Status Updated", { icon: newStatus ? "🔒" : "✏️" });
     } catch (err) {
-      console.error("Failed to update role:", err);
-      // For dummy data, still update local state
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, role: newRole } : user
-        )
-      );
+      advancedToast.error("Could not update read-only status. Please try again.", "Update Failed", { icon: "❌" });
     }
   };
 
-  const handlePermissionChange = async (userId, newPermission) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/users/${userId}/permission`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ permission: newPermission }),
-      });
-
-      if (!res.ok) throw new Error();
-
-      // Update local state
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, permission: newPermission } : user
+  const columns = useMemo(() => [
+    {
+        field: 'name',
+        headerName: 'Name',
+        minWidth: 200,
+        flex: 1,
+        renderCell: (params) => (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, height: '100%' }}>
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: '0.875rem' }}>
+                    {params.row.name.charAt(0).toUpperCase()}
+                </Avatar>
+                <Typography variant="body2" fontWeight="bold">{params.row.name}</Typography>
+            </Box>
         )
-      );
-    } catch (err) {
-      console.error("Failed to update permission:", err);
-      // For dummy data, still update local state
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, permission: newPermission } : user
-        )
-      );
-    }
-  };
+    },
+    { field: 'email', headerName: 'Email', minWidth: 250, flex: 1 },
+    {
+        field: 'isReadOnly',
+        headerName: 'Read-Only',
+        width: 150,
+        align: 'center',
+        headerAlign: 'center',
+        renderCell: (params) => (
+            <Tooltip title={params.value ? "Read-Only Enabled" : "Read-Only Disabled"}>
+                <Switch
+                  checked={!!params.value}
+                  onChange={() => handleReadOnlyToggle(params.row)}
+                  color="primary"
+                />
+            </Tooltip>
+        ),
+    },
+    {
+        field: 'actions',
+        headerName: 'Actions',
+        type: 'actions',
+        width: 120,
+        align: 'center',
+        headerAlign: 'center',
+        getActions: (params) => [
+            <Tooltip title="Edit User" key="edit">
+                <IconButton size="small" onClick={() => handleEditUser(params.row)} sx={{ color: darkMode ? '#66bb6a' : '#2e7d32' }}>
+                    <EditIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>,
+            <Tooltip title="Delete User" key="delete">
+                <IconButton size="small" onClick={() => setDeleteDialog({ open: true, user: params.row })} sx={{ color: darkMode ? '#ef5350' : '#d32f2f' }}>
+                    <DeleteIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>,
+        ],
+    },
+  ], [darkMode]);
 
   return (
     <Box p={3}>
-      <Box display="flex" justifyContent="space-between" mb={3}>
-        <Typography variant="h5" fontWeight="bold">
-          🧑‍💼 User Management
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          mb: 3,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          borderRadius: '16px',
+          backgroundColor: darkMode ? alpha('#1e1e2f', 0.7) : alpha('#ffffff', 0.7),
+          backdropFilter: 'blur(12px)',
+          border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
+        }}
+      >
+        <Typography
+          variant="h5"
+          fontWeight="bold"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            color: darkMode ? 'grey.100' : 'grey.900'
+          }}
+        >
+          <SupervisorAccountIcon /> User Management
         </Typography>
         <Button
           variant="contained"
+          startIcon={<AddIcon />}
           onClick={handleOpenModal}
           sx={{
-            background: "linear-gradient(135deg, #ec008c, #ff6a9f)",
+            background: `linear-gradient(135deg, #ec008c, #ff6a9f)`,
             color: "#fff",
             fontWeight: "bold",
-            borderRadius: "8px",
-            px: 3,
-            py: 1,
-            textTransform: "uppercase",
+            borderRadius: "12px",
           }}
         >
           Add User
         </Button>
+      </Paper>
+
+      <Box sx={{ width: '100%' }}>
+        <DataGrid
+          rows={users.map(u => ({ ...u, id: u._id }))}
+          columns={columns}
+          loading={loading}
+          autoHeight
+          checkboxSelection={false}
+          disableRowSelectionOnClick
+          initialState={{
+            pagination: { paginationModel: { pageSize: 10 } },
+            sorting: { sortModel: [{ field: 'name', sort: 'asc' }] },
+          }}
+          pageSizeOptions={[5, 10, 25]}
+          sx={{
+            '--DataGrid-containerBackground': darkMode ? '#1e1e2f' : '#ffffff',
+            backgroundColor: 'var(--DataGrid-containerBackground)',
+            borderRadius: '16px',
+            border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
+            color: darkMode ? 'grey.300' : 'grey.800',
+            
+            '& .MuiDataGrid-columnHeaders, & .MuiDataGrid-columnHeader, & .MuiDataGrid-columnHeaderTitle': {
+              backgroundColor: darkMode ? '#0f0f1a' : '#f5f5f5',
+              color: darkMode ? '#ffffff' : '#222',
+              borderBottom: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`,
+            },
+            '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 'bold' },
+            '& .MuiDataGrid-iconButton, & .MuiDataGrid-menuIcon': { color: darkMode ? '#ffffff' : '#666' },
+            '& .MuiDataGrid-cell': { borderBottom: `1px solid ${darkMode ? alpha('#fff', 0.08) : alpha('#000', 0.08)}` },
+            '& .MuiDataGrid-footerContainer': { borderTop: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.15)}`, backgroundColor: darkMode ? '#1a1a2e' : '#fafafa' },
+            '& .MuiTablePagination-root, & .MuiIconButton-root': { color: darkMode ? 'grey.300' : 'grey.800' },
+            '& .MuiDataGrid-row:hover': { backgroundColor: darkMode ? alpha('#fff', 0.05) : alpha('#000', 0.05) },
+            '& .MuiDataGrid-overlay': { color: darkMode ? 'grey.300' : 'grey.800', backgroundColor: darkMode ? alpha('#1e1e2f', 0.5) : alpha('#ffffff', 0.5) },
+            '&.MuiDataGrid-root, & .MuiDataGrid-cell, & .MuiDataGrid-columnHeaders': { border: 'none' },
+          }}
+        />
       </Box>
 
-      <table
-        ref={tableRef}
-        className="display stripe"
-        style={{
-          width: "100%",
-          textAlign: "center",
-          borderCollapse: "collapse",
-          border: "1px solid #ddd",
-        }}
-      >
-        <thead>
-          <tr>
-            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Name</th>
-            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Email</th>
-            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Role</th>
-            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Permission</th>
-            <th style={{ border: "1px solid #ccc", padding: 10, textAlign: "center" }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td style={{ border: "1px solid #ddd", padding: 8 }}>{user.name}</td>
-              <td style={{ border: "1px solid #ddd", padding: 8 }}>{user.email}</td>
-              <td style={{ border: "1px solid #ddd", padding: 0 }}>
-                <FormControl size="small" sx={{ width: "100%", minWidth: 120 }}>
-                  <Select
-                    value={user.role || "User"}
-                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                    sx={{
-                      "& .MuiSelect-select": {
-                        padding: "8px 12px",
-                        fontSize: "14px",
-                        border: "none",
-                        borderRadius: 0,
-                        color: darkMode ? '#ffffff' : '#000000'
-                      },
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        border: "none",
-                      },
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        border: "none",
-                      },
-                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        border: "none",
-                      },
-                      "& .MuiSelect-icon": {
-                        color: darkMode ? "#ffffff" : "#000000", // 👈 dropdown icon color
-                      },
-                      height: "100%",
-                      minHeight: "40px",
-                    }}
-                    MenuProps={{
-                      PaperProps: {
-                        sx: {
-                          "& .MuiMenuItem-root.Mui-selected.user-role": {
-                            backgroundColor: "#fce4f6",
-                            color: "#ec008c",
-                            fontWeight: "bold",
-                          },
-                          "& .MuiMenuItem-root.Mui-selected.maint-role": {
-                            backgroundColor: "#fce4f6",
-                            color: "#ec008c",
-                            fontWeight: "bold",
-                          },
-                          "& .MuiMenuItem-root.Mui-selected": {
-                            backgroundColor: "#fce4f6",
-                          },
-                        },
-                      },
-                    }}
-                  >
-                    <MenuItem value="User" className="user-role">User</MenuItem>
-                    <MenuItem value="Maintenance User" className="maint-role">Maintenance User</MenuItem>
-                  </Select>
-                </FormControl>
-              </td>
-              <td style={{ border: "1px solid #ddd", padding: 0 }}>
-                <FormControl size="small" sx={{ width: "100%", minWidth: 120 }}>
-                  <Select
-                    value={user.permission || "Read Only"}
-                    onChange={(e) => handlePermissionChange(user.id, e.target.value)}
-                    sx={{
-                      "& .MuiSelect-select": {
-                        padding: "8px 12px",
-                        fontSize: "14px",
-                        border: "none",
-                        borderRadius: 0,
-                        color: darkMode ? '#ffffff' : '#000000'
-                      },
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        border: "none",
-                      },
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        border: "none",
-                      },
-                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        border: "none",
-                      },
-                      "& .MuiSelect-icon": {
-                        color: darkMode ? "#ffffff" : "#000000", // 👈 dropdown icon color
-                      },
-                      height: "100%",
-                      minHeight: "40px",
-                    }}
-                    MenuProps={{
-                      PaperProps: {
-                        sx: {
-                          "& .MuiMenuItem-root.Mui-selected.permission-read": {
-                            backgroundColor: "#fce4f6",
-                            color: "#ec008c",
-                            fontWeight: "bold",
-                          },
-                          "& .MuiMenuItem-root.Mui-selected.permission-launch": {
-                            backgroundColor: "#fce4f6",
-                            color: "#ec008c",
-                            fontWeight: "bold",
-                          },
-                        },
-                      },
-                    }}
-                  >
-                    <MenuItem value="Launch" className="permission-launch">Launch</MenuItem>
-                    <MenuItem value="Read Only" className="permission-read">Read Only</MenuItem>
-                  </Select>
-                </FormControl>
-
-              </td>
-              <td style={{ border: "1px solid #ddd", padding: 8 }}>
-                <Tooltip title="Edit">
-                  <IconButton color="primary" onClick={() => handleEditUser(user)}>
-                    <EditIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Delete">
-                  <IconButton
-                    color="error"
-                    onClick={() => setDeleteDialog({ open: true, user })}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </Tooltip>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* Modal for New/Edit */}
       <NewUserModel
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -434,25 +244,28 @@ const UserManagement = () => {
         user={selectedUser}
       />
 
-      {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, user: null })}
+        PaperProps={{
+            sx: {
+                borderRadius: '20px',
+                background: darkMode ? alpha("#1a1a2e", 0.9) : alpha("#ffffff", 0.9),
+                backdropFilter: 'blur(16px)',
+                border: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.1)}`,
+                color: darkMode ? 'grey.100' : 'grey.800',
+            }
+        }}
       >
-        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>🗑️ Confirm Deletion</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete{" "}
-            <strong>{deleteDialog.user?.name}</strong>?
+          <DialogContentText sx={{ color: darkMode ? 'grey.300' : 'grey.700' }}>
+            Are you sure you want to delete <strong>{deleteDialog.user?.name}</strong>? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialog({ open: false, user: null })}>
-            Cancel
-          </Button>
-          <Button onClick={confirmDelete} color="error">
-            Delete
-          </Button>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setDeleteDialog({ open: false, user: null })} sx={{ color: darkMode ? 'grey.400' : 'grey.600' }}>Cancel</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">Delete</Button>
         </DialogActions>
       </Dialog>
     </Box>

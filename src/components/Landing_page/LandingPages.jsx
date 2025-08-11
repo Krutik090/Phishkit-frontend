@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Box,
-  Typography,
+  Paper,
   Button,
+  Typography,
   IconButton,
   Tooltip,
   Dialog,
@@ -10,6 +11,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  alpha,
+  Chip
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -17,75 +20,39 @@ import {
   Edit as EditIcon,
   Language as LanguageIcon,
 } from "@mui/icons-material";
-import $ from "jquery";
-import "datatables.net";
-import "datatables.net-dt/css/dataTables.dataTables.min.css";
-
-import NewLandingPageModal from "./NewLandingPageModal";
+import { DataGrid } from '@mui/x-data-grid';
 import { toast } from "react-toastify";
+import { useTheme } from "../../context/ThemeContext";
+import NewLandingPageModal from "./NewLandingPageModal";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const LandingPages = () => {
   const [landingPages, setLandingPages] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPage, setEditingPage] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, page: null });
-  const tableRef = useRef(null);
-  const dataTableRef = useRef(null);
+  const { darkMode } = useTheme();
+
+  const fetchLandingPages = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/landing-pages`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch landing pages");
+      const data = await res.json();
+      setLandingPages(data);
+    } catch (err) {
+      console.error("Failed to fetch landing pages:", err);
+      toast.error("Failed to load landing pages.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchLandingPages();
   }, []);
-
-  useEffect(() => {
-    if (landingPages.length > 0 && !dataTableRef.current) {
-      initializeDataTable();
-    }
-  }, [landingPages]);
-
-  const initializeDataTable = () => {
-    if (dataTableRef.current) {
-      dataTableRef.current.destroy();
-    }
-    dataTableRef.current = $(tableRef.current).DataTable({
-      destroy: true,
-      responsive: true,
-      pageLength: 10,
-      lengthChange: true,
-      searching: true,
-      ordering: true,
-      info: true,
-      autoWidth: false,
-    });
-  };
-
-  const reloadDataTable = () => {
-    if (dataTableRef.current) {
-      dataTableRef.current.clear();
-      dataTableRef.current.rows.add($(tableRef.current).find('tbody tr'));
-      dataTableRef.current.draw();
-    }
-  };
-
-  const fetchLandingPages = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/landing-pages`, {
-        credentials: "include",
-      });
-      const data = await res.json();
-      setLandingPages(data);
-
-      // Reload DataTable after fetching new data
-      setTimeout(() => {
-        if (dataTableRef.current) {
-          reloadDataTable();
-        }
-      }, 100);
-    } catch (err) {
-      console.error("Failed to fetch landing pages:", err);
-    }
-  };
 
   const handleOpenModal = () => {
     setEditingPage(null);
@@ -97,60 +64,23 @@ const LandingPages = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveSuccess = async (data, mode, id = null) => {
-    try {
-      const url = mode === "edit"
-        ? `${API_BASE_URL}/landing-pages/${id}`
-        : `${API_BASE_URL}/landing-pages`;
-
-      const method = mode === "edit" ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!res.ok) throw new Error("API call failed");
-
-      fetchLandingPages();
-      setIsModalOpen(false);
-      setEditingPage(null);
-    } catch (err) {
-      console.error("Save Error:", err);
-      toast.error("❌ Failed to save landing page.");
-    }
+  const handleSaveSuccess = () => {
+    fetchLandingPages();
+    setIsModalOpen(false);
+    setEditingPage(null);
   };
+
   const confirmDelete = async () => {
+    if (!deleteDialog.page) return;
     try {
       const id = deleteDialog.page._id;
-
       const res = await fetch(`${API_BASE_URL}/landing-pages/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
-
-      if (!res.ok) throw new Error();
-
-      // ✅ Corrected: Use _id, not id
-      setLandingPages((prev) => prev.filter((p) => p._id !== id));
-
-      // ✅ Use updated landingPages list for DataTable refresh
-      setTimeout(() => {
-        if (dataTableRef.current) {
-          dataTableRef.current.clear();
-          dataTableRef.current.rows.add(
-            $(tableRef.current).find("tbody tr")
-          );
-          dataTableRef.current.draw();
-        }
-      }, 100);
-
+      if (!res.ok) throw new Error("Delete failed");
       toast.success(`"${deleteDialog.page.name}" deleted successfully.`);
+      fetchLandingPages();
     } catch (err) {
       console.error(err);
       toast.error("Failed to delete landing page.");
@@ -158,121 +88,146 @@ const LandingPages = () => {
       setDeleteDialog({ open: false, page: null });
     }
   };
-
-  useEffect(() => {
-    // Wait until DOM is updated
-    const timeout = setTimeout(() => {
-      if (dataTableRef.current) {
-        dataTableRef.current.destroy();
-        dataTableRef.current = null;
-      }
-
-      if (tableRef.current && landingPages.length > 0) {
-        dataTableRef.current = $(tableRef.current).DataTable({
-          destroy: true,
-          responsive: true,
-          pageLength: 10,
-          lengthChange: true,
-          searching: true,
-          ordering: true,
-          info: true,
-          autoWidth: false,
-        });
-      }
-    }, 100); // Delay ensures rows are rendered
-
-    return () => clearTimeout(timeout);
-  }, [landingPages]);
-
+  
+  const columns = useMemo(() => [
+    { field: 'name', headerName: 'Name', minWidth: 200, flex: 1 },
+    {
+        field: 'capture_credentials',
+        headerName: 'Capture Credentials',
+        width: 200,
+        align: 'center',
+        headerAlign: 'center',
+        renderCell: (params) => (
+            <Chip 
+                label={params.value ? "Yes" : "No"}
+                color={params.value ? "success" : "error"}
+                variant="outlined"
+                size="small"
+            />
+        )
+    },
+    { field: 'redirect_url', headerName: 'Redirect URL', minWidth: 250, flex: 1, valueGetter: (value) => value || '—' },
+    {
+        field: 'actions',
+        headerName: 'Actions',
+        type: 'actions',
+        width: 120,
+        align: 'center',
+        headerAlign: 'center',
+        getActions: (params) => [
+            <Tooltip title="Edit" key="edit">
+                <IconButton size="small" onClick={() => handleEditPage(params.row)} sx={{ color: darkMode ? '#66bb6a' : '#2e7d32' }}>
+                    <EditIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>,
+            <Tooltip title="Delete" key="delete">
+                <IconButton size="small" onClick={() => setDeleteDialog({ open: true, page: params.row })} sx={{ color: darkMode ? '#ef5350' : '#d32f2f' }}>
+                    <DeleteIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>,
+        ],
+    }
+  ], [darkMode]);
 
   return (
     <Box p={3}>
-      <Box display="flex" justifyContent="space-between" mb={3}>
-        <Typography variant="h5" fontWeight="bold" display="flex" alignItems="center" gap={1}>
-          <LanguageIcon color="primary" />
-          Landing Pages
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          mb: 3,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          borderRadius: '16px',
+          backgroundColor: darkMode ? alpha('#1e1e2f', 0.7) : alpha('#ffffff', 0.7),
+          backdropFilter: 'blur(12px)',
+          border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
+        }}
+      >
+        <Typography 
+            variant="h5" 
+            fontWeight="bold" 
+            display="flex" 
+            alignItems="center" 
+            gap={1.5}
+            sx={{ color: darkMode ? 'grey.100' : 'grey.900' }}
+        >
+          <LanguageIcon sx={{ color: darkMode ? 'grey.100' : 'grey.900' }} /> Landing Pages
         </Typography>
         <Button
           variant="contained"
           onClick={handleOpenModal}
+          startIcon={<AddIcon />}
           sx={{
-            background: `linear-gradient(135deg, ${localStorage.getItem('primaryColor')}, ${localStorage.getItem('secondaryColor')})`,
+            background: `linear-gradient(135deg, #ec008c, #fc6767)`,
             color: "#fff",
             fontWeight: "bold",
-            borderRadius: "8px",
-            px: 3,
-            py: 1,
-            textTransform: "uppercase",
+            borderRadius: "12px",
           }}
-          startIcon={<AddIcon />}
         >
           New Landing Page
         </Button>
-      </Box>
+      </Paper>
 
-      <table
-        ref={tableRef}
-        className="display stripe"
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          textAlign: "center",
-          border: "1px solid #ddd",
-        }}
-      >
-        <thead>
-          <tr>
-            {["Name", "Capture Credentials", "Redirect URL", "Actions"].map((h, i) => (
-              <th key={i} style={{ border: "1px solid #ccc", padding: 10, textAlign: "center", verticalAlign: "middle" }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {landingPages.map((page) => (
-            <tr key={page._id}>
-              <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>{page.name}</td>
-              <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
-                {page.capture_credentials ? "Yes" : "No"}
-              </td>
-              <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
-                {page.redirect_url || "—"}
-              </td>
-              <td style={{ border: "1px solid #ddd", padding: 8, textAlign: "center", verticalAlign: "middle" }}>
-                <Tooltip title="Edit">
-                  <IconButton color="primary" onClick={() => handleEditPage(page)}>
-                    <EditIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Delete">
-                  <IconButton
-                    color="error"
-                    onClick={() => setDeleteDialog({ open: true, page })}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </Tooltip>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Box sx={{ width: '100%' }}>
+        <DataGrid
+          rows={landingPages.map(p => ({...p, id: p._id}))}
+          columns={columns}
+          loading={loading}
+          autoHeight
+          checkboxSelection={false}
+          disableRowSelectionOnClick
+          initialState={{
+            pagination: { paginationModel: { pageSize: 10 } },
+            sorting: { sortModel: [{ field: 'name', sort: 'asc' }] },
+          }}
+          pageSizeOptions={[5, 10, 25]}
+          sx={{
+            '--DataGrid-containerBackground': darkMode ? '#1e1e2f' : '#ffffff',
+            backgroundColor: 'var(--DataGrid-containerBackground)',
+            borderRadius: '16px',
+            border: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1)}`,
+            color: darkMode ? 'grey.300' : 'grey.800',
+            '& .MuiDataGrid-columnHeaders, & .MuiDataGrid-columnHeader, & .MuiDataGrid-columnHeaderTitle': {
+              backgroundColor: darkMode ? '#0f0f1a' : '#f5f5f5',
+              color: darkMode ? '#ffffff' : '#222',
+              borderBottom: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`,
+            },
+            '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 'bold' },
+            '& .MuiDataGrid-iconButton, & .MuiDataGrid-menuIcon': { color: darkMode ? '#ffffff' : '#666' },
+            '& .MuiDataGrid-cell': { borderBottom: `1px solid ${darkMode ? alpha('#fff', 0.08) : alpha('#000', 0.08)}` },
+            '& .MuiDataGrid-footerContainer': { borderTop: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.15)}`, backgroundColor: darkMode ? '#1a1a2e' : '#fafafa' },
+            '& .MuiTablePagination-root, & .MuiIconButton-root': { color: darkMode ? 'grey.300' : 'grey.800' },
+            '& .MuiDataGrid-row:hover': { backgroundColor: darkMode ? alpha('#fff', 0.05) : alpha('#000', 0.05) },
+            '& .MuiDataGrid-overlay': { color: darkMode ? 'grey.300' : 'grey.800', backgroundColor: darkMode ? alpha('#1e1e2f', 0.5) : alpha('#ffffff', 0.5) },
+            '&.MuiDataGrid-root, & .MuiDataGrid-cell, & .MuiDataGrid-columnHeaders': { border: 'none' },
+          }}
+        />
+      </Box>
 
       <Dialog
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, page: null })}
+        PaperProps={{
+            sx: {
+                borderRadius: '20px',
+                background: darkMode ? alpha("#1a1a2e", 0.9) : alpha("#ffffff", 0.9),
+                backdropFilter: 'blur(16px)',
+                border: `1px solid ${darkMode ? alpha('#fff', 0.15) : alpha('#000', 0.1)}`,
+                color: darkMode ? 'grey.100' : 'grey.800',
+            }
+        }}
       >
-        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>🗑️ Confirm Deletion</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete the landing page "
-            <strong>{deleteDialog.page?.name}</strong>"?
+          <DialogContentText sx={{ color: darkMode ? 'grey.300' : 'grey.700' }}>
+            Are you sure you want to delete the landing page "<strong>{deleteDialog.page?.name}</strong>"?
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialog({ open: false, page: null })}>Cancel</Button>
-          <Button onClick={confirmDelete} color="error">
-            Delete
-          </Button>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setDeleteDialog({ open: false, page: null })} sx={{ color: darkMode ? 'grey.400' : 'grey.600' }}>Cancel</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">Delete</Button>
         </DialogActions>
       </Dialog>
 

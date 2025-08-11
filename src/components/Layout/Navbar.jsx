@@ -1,38 +1,29 @@
-// src/components/layout/Navbar.jsx
 import React, { useState } from "react";
 import {
     AppBar,
     Toolbar,
-    Button,
     InputBase,
     IconButton,
     Box,
+    Typography,
     alpha,
+    Avatar,
+    Tooltip
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import { FaMoon, FaSun } from "react-icons/fa";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
-    const { darkMode } = useTheme();
+    const { darkMode, setDarkMode } = useTheme();
     const [searchQuery, setSearchQuery] = useState("");
-    const { logout } = useAuth();
+    const { user } = useAuth();
     const navigate = useNavigate();
 
     const handleSearch = () => {
         console.log("Searching for:", searchQuery);
-        // TODO: implement actual search logic
-    };
-
-    const handleLogout = async () => {
-        try {
-            await logout();
-        } catch (err) {
-            console.error("Logout failed:", err);
-        } finally {
-            navigate("/login");
-        }
     };
 
     return (
@@ -40,72 +31,61 @@ const Navbar = () => {
             position="sticky"
             elevation={0}
             sx={{
-                backgroundColor: darkMode ? "#1e1e2f" : "#ffffff",
+                background: 'transparent',
+                backdropFilter: 'blur(12px)',
                 color: darkMode ? "#ffffff" : "#1e1e2f",
-                borderBottom: `1px solid ${darkMode ? localStorage.getItem("pirmaryColor") : localStorage.getItem("pirmaryColor")}`,
-                boxShadow: darkMode
-                    ? "inset 0 -2px 4px rgba(236, 0, 140, 0.2)"
-                    : "inset 0 -2px 4px rgba(236, 0, 140, 0.1)",
-                zIndex: 1101,
+                borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
+                paddingX: 2,
             }}
         >
-            <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-                {/* 🔍 Centered Search Bar */}
-                <Box
-                    sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        backgroundColor: alpha(darkMode ? "#ffffff" : "#000000", 0.05),
-                        borderRadius: 2,
-                        px: 1,
-                        flex: 1,
-                        maxWidth: 600,
-                        justifyContent: "center",
-                        border: "1px solid",
-                        borderColor: darkMode ? localStorage.getItem("primaryColor") : localStorage.getItem("pirmaryColor"),
-                    }}
-                >
-                    <InputBase
-                        placeholder="Search..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        sx={{
-                            ml: 1,
-                            flex: 1,
-                            color: darkMode ? "#ffffff" : "#1e1e2f",
-                        }}
-                        inputProps={{ "aria-label": "search" }}
-                    />
-                    <IconButton
-                        onClick={handleSearch}
-                        sx={{ color: localStorage.getItem("pirmaryColor") }}
-                        aria-label="search-button"
-                    >
-                        <SearchIcon />
-                    </IconButton>
+            <Toolbar sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                {/* Left side: Welcome message */}
+                <Box>
+                    <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                        Welcome, {user?.name || 'User'}!
+                    </Typography>
                 </Box>
 
-                {/* 🚪 Logout Button */}
-                <Button
-                    variant="contained"
-                    size="small"
-                    onClick={handleLogout}
-                    sx={{
-                        ml: 2,
-                        minWidth: 100, // Wider button
-                        py: 1.0,        // Taller button
-                        background: "linear-gradient(to right, #8b0000, #e11d48)",
-                        color: "#ffffff",
-                        fontWeight: "bold",
-                        textTransform: "none",
-                        fontSize: '15px',
-                        "&:hover": {
-                            background: "linear-gradient(to right, #7f1d1d, #be123c)",
-                        },
-                    }}
-                >
-                    Logout
-                </Button>
+                {/* Right side: Search, Theme Toggle, and User */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    {/* Search Bar */}
+                    <Box
+                        sx={{
+                            display: { xs: 'none', md: 'flex' }, // Hide on small screens
+                            alignItems: "center",
+                            backgroundColor: alpha(darkMode ? "#ffffff" : "#000000", 0.08),
+                            borderRadius: '12px',
+                            px: 1.5,
+                            width: { sm: 300, md: 400 },
+                        }}
+                    >
+                        <InputBase
+                            placeholder="Search..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            sx={{ flex: 1, color: 'inherit' }}
+                            inputProps={{ "aria-label": "search" }}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                        />
+                        <IconButton onClick={handleSearch} sx={{ color: 'inherit' }} aria-label="search-button">
+                            <SearchIcon />
+                        </IconButton>
+                    </Box>
+
+                    {/* Theme Toggle Button */}
+                    <Tooltip title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}>
+                        <IconButton onClick={() => setDarkMode(!darkMode)} sx={{ color: 'inherit' }}>
+                            {darkMode ? <FaSun /> : <FaMoon />}
+                        </IconButton>
+                    </Tooltip>
+
+                    {/* User Info */}
+                    <Tooltip title={user?.email || ''}>
+                         <Avatar sx={{ background: 'linear-gradient(45deg, #ec008c, #fc6767)' }}>
+                            {user?.email?.[0].toUpperCase()}
+                        </Avatar>
+                    </Tooltip>
+                </Box>
             </Toolbar>
         </AppBar>
     );
