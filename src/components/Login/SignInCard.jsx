@@ -30,6 +30,8 @@ export const SignInCard = () => {
   const [userInfo, setUserInfo] = useState(null);
   const [mfaDialogOpen, setMfaDialogOpen] = useState(false);
   const [forgotDialogOpen, setForgotDialogOpen] = useState(false);
+  // ✅ Added state for inactive user dialog
+  const [inactiveDialogOpen, setInactiveDialogOpen] = useState(false);
   const { setUser } = useAuth();
   const navigate = useNavigate();
 
@@ -79,8 +81,19 @@ export const SignInCard = () => {
 
     } catch (error) {
       const message = error.response?.data?.message;
+      const statusCode = error.response?.status;
+      
       fetchCaptcha(); // Refresh captcha on any error
-      if (message === "MFA token required") {
+      
+      // ✅ Handle different error scenarios
+      if (statusCode === 403) {
+        // Account is inactive
+        setInactiveDialogOpen(true);
+        advancedToast.error("Your account is inactive. Please contact your administrator.", "Account Inactive", { 
+          icon: "🚫",
+          duration: 6000 
+        });
+      } else if (message === "MFA token required") {
         setUserInfo({ email, password });
         setMfaDialogOpen(true);
       } else {
@@ -102,10 +115,36 @@ export const SignInCard = () => {
       setUser(res.data.user);
       advancedToast.success(`Welcome back, ${res.data.user.name}!`, "Login Successful", { icon: "👋" });
       navigate(res.data.user.role === 'superadmin' ? '/super-admin' : '/dashboard');
+      setMfaDialogOpen(false);
     } catch (err) {
-      advancedToast.error(err.response?.data?.message || "Invalid MFA token.", "MFA Failed");
+      const statusCode = err.response?.status;
+      const message = err.response?.data?.message;
+      
+      // ✅ Handle inactive account in MFA flow
+      if (statusCode === 403) {
+        setMfaDialogOpen(false);
+        setInactiveDialogOpen(true);
+        advancedToast.error("Your account is inactive. Please contact your administrator.", "Account Inactive", { 
+          icon: "🚫",
+          duration: 6000 
+        });
+      } else {
+        advancedToast.error(message || "Invalid MFA token.", "MFA Failed");
+      }
       setMfaToken("");
     }
+  };
+
+  // ✅ Handle closing inactive dialog and clearing form
+  const handleInactiveDialogClose = () => {
+    setInactiveDialogOpen(false);
+    // Clear form fields for security
+    setEmail('');
+    setPassword('');
+    setCaptchaInput('');
+    setMfaToken('');
+    setUserInfo(null);
+    fetchCaptcha(); // Get new captcha
   };
   
   const textFieldSx = {
@@ -197,6 +236,53 @@ export const SignInCard = () => {
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setForgotDialogOpen(false)} variant="contained">Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ✅ Added Inactive User Dialog */}
+      <Dialog 
+        open={inactiveDialogOpen} 
+        onClose={handleInactiveDialogClose} 
+        PaperProps={{ 
+          sx: { 
+            borderRadius: '20px',
+            border: '2px solid #f44336',
+            boxShadow: '0 8px 32px rgba(244, 67, 54, 0.2)'
+          } 
+        }}
+      >
+        <DialogTitle 
+          fontWeight="bold" 
+          sx={{ 
+            color: '#f44336', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 1 
+          }}
+        >
+          🚫 Account Inactive
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontSize: '1.1rem', mb: 2 }}>
+            Your account is currently inactive and cannot be used to access the system.
+          </DialogContentText>
+          <DialogContentText sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+            Please contact your administrator to reactivate your account.
+          </DialogContentText>
+          <DialogContentText variant="body2" sx={{ mt: 2, fontStyle: 'italic' }}>
+            If you believe this is an error, please reach out to your system administrator with your email address: <strong>{email}</strong>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            onClick={handleInactiveDialogClose} 
+            variant="contained" 
+            color="primary"
+            fullWidth
+            sx={{ py: 1.5, fontWeight: 'bold' }}
+          >
+            I Understand
+          </Button>
         </DialogActions>
       </Dialog>
     </Paper>
