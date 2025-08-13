@@ -96,7 +96,7 @@ const menuConfig = [
       { 
         label: "Knowledge Quiz", 
         icon: <FaQuestionCircle />, 
-        path: "/quiz", 
+        path: "/quizz", 
         allowedRoles: [] 
       },
       { 
